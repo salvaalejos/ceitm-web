@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 from app.core.database import get_session
 # Importamos las 3 clases que definimos arriba
@@ -37,3 +37,12 @@ def read_convenio(convenio_id: int, session: Session = Depends(get_session)):
     if not convenio:
         raise HTTPException(status_code=404, detail="Convenio no encontrado")
     return convenio
+
+@router.delete("/{convenio_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_convenio(convenio_id: int, session: Session = Depends(get_session)):
+    convenio = session.get(Convenio, convenio_id)
+    if not convenio:
+        raise HTTPException(status_code=404, detail="Convenio no encontrado")
+    session.delete(convenio)
+    session.commit()
+    return None

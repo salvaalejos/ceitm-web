@@ -1,15 +1,25 @@
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
-from fastapi.middleware.cors import CORSMiddleware  # <--- 1. IMPORTAR ESTO
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles  # <--- NUEVO
 from sqlmodel import Session, select
 from app.core.database import init_db, get_session
 from app.core.config import settings
-
+from app.api.v1.endpoints import convenios, login  # <--- 1. IMPORTAR LOGIN
+from app.api.v1.endpoints import convenios, login, utils
 from app.api.v1.endpoints import convenios
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🚀 Iniciando CEITM Platform...")
+    # Asegurar que el directorio de estáticos exista
+    static_path = "static/images"
+    if not os.path.exists(static_path):
+        os.makedirs(static_path)
+        print(f"📁 Directorio creado: {static_path}")
+
     try:
         init_db()
         print("✅ Base de Datos conectada y tablas creadas.")
@@ -18,14 +28,14 @@ async def lifespan(app: FastAPI):
     yield
     print("👋 Apagando sistema...")
 
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     lifespan=lifespan,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
-# --- 2. CONFIGURACIÓN CORS (SOLUCIÓN A TU ERROR) ---
-# Esto permite que el puerto 5173 (React) hable con el 8000 (FastAPI)
+# --- CONFIGURACIÓN CORS ---
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
@@ -38,14 +48,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# ---------------------------------------------------
+
+# --- SERVIR ARCHIVOS ESTÁTICOS (IMÁGENES) ---
+# Esto hace que todo lo que esté en /backend/static sea accesible en /static
+# Ej: http://localhost:8000/static/images/flyer.jpg
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Registro de rutas
 app.include_router(convenios.router, prefix="/api/v1/convenios", tags=["Convenios"])
+app.include_router(login.router, prefix="/api/v1", tags=["Auth"])
+app.include_router(utils.router, prefix="/api/v1/utils", tags=["Utilidades"]) # <--- AGREGAR ESTA LÍNEA
 
 @app.get("/")
 def read_root():
     return {"mensaje": "Bienvenido a la API del CEITM", "estado": "operativo"}
+
 
 @app.get("/db-test")
 def test_db_connection(session: Session = Depends(get_session)):
