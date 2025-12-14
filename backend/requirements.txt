@@ -1,0 +1,17 @@
+# --- Core Framework ---
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0  # Servidor ASGI de alto rendimiento
+
+# --- Base de Datos (SQLModel + Postgres) ---
+sqlmodel>=0.0.16           # ORM moderno (combina Pydantic + SQLAlchemy)
+psycopg2-binary>=2.9.9     # Driver oficial de PostgreSQL
+
+# --- Seguridad y Autenticación (Roles del Art. 26) ---
+passlib[bcrypt]>=1.7.4     # Para hashear contraseñas (Nadie debe verlas en texto plano)
+python-jose[cryptography]>=3.3.0  # Para generar Tokens JWT (Login seguro)
+bcrypt==4.0.1              # Dependencia crítica para passlib
+
+# --- Utilidades ---
+python-multipart>=0.0.9    # Indispensable para subir Flyers (Imágenes)
+pydantic-settings>=2.2.1   # Para leer variables de entorno (.env) de forma segura
+email-validator>=2.1.0     # Para validar emails institucionales
