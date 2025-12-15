@@ -5,20 +5,11 @@ import { LoginPage } from './modules/auth/pages/LoginPage';
 import { ProtectedRoute } from './modules/auth/components/ProtectedRoute';
 import { AdminLayout } from './modules/admin/layouts/AdminLayout';
 import { AdminConvenios } from './modules/admin/pages/AdminConvenios';
+import { HomePage } from './modules/home/pages/HomePage';
 
 // Componentes Admin Temporales
 const DashboardHome = () => <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Resumen General 📊</h1>;
 
-// Home Público
-const HomePage = () => (
-  <div className="flex flex-col items-center justify-center min-h-[80vh] text-center px-4">
-    <h1 className="text-5xl font-bold text-guinda-600 mb-4">Bienvenido al CEITM</h1>
-    <p className="text-xl text-blue-gray-600 max-w-2xl">Plataforma oficial del Consejo Estudiantil.</p>
-    <div className="mt-8">
-        <a href="/convenios" className="px-6 py-3 bg-guinda-600 text-white rounded-lg hover:bg-guinda-700 transition-colors shadow-lg">Ver Convenios</a>
-    </div>
-  </div>
-);
 
 function App() {
   return (

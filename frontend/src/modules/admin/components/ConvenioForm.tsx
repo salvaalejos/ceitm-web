@@ -1,14 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Upload, Plus, Trash } from 'lucide-react';
-import { createConvenio, uploadImage } from '../../../shared/services/api';
+import { createConvenio, updateConvenio, uploadImage } from '../../../shared/services/api';
+import type { Convenio } from '../../../shared/types'; // Asegúrate de importar el tipo
 
 interface Props {
   onClose: () => void;
   onSuccess: () => void;
+  convenioToEdit?: Convenio | null; // <--- NUEVA PROP
 }
 
-export const ConvenioForm = ({ onClose, onSuccess }: Props) => {
+export const ConvenioForm = ({ onClose, onSuccess, convenioToEdit }: Props) => {
   const [loading, setLoading] = useState(false);
+
+  // Estado inicial dinámico
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion_corta: '',
@@ -19,6 +23,26 @@ export const ConvenioForm = ({ onClose, onSuccess }: Props) => {
     beneficios: [''] as string[],
     social_links: { facebook: '', instagram: '', web: '' }
   });
+
+  // EFECTO: Si hay convenio para editar, llenamos el formulario al abrir
+  useEffect(() => {
+    if (convenioToEdit) {
+      setFormData({
+        nombre: convenioToEdit.nombre,
+        descripcion_corta: convenioToEdit.descripcion_corta,
+        descripcion_larga: convenioToEdit.descripcion_larga,
+        categoria: convenioToEdit.categoria,
+        direccion: convenioToEdit.direccion || '',
+        imagen_url: convenioToEdit.imagen_url,
+        beneficios: convenioToEdit.beneficios.length > 0 ? convenioToEdit.beneficios : [''],
+        social_links: {
+            facebook: convenioToEdit.social_links?.facebook || '',
+            instagram: convenioToEdit.social_links?.instagram || '',
+            web: convenioToEdit.social_links?.web || ''
+        }
+      });
+    }
+  }, [convenioToEdit]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -67,12 +91,19 @@ export const ConvenioForm = ({ onClose, onSuccess }: Props) => {
             ...formData,
             beneficios: formData.beneficios.filter(b => b.trim() !== '')
         };
-        await createConvenio(dataToSend);
+
+        // LÓGICA DE EDICIÓN VS CREACIÓN
+        if (convenioToEdit) {
+            await updateConvenio(convenioToEdit.id, dataToSend);
+        } else {
+            await createConvenio(dataToSend);
+        }
+
         onSuccess();
         onClose();
     } catch (error) {
         console.error(error);
-        alert('Error creando convenio');
+        alert('Error guardando convenio');
     } finally {
         setLoading(false);
     }
@@ -89,8 +120,13 @@ export const ConvenioForm = ({ onClose, onSuccess }: Props) => {
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-700">
             <div>
-                <h2 className="text-2xl font-bold text-guinda-600">Nuevo Convenio</h2>
-                <p className="text-sm text-gray-500">Completa la información del aliado.</p>
+                {/* Título Dinámico */}
+                <h2 className="text-2xl font-bold text-guinda-600">
+                    {convenioToEdit ? 'Editar Convenio' : 'Nuevo Convenio'}
+                </h2>
+                <p className="text-sm text-gray-500">
+                    {convenioToEdit ? 'Modifica los datos del aliado.' : 'Completa la información del aliado.'}
+                </p>
             </div>
             <button onClick={onClose} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors">
                 <X />
@@ -105,19 +141,18 @@ export const ConvenioForm = ({ onClose, onSuccess }: Props) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label className={labelStyle}>Nombre del Negocio</label>
-                        <input name="nombre" placeholder="Ej. Tacos El Inge" className={inputStyle} required onChange={handleChange} />
+                        <input name="nombre" value={formData.nombre} placeholder="Ej. Tacos El Inge" className={inputStyle} required onChange={handleChange} />
                     </div>
                     <div>
                         <label className={labelStyle}>Categoría</label>
                         <div className="relative">
-                            <select name="categoria" className={`${inputStyle} appearance-none cursor-pointer`} onChange={handleChange}>
+                            <select name="categoria" value={formData.categoria} className={`${inputStyle} appearance-none cursor-pointer`} onChange={handleChange}>
                                 <option>Comida</option>
                                 <option>Salud</option>
                                 <option>Tecnología</option>
                                 <option>Educación</option>
                                 <option>Entretenimiento</option>
                             </select>
-                            {/* Flecha personalizada CSS pura o icono aquí si quieres pulir más */}
                         </div>
                     </div>
                 </div>
@@ -135,7 +170,7 @@ export const ConvenioForm = ({ onClose, onSuccess }: Props) => {
                         <div>
                             <label className="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg transition-all shadow-md">
                                 <Upload size={18} />
-                                {loading ? 'Subiendo...' : 'Seleccionar Imagen'}
+                                {loading ? 'Subiendo...' : 'Cambiar Imagen'}
                                 <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                             </label>
                             <p className="text-xs text-gray-400 mt-2">Recomendado: Formato vertical .JPG o .PNG</p>
@@ -150,12 +185,13 @@ export const ConvenioForm = ({ onClose, onSuccess }: Props) => {
             <div className="space-y-6">
                 <div>
                     <label className={labelStyle}>Descripción Corta (Tarjeta)</label>
-                    <input name="descripcion_corta" placeholder="Resumen breve (máx 100 caracteres)" className={inputStyle} maxLength={100} required onChange={handleChange} />
+                    <input name="descripcion_corta" value={formData.descripcion_corta} placeholder="Resumen breve (máx 100 caracteres)" className={inputStyle} maxLength={100} required onChange={handleChange} />
                 </div>
                 <div>
                     <label className={labelStyle}>Descripción Completa</label>
                     <textarea
                         name="descripcion_larga"
+                        value={formData.descripcion_larga}
                         placeholder="Detalla todo sobre el negocio, historia, etc..."
                         className={`${inputStyle} min-h-[120px] resize-y`}
                         required
@@ -164,7 +200,7 @@ export const ConvenioForm = ({ onClose, onSuccess }: Props) => {
                 </div>
                 <div>
                     <label className={labelStyle}>Dirección</label>
-                    <input name="direccion" placeholder="Calle, Número y Colonia" className={inputStyle} onChange={handleChange} />
+                    <input name="direccion" value={formData.direccion} placeholder="Calle, Número y Colonia" className={inputStyle} onChange={handleChange} />
                 </div>
             </div>
 
@@ -200,9 +236,9 @@ export const ConvenioForm = ({ onClose, onSuccess }: Props) => {
             <div>
                 <label className={labelStyle}>Redes Sociales (Opcional)</label>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <input placeholder="Facebook URL" className={inputStyle} onChange={e => handleSocialChange('facebook', e.target.value)} />
-                    <input placeholder="Instagram URL" className={inputStyle} onChange={e => handleSocialChange('instagram', e.target.value)} />
-                    <input placeholder="Sitio Web" className={inputStyle} onChange={e => handleSocialChange('web', e.target.value)} />
+                    <input name="facebook" value={formData.social_links.facebook} placeholder="Facebook URL" className={inputStyle} onChange={e => handleSocialChange('facebook', e.target.value)} />
+                    <input name="instagram" value={formData.social_links.instagram} placeholder="Instagram URL" className={inputStyle} onChange={e => handleSocialChange('instagram', e.target.value)} />
+                    <input name="web" value={formData.social_links.web} placeholder="Sitio Web" className={inputStyle} onChange={e => handleSocialChange('web', e.target.value)} />
                 </div>
             </div>
 
@@ -218,7 +254,7 @@ export const ConvenioForm = ({ onClose, onSuccess }: Props) => {
                 disabled={loading}
                 className="px-8 py-2.5 bg-guinda-600 hover:bg-guinda-700 text-white font-bold rounded-xl shadow-lg shadow-guinda-200/50 transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                {loading ? 'Guardando...' : 'Crear Convenio'}
+                {loading ? 'Guardando...' : (convenioToEdit ? 'Guardar Cambios' : 'Crear Convenio')}
             </button>
         </div>
       </div>
