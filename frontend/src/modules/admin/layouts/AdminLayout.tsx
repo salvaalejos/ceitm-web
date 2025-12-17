@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Store, LogOut, User } from 'lucide-react';
+import { LayoutDashboard, Store, LogOut, Users } from 'lucide-react';
 import { ThemeToggle } from '../../../shared/components/ThemeToggle';
 
 export const AdminLayout = () => {
@@ -34,10 +34,10 @@ export const AdminLayout = () => {
                 <Store size={20} />
                 Gestión Convenios
             </Link>
-            <div className="flex items-center gap-3 px-4 py-3 text-gray-400 cursor-not-allowed">
-                <User size={20} />
-                Usuarios (Próx)
-            </div>
+            <Link to="/admin/usuarios" className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                <Users size={20} />
+                Equipo / Usuarios
+            </Link>
         </nav>
 
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">

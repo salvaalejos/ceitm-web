@@ -6,6 +6,7 @@ import { ProtectedRoute } from './modules/auth/components/ProtectedRoute';
 import { AdminLayout } from './modules/admin/layouts/AdminLayout';
 import { AdminConvenios } from './modules/admin/pages/AdminConvenios';
 import { HomePage } from './modules/home/pages/HomePage';
+import { AdminUsuarios } from './modules/admin/pages/AdminUsuarios';
 
 // Componentes Admin Temporales
 const DashboardHome = () => <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Resumen General 📊</h1>;
@@ -35,6 +36,7 @@ function App() {
 
                 <Route path="dashboard" element={<DashboardHome />} />
                 <Route path="convenios" element={<AdminConvenios />} />
+                <Route path="usuarios" element={<AdminUsuarios />} />
             </Route>
         </Route>
 

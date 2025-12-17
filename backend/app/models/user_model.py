@@ -1,30 +1,54 @@
+from sqlmodel import SQLModel, Field
 from typing import Optional
 from enum import Enum
-from sqlmodel import Field, SQLModel
 from datetime import datetime
 
-# Roles basados en el Artículo 26 de los Estatutos
+
+# 1. JERARQUÍA (El "Nivel" o Rango)
 class UserRole(str, Enum):
-    PRESIDENTE = "presidente"
-    SECRETARIO = "secretario"
-    TESORERO = "tesorero"
-    CONTRALOR = "contralor"
-    COORD_ACADEMICO = "coord_academico"
-    COORD_VINCULACION = "coord_vinculacion"
-    COORD_COMEDOR = "coord_comedor"
-    COORD_COMUNICACION = "coord_comunicacion"
-    COORD_EVENTOS = "coord_eventos"
-    COORD_PREVENCION = "coord_prevencion"
-    COORD_MARKETING = "coord_marketing"
-    VOCAL = "vocal"
-    ADMIN_SYS = "admin_sys" # Rol extra para ti como desarrollador
+    ADMIN_SYS = "admin_sys"  # Superusuario / Desarrollador
+    ESTRUCTURA = "estructura"  # Mesa Directiva (Presidente, Secretario, etc.)
+    COORDINADOR = "coordinador"  # Titular de un área
+    CONCEJAL = "concejal"  # Representante de carrera (Voz y voto)
+    VOCAL = "vocal"  # Apoyo operativo
+
+
+# 2. ÁREA (El "Departamento" o Función)
+class UserArea(str, Enum):
+    # Alta Dirección
+    PRESIDENCIA = "Presidencia"
+    SECRETARIA = "Secretaría General"
+    TESORERIA = "Tesorería"
+    CONTRALORIA = "Contraloría"
+
+    # Coordinaciones Operativas
+    ACADEMICO = "Académico"
+    VINCULACION = "Vinculación"
+    BECAS = "Becas y Apoyos"
+    COMUNICACION = "Comunicación y Difusión"
+    EVENTOS = "Eventos (SODECU)"
+    PREVENCION = "Prevención y Logística"
+    MARKETING = "Marketing y Diseño"
+
+    # Otros
+    CONSEJO_GENERAL = "Consejo General"  # Para concejales que no están en una coord específica
+    SISTEMAS = "Sistemas"  # Para el Admin
+    NINGUNA = "Ninguna"
+
 
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     email: str = Field(unique=True, index=True)
     hashed_password: str
     full_name: str
-    role: UserRole
-    career: Optional[str] = None # Para concejales por carrera
-    is_active: bool = Field(default=True)
+
+    # --- NUEVA ESTRUCTURA ---
+    role: UserRole = Field(default=UserRole.VOCAL)  # Jerarquía
+    area: UserArea = Field(default=UserArea.NINGUNA)  # Departamento
+
+    # Carrera (Sigue siendo útil para filtros escolares, independiente del área interna)
+    career: Optional[str] = None
+
+    imagen_url: Optional[str] = None
+    is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)

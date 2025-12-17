@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.api.v1.endpoints import convenios, login  # <--- 1. IMPORTAR LOGIN
 from app.api.v1.endpoints import convenios, login, utils
 from app.api.v1.endpoints import convenios
+from app.api.v1.endpoints import convenios, login, utils, users # <--- Importar users
 
 
 @asynccontextmanager
@@ -59,6 +60,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(convenios.router, prefix="/api/v1/convenios", tags=["Convenios"])
 app.include_router(login.router, prefix="/api/v1", tags=["Auth"])
 app.include_router(utils.router, prefix="/api/v1/utils", tags=["Utilidades"]) # <--- AGREGAR ESTA LÍNEA
+app.include_router(users.router, prefix="/api/v1/users", tags=["Usuarios"]) # <--- Registrar router
 
 @app.get("/")
 def read_root():

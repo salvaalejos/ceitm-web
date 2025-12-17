@@ -22,6 +22,33 @@ export const getConvenios = async () => {
   return response.data;
 };
 
+// --- GESTIÓN DE USUARIOS (ADMIN) ---
+
+export const getUsers = async () => {
+  const response = await api.get('/users/'); // Endpoint privado
+  return response.data;
+};
+
+export const getPublicConcejales = async () => {
+  const response = await api.get('/users/concejales'); // Endpoint público
+  return response.data;
+};
+
+export const createUser = async (userData: any) => {
+  const response = await api.post('/users/', userData);
+  return response.data;
+};
+
+export const updateUser = async (id: number, userData: any) => {
+  const response = await api.put(`/users/${id}`, userData);
+  return response.data;
+};
+
+export const deleteUser = async (id: number) => {
+  const response = await api.delete(`/users/${id}`);
+  return response.data;
+};
+
 // Función de Login (Formato x-www-form-urlencoded)
 export const login = async (username: string, password: string) => {
   const formData = new FormData();
@@ -63,3 +90,4 @@ export const updateConvenio = async (id: number, convenioData: any) => {
     const response = await api.put(`/convenios/${id}`, convenioData);
     return response.data;
 };
+
