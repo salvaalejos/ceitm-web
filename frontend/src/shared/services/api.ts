@@ -1,14 +1,14 @@
 import axios from 'axios';
+import { useAuthStore } from '../store/authStore';
 
-const API_URL = 'http://192.168.100.97:8000/api/v1';
+const API_URL = 'http://localhost:8000/api/v1';
 
 export const api = axios.create({
   baseURL: API_URL,
 });
 
-// Interceptor para inyectar el token en cada petición automáticamente
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = useAuthStore.getState().token; // Lee el token recién guardado
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -59,6 +59,12 @@ export const login = async (username: string, password: string) => {
   return response.data; // Retorna { access_token: "...", token_type: "bearer" }
 };
 
+// Obtener datos del usuario actual (Perfil)
+export const getCurrentUser = async () => {
+  const response = await api.get('/users/me'); // Asegúrate que esta ruta exista en tu backend (suele ser estándar)
+  return response.data;
+};
+
 // --- GESTIÓN DE CONVENIOS (ADMIN) ---
 
 // 1. Subir Imagen
@@ -91,3 +97,74 @@ export const updateConvenio = async (id: number, convenioData: any) => {
     return response.data;
 };
 
+// --- GESTIÓN DE NOTICIAS ---
+
+// 1. Obtener lista (Pública)
+export const getNews = async () => {
+  const response = await api.get('/noticias/');
+  return response.data;
+};
+
+// 2. Obtener una noticia (Por slug)
+export const getSingleNews = async (slug: string) => {
+  const response = await api.get(`/noticias/${slug}`);
+  return response.data;
+};
+
+// 3. Crear Noticia (Admin)
+export const createNews = async (newsData: any) => {
+  const response = await api.post('/noticias/', newsData);
+  return response.data;
+};
+
+// 4. Actualizar Noticia (Admin)
+export const updateNews = async (id: number, newsData: any) => {
+  const response = await api.put(`/noticias/${id}`, newsData);
+  return response.data;
+};
+
+// 5. Eliminar Noticia (Admin)
+export const deleteNews = async (id: number) => {
+  const response = await api.delete(`/noticias/${id}`);
+  return response.data;
+};
+
+// --- DOCUMENTOS ---
+
+// Público (Solo ve lo publicado)
+export const getPublicDocuments = async (category?: string) => {
+  let url = '/documentos/';
+  if (category) url += `?category=${category}`;
+  const response = await api.get(url);
+  return response.data;
+};
+
+// Sube archivos genéricos (PDFs, Docs)
+export const uploadFile = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  // Nota la ruta diferente: /utils/upload/file
+  const response = await api.post('/utils/upload/file', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+
+// Admin (Ve todo)
+export const getAllDocuments = async () => {
+  const response = await api.get('/documentos/admin');
+  return response.data;
+};
+
+export const createDocument = async (docData: any) => {
+  const response = await api.post('/documentos/', docData);
+  return response.data;
+};
+
+export const deleteDocument = async (id: number) => {
+  const response = await api.delete(`/documentos/${id}`);
+  return response.data;
+};

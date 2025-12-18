@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export const HeroSection = () => {
   const heroImage = "http://localhost:8000/static/images/hero-bg.jpg";
@@ -65,11 +66,14 @@ export const HeroSection = () => {
                         <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
                     </button>
 
-                    {/* BOTÓN 2 */}
-                    <button className="px-8 py-4 bg-transparent border-2 border-white text-white font-bold rounded-xl
-                                       transform transition-transform duration-200 hover:scale-105 active:scale-95 hover:bg-white/10 shadow-lg">
+                    {/* BOTÓN 2: Conoce al Equipo (Ahora funcional) */}
+                    <Link
+                        to="/concejales"
+                        className="px-8 py-4 bg-transparent border-2 border-white text-white font-bold rounded-xl
+                                   transform transition-transform duration-200 hover:scale-105 active:scale-95 hover:bg-white/10 shadow-lg text-center flex items-center justify-center"
+                    >
                         Conoce al Equipo
-                    </button>
+                    </Link>
                 </div>
             </div>
 

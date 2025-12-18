@@ -6,10 +6,7 @@ from fastapi.staticfiles import StaticFiles  # <--- NUEVO
 from sqlmodel import Session, select
 from app.core.database import init_db, get_session
 from app.core.config import settings
-from app.api.v1.endpoints import convenios, login  # <--- 1. IMPORTAR LOGIN
-from app.api.v1.endpoints import convenios, login, utils
-from app.api.v1.endpoints import convenios
-from app.api.v1.endpoints import convenios, login, utils, users # <--- Importar users
+from app.api.v1.endpoints import convenios, login, utils, users, news, documents # <--- Importar
 
 
 @asynccontextmanager
@@ -59,8 +56,10 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Registro de rutas
 app.include_router(convenios.router, prefix="/api/v1/convenios", tags=["Convenios"])
 app.include_router(login.router, prefix="/api/v1", tags=["Auth"])
-app.include_router(utils.router, prefix="/api/v1/utils", tags=["Utilidades"]) # <--- AGREGAR ESTA LÍNEA
-app.include_router(users.router, prefix="/api/v1/users", tags=["Usuarios"]) # <--- Registrar router
+app.include_router(utils.router, prefix="/api/v1/utils", tags=["Utilidades"])
+app.include_router(users.router, prefix="/api/v1/users", tags=["Usuarios"])
+app.include_router(news.router, prefix="/api/v1/noticias", tags=["Noticias"])
+app.include_router(documents.router, prefix="/api/v1/documentos", tags=["Transparencia"])
 
 @app.get("/")
 def read_root():

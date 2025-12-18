@@ -22,10 +22,13 @@ export const Layout = () => {
                 <Link to="/convenios" className="text-blue-gray-600 dark:text-gray-300 hover:text-guinda-600 dark:hover:text-guinda-400 font-medium transition-colors">
                     Convenios
                 </Link>
-                <Link to="/noticias" className="text-blue-gray-400 dark:text-gray-500 cursor-not-allowed font-medium">
+                <Link to="/concejales" className="text-blue-gray-600 dark:text-gray-300 hover:text-guinda-600 dark:hover:text-guinda-400 font-medium transition-colors">
+                    Concejales
+                </Link>
+                <Link to="/noticias" className="text-blue-gray-600 dark:text-gray-300 hover:text-guinda-600 dark:hover:text-guinda-400 font-medium transition-colors">
                     Noticias
                 </Link>
-                <Link to="/transparencia" className="text-blue-gray-400 dark:text-gray-500 cursor-not-allowed font-medium">
+                <Link to="/transparencia" className="text-blue-gray-600 dark:text-gray-300 hover:text-guinda-600 dark:hover:text-guinda-400 font-medium transition-colors">
                     Transparencia
                 </Link>
 
@@ -45,9 +48,12 @@ export const Layout = () => {
              <div className="md:hidden bg-white dark:bg-gray-800 border-b border-blue-gray-200 dark:border-gray-700">
                  <div className="flex flex-col p-4 space-y-4">
                      <Link to="/convenios" className="text-blue-gray-600 dark:text-gray-300 hover:text-guinda-600" onClick={() => setIsMenuOpen(false)}>Convenios</Link>
+                     <Link to="/concejales" className="text-blue-gray-600 dark:text-gray-300 hover:text-guinda-600" onClick={() => setIsMenuOpen(false)}>Concejales</Link>
+                     <Link to="/noticias" className="text-blue-gray-600 dark:text-gray-300 hover:text-guinda-600" onClick={() => setIsMenuOpen(false)}>Noticias</Link>
+                     <Link to="/transparencia" className="text-blue-gray-600 dark:text-gray-300 hover:text-guinda-600" onClick={() => setIsMenuOpen(false)}>Transparencia</Link>
                      <div className="flex justify-between items-center">
-                        <span className="text-blue-gray-400 dark:text-gray-500">Tema</span>
-                        <ThemeToggle />
+                         <span className="text-blue-gray-400 dark:text-gray-500">Tema</span>
+                         <ThemeToggle />
                      </div>
                  </div>
              </div>

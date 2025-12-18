@@ -122,40 +122,40 @@ export const UserForm = ({ onClose, onSuccess, userToEdit }: Props) => {
     }
   };
 
-  const inputClass = "w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-guinda-500 outline-none transition-all";
-  const labelClass = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1";
-
-  // Calcular las opciones de área según el rol actual
-  const currentAreaOptions = AREAS_PERMITIDAS[formData.role] || ['Ninguna'];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-gray-800 w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] animate-fade-in">
+      {/* Usamos 'card-base' */}
+      <div className="card-base w-full max-w-2xl flex flex-col max-h-[90vh] animate-fade-in">
 
-        <div className="flex justify-between items-center p-6 border-b dark:border-gray-700">
-            <h2 className="text-xl font-bold text-guinda-600 flex items-center gap-2">
+        {/* Header estandarizado */}
+        <div className="modal-header">
+            <h2 className="text-xl font-bold text-guinda-600 dark:text-guinda-500 flex items-center gap-2">
                 <UserIcon size={24} />
                 {userToEdit ? 'Editar Usuario' : 'Nuevo Miembro'}
             </h2>
-            <button onClick={onClose}><X className="text-gray-400 hover:text-red-500" /></button>
+            <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">
+                <X />
+            </button>
         </div>
 
+        {/* Body */}
         <form onSubmit={handleSubmit} className="p-8 overflow-y-auto space-y-6">
 
             {/* FOTO DE PERFIL */}
-            <div className="flex justify-center mb-6">
+            <div className="flex justify-center mb-2">
                 <div className="relative group">
-                    <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-100 dark:border-gray-700 shadow-md">
+                    <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-100 dark:border-slate-800 shadow-md bg-gray-100 dark:bg-slate-950">
                         {formData.imagen_url ? (
                             <img src={formData.imagen_url} alt="Profile" className="w-full h-full object-cover" />
                         ) : (
-                            <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-400">
+                            <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-slate-700">
                                 <UserIcon size={48} />
                             </div>
                         )}
                     </div>
-                    <label className="absolute bottom-0 right-0 bg-guinda-600 text-white p-2 rounded-full cursor-pointer shadow-lg hover:bg-guinda-700 transition-colors">
-                        <Upload size={16} />
+                    <label className="absolute bottom-0 right-0 bg-guinda-600 hover:bg-guinda-700 text-white p-2.5 rounded-full cursor-pointer shadow-lg transition-all active:scale-90">
+                        <Upload size={18} />
                         <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
                     </label>
                 </div>
@@ -164,45 +164,43 @@ export const UserForm = ({ onClose, onSuccess, userToEdit }: Props) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                 <div className="col-span-2">
-                    <label className={labelClass}>Nombre Completo</label>
-                    <input name="full_name" value={formData.full_name} onChange={handleChange} required className={inputClass} placeholder="Ej. Juan Pérez" />
+                    <label className="form-label">Nombre Completo</label>
+                    <input name="full_name" value={formData.full_name} onChange={handleChange} required className="form-input" placeholder="Ej. Juan Pérez" />
                 </div>
 
                 <div>
-                    <label className={labelClass}>Correo Institucional</label>
-                    <input type="email" name="email" value={formData.email} onChange={handleChange} required className={`${inputClass} disabled:opacity-60`} />
+                    <label className="form-label">Correo Institucional</label>
+                    <input type="email" name="email" value={formData.email} onChange={handleChange} required className="form-input" />
                 </div>
 
                 <div>
-                    <label className={labelClass}>{userToEdit ? 'Nueva Contraseña (Opcional)' : 'Contraseña'}</label>
-                    <input type="password" name="password" value={formData.password} onChange={handleChange} required={!userToEdit} className={inputClass} placeholder="••••••••" />
+                    <label className="form-label">{userToEdit ? 'Nueva Contraseña' : 'Contraseña'}</label>
+                    <input type="password" name="password" value={formData.password} onChange={handleChange} required={!userToEdit} className="form-input" placeholder="••••••••" />
                 </div>
 
-                {/* --- ROL (Dispara el cambio de áreas) --- */}
                 <div>
-                    <label className={labelClass}>Jerarquía (Rol)</label>
-                    <select name="role" value={formData.role} onChange={handleChange} className={inputClass}>
+                    <label className="form-label">Jerarquía (Rol)</label>
+                    <select name="role" value={formData.role} onChange={handleChange} className="form-input cursor-pointer">
                         <option value="vocal">Vocal</option>
                         <option value="concejal">Concejal</option>
                         <option value="coordinador">Coordinador</option>
-                        <option value="estructura">Estructura (Mesa Directiva)</option>
+                        <option value="estructura">Estructura</option>
                         <option value="admin_sys">SysAdmin</option>
                     </select>
                 </div>
 
-                {/* --- ÁREA (Dinámica) --- */}
                 <div>
-                    <label className={labelClass}>Área / Coordinación</label>
-                    <select name="area" value={formData.area} onChange={handleChange} className={inputClass}>
-                        {currentAreaOptions.map(areaOption => (
+                    <label className="form-label">Área / Coordinación</label>
+                    <select name="area" value={formData.area} onChange={handleChange} className="form-input cursor-pointer">
+                        {AREAS_PERMITIDAS[formData.role]?.map(areaOption => (
                             <option key={areaOption} value={areaOption}>{areaOption}</option>
-                        ))}
+                        )) || <option value="Ninguna">Ninguna</option>}
                     </select>
                 </div>
 
                 <div className="col-span-2">
-                    <label className={labelClass}>Carrera</label>
-                    <select name="career" value={formData.career} onChange={handleChange} className={inputClass}>
+                    <label className="form-label">Carrera</label>
+                    <select name="career" value={formData.career} onChange={handleChange} className="form-input cursor-pointer">
                         <option value="">-- Selecciona una carrera --</option>
                         {CARRERAS.map(c => (
                             <option key={c.id} value={c.nombre}>{c.nombre}</option>
@@ -210,27 +208,29 @@ export const UserForm = ({ onClose, onSuccess, userToEdit }: Props) => {
                     </select>
                 </div>
 
-                {/* Checkbox de Activo */}
-                <div className="col-span-2 flex items-center gap-2 mt-2">
-                    <input
-                        type="checkbox"
-                        id="is_active"
-                        name="is_active"
-                        checked={formData.is_active} // <--- Debe leer formData.is_active
-                        onChange={handleChange}
-                        className="w-5 h-5 text-guinda-600 rounded focus:ring-guinda-500"
-                    />
-                    <label htmlFor="is_active" className="...">
-                        Usuario Activo (Permitir acceso)
+                {/* Checkbox Corregido */}
+                <div className="col-span-2">
+                    <label className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-950/50 cursor-pointer hover:border-guinda-500/30 transition-colors">
+                        <input
+                            type="checkbox"
+                            name="is_active"
+                            checked={formData.is_active}
+                            onChange={handleChange}
+                            className="w-5 h-5 text-guinda-600 rounded focus:ring-guinda-500 accent-guinda-600"
+                        />
+                        <span className="form-check-label">
+                            Usuario Activo (Permitir acceso al sistema)
+                        </span>
                     </label>
                 </div>
 
             </div>
         </form>
 
-        <div className="p-6 border-t dark:border-gray-700 flex justify-end gap-3">
-            <button onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
-            <button onClick={handleSubmit} disabled={loading} className="px-6 py-2 bg-guinda-600 hover:bg-guinda-700 text-white rounded-lg flex items-center gap-2 shadow-md">
+        {/* Footer estandarizado */}
+        <div className="modal-footer">
+            <button onClick={onClose} className="btn-secondary">Cancelar</button>
+            <button onClick={handleSubmit} disabled={loading} className="btn-primary flex items-center gap-2">
                 <Save size={18} /> {loading ? 'Guardando...' : 'Guardar Usuario'}
             </button>
         </div>

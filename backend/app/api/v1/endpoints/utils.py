@@ -1,5 +1,6 @@
 import shutil
 import os
+from pathlib import Path
 from uuid import uuid4
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from app.core.config import settings
@@ -37,3 +38,31 @@ async def upload_image(file: UploadFile = File(...)):
     url = f"http://localhost:8000/static/images/{unique_filename}"
 
     return {"url": url}
+
+
+# --- AGREGA ESTA NUEVA FUNCIÓN ---
+@router.post("/upload/file")
+async def upload_file(file: UploadFile = File(...)):
+    """
+    Sube cualquier tipo de archivo (PDF, DOCX, ZIP) sin procesarlo como imagen.
+    """
+    try:
+        # 1. Definir carpeta de destino (asegúrate de que coincida con tu carpeta estática)
+        upload_dir = Path("static/uploads")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+
+        # 2. Limpiar el nombre del archivo (quitar espacios por seguridad)
+        clean_filename = file.filename.replace(" ", "_")
+        destination = upload_dir / clean_filename
+
+        # 3. Guardar el archivo
+        with destination.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        # 4. Retornar la URL pública
+        # Ajusta "localhost:8000" si tu dominio es diferente en producción
+        return f"http://localhost:8000/static/uploads/{clean_filename}"
+
+    except Exception as e:
+        print(f"Error subiendo archivo: {e}")  # Para ver en los logs
+        raise HTTPException(status_code=500, detail=f"No se pudo guardar el archivo: {str(e)}")

@@ -10,6 +10,12 @@ from app.api.deps import get_current_user
 
 router = APIRouter()
 
+@router.get("/me", response_model=UserPublic)
+def read_user_me(current_user: User = Depends(get_current_user)):
+    """
+    Obtener datos del usuario logueado actual.
+    """
+    return current_user
 
 # --- RUTAS PÚBLICAS ---
 
