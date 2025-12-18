@@ -1,4 +1,34 @@
-// Ubicación: frontend/src/shared/types.ts
+// --- USUARIOS ---
+export enum UserRole {
+  ADMIN_SYS = "Admin_Sys",
+  ESTRUCTURA = "Estructura",
+  CONCEJAL = "Concejal"
+}
+
+export interface User {
+  id: number;
+  email: string;
+  full_name: string;
+  role: UserRole; // Usamos el enum
+  is_active: boolean;
+  career?: string;
+
+  // Opcionales que tenías
+  imagen_url?: string;
+  phone_number?: string;
+  instagram_url?: string;
+}
+
+export interface LoginCredentials {
+  email: string;
+  password_hash: string;
+}
+
+export interface AuthResponse {
+  access_token: string;
+  token_type: string;
+  user: User;
+}
 
 export interface SocialLinks {
   facebook?: string;
@@ -7,11 +37,10 @@ export interface SocialLinks {
   web?: string;
 }
 
-// 👇 ¡ESTA PALABRA 'export' ES LA CLAVE!
 export interface Convenio {
   id: number;
   nombre: string;
-  descripcion_corta: string; 
+  descripcion_corta: string;
   descripcion_larga: string;
   categoria: string;
   imagen_url: string;
@@ -20,22 +49,23 @@ export interface Convenio {
   social_links: SocialLinks;
 }
 
-export interface User {
-  id: number;
-  email: string;
-  full_name: string;
-  role: string;      // 'admin_sys' | 'estructura' | 'concejal' ...
-  area?: string;     // Opcional
-  career?: string;   // Opcional
-  is_active: boolean;
+// --- BECAS ---
 
-  // --- CAMPOS NUEVOS ---
-  imagen_url?: string;
-  phone_number?: string;
-  instagram_url?: string;
+// Usamos Enums para coincidir con Backend y evitar errores de "magic strings"
+export enum ScholarshipType {
+  ALIMENTICIA = "Alimenticia",
+  REINSCRIPCION = "Reinscripción",
+  CLE = "CLE (Idiomas)",
+  OTRA = "Otra"
 }
 
-export type ScholarshipType = 'Alimenticia' | 'Reinscripción' | 'CLE (Idiomas)' | 'Otra';
+export enum ApplicationStatus {
+  PENDIENTE = "Pendiente",
+  EN_REVISION = "En Revisión",
+  APROBADA = "Aprobada",
+  RECHAZADA = "Rechazada",
+  DOCUMENTACION_FALTANTE = "Documentación Faltante"
+}
 
 export interface Scholarship {
   id: number;
@@ -49,17 +79,57 @@ export interface Scholarship {
   is_active: boolean;
 }
 
+export interface ScholarshipCreate extends Omit<Scholarship, 'id'> {}
+export interface ScholarshipUpdate extends Partial<ScholarshipCreate> {}
+
+// 👇 ESTA ES LA INTERFAZ QUE TE DABA ERROR. ACTUALÍZALA COMPLETA:
 export interface ScholarshipApplication {
   id: number;
   scholarship_id: number;
-  scholarship_name?: string;
+  scholarship_name?: string; // Opcional, si el backend lo manda o no
 
-  // DATOS NUEVOS (Públicos)
+  // Datos Personales
   full_name: string;
   email: string;
   control_number: string;
+  phone_number: string;
+  career: string;
+  semester: string;
 
+  // Específicos CLE (Opcionales)
+  cle_control_number?: string;
+  level_to_enter?: string;
+
+  // Socioeconómicos
+  address: string;
+  origin_address: string;
+  economic_dependence: string;
+  dependents_count: number;
+  family_income: number;
+  income_per_capita: number;
+
+  // Motivos
+  previous_scholarship?: string;
+  activities?: string;
+  motivos: string;
+
+  // Documentos (URLs)
+  doc_request?: string;
+  doc_motivos?: string;
+  doc_address?: string;
+  doc_income?: string;
+  doc_ine?: string;
+  doc_school_id?: string;
+  doc_schedule?: string;
+  doc_extra?: string;
+
+  // Control
   status: 'Pendiente' | 'En Revisión' | 'Aprobada' | 'Rechazada' | 'Documentación Faltante';
   created_at: string;
+  admin_comments?: string;
+}
+
+export interface ApplicationUpdate {
+  status?: string;
   admin_comments?: string;
 }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     Menu, X, Sun, Moon, LogOut,
-    LayoutDashboard, Newspaper, Store, Users, FolderOpen
+    LayoutDashboard, Newspaper, Store, Users, FolderOpen, GraduationCap
 } from 'lucide-react';
 import { useAuthStore } from '../../../shared/store/authStore';
 import { Inbox } from 'lucide-react';
@@ -116,6 +116,12 @@ export const AdminLayout = () => {
                     <Store size={20} />
                     Convenios
                 </Link>
+                <Link to="/admin/becas" className={getLinkClass('/admin/becas')}>
+                    <GraduationCap size={20} />
+                    Gestión Becas
+                </Link>
+
+
 
                 <Link to="/admin/documentos" className={getLinkClass('/admin/documentos')}>
                     <FolderOpen size={20} />

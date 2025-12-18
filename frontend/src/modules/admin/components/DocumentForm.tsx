@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Upload, Save, FileText, Lock, Globe, Trash2 } from 'lucide-react';
+import { X, Upload, Save, FileText, Lock, Globe } from 'lucide-react';
 import { createDocument, uploadFile } from '../../../shared/services/api';
 
 const CATEGORIAS = [

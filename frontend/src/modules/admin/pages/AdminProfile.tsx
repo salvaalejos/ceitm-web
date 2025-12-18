@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
     User, Mail, Phone, Instagram, Save, Lock,
-    Upload, Camera, ShieldCheck, Loader2
+    Camera, ShieldCheck, Loader2
 } from 'lucide-react';
 import { useAuthStore } from '../../../shared/store/authStore';
 import { updateProfile, uploadImage, getCurrentUser } from '../../../shared/services/api';

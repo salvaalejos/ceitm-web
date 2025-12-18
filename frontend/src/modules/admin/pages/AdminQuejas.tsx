@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
-    Inbox, Search, Filter, Calendar, User,
-    FileText, ExternalLink, CheckCircle, Clock
+    Inbox, Calendar, User,
+    FileText, ExternalLink, CheckCircle
 } from 'lucide-react';
 import { getComplaints, updateComplaintStatus } from '../../../shared/services/api';
 

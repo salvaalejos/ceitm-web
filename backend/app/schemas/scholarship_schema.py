@@ -71,3 +71,29 @@ class ApplicationRead(ApplicationBase):
     admin_comments: Optional[str] = None
     created_at: datetime
     scholarship_name: Optional[str] = None
+
+class ScholarshipUpdate(SQLModel):
+    name: Optional[str] = None
+    type: Optional[ScholarshipType] = None
+    description: Optional[str] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    results_date: Optional[datetime] = None
+    cycle: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class ApplicationUpdate(SQLModel):
+    status: Optional[ApplicationStatus] = None
+    admin_comments: Optional[str] = None
+
+# --- RESULTADOS PÚBLICOS (SAFE) ---
+class ApplicationPublicStatus(SQLModel):
+    id: int
+    scholarship_id: int
+    # Opcional: Podríamos incluir el nombre de la beca si hacemos un join,
+    # pero por ahora el ID basta o el frontend lo cruza.
+    full_name: str       # Para que confirmen que son ellos
+    control_number: str
+    status: ApplicationStatus
+    admin_comments: Optional[str] = None
+    created_at: datetime
