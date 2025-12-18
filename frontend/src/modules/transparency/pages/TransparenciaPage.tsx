@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
-import { FileText, Download, Shield, Book, Search, Calendar, Filter, X } from 'lucide-react';
+import { FileText, Download, Book, Search, Calendar, Filter, X } from 'lucide-react';
 import { getPublicDocuments } from '../../../shared/services/api';
+import { EstatutosText } from '../components/EstatutosText';
 
 export const TransparenciaPage = () => {
   const [activeTab, setActiveTab] = useState<'repositorio' | 'estatutos'>('repositorio');
@@ -233,75 +234,32 @@ export const TransparenciaPage = () => {
             </div>
         )}
 
-        {/* VISTA 2: ESTATUTOS (Sin cambios, solo se renderiza si activeTab es estatutos) */}
-        {activeTab === 'estatutos' && (
-            <div className="card-base p-8 md:p-12 animate-fade-in prose prose-lg dark:prose-invert max-w-none">
+        {/* VISTA 2: ESTATUTOS (LECTURA WEB) */}
+        <div className={`transition-all duration-500 ${activeTab === 'estatutos' ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10 hidden'}`}>
+            <div className="card-base p-8 md:p-12 shadow-2xl relative overflow-hidden">
 
-                <div className="text-center mb-10 pb-10 border-b border-gray-200 dark:border-slate-800">
-                    <Shield size={64} className="mx-auto text-guinda-600 mb-6"/>
-                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Estatutos Generales</h2>
-                    <p className="text-gray-500">Consejo Estudiantil del Instituto Tecnológico de Morelia</p>
-                    <p className="text-xs text-gray-400 mt-2">Última actualización: 2025</p>
+                {/* Decoración de fondo */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-guinda-50 dark:bg-guinda-900/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+
+                {/* COMPONENTE DE TEXTO REAL 👇 */}
+                <div className="relative z-10 max-h-[800px] overflow-y-auto custom-scrollbar pr-2">
+                    <EstatutosText />
                 </div>
 
-                {/* AQUÍ VA EL TEXTO RESUMIDO DE TUS ESTATUTOS */}
-                <div className="space-y-8 text-gray-700 dark:text-slate-300">
-
-                    <section>
-                        <h3 className="text-xl font-bold text-guinda-700 dark:text-guinda-400">CAPÍTULO I: De la
-                            Denominación y Objeto</h3>
-                        <p>
-                            <strong>Artículo 1.</strong> La organización estudiantil se denominará "Consejo Estudiantil
-                            del Instituto Tecnológico de Morelia" (C.E.I.T.M.), siendo el máximo órgano de
-                            representación de los alumnos ante las autoridades.
-                        </p>
-                        <p>
-                            <strong>Artículo 2.</strong> El objetivo principal es velar por los derechos de los
-                            estudiantes, promover la excelencia académica y fomentar la integración de la comunidad
-                            tecnológica.
-                        </p>
-                    </section>
-
-                    <section>
-                        <h3 className="text-xl font-bold text-guinda-700 dark:text-guinda-400">CAPÍTULO II: De los
-                            Asociados</h3>
-                        <p>
-                            <strong>Artículo 5.</strong> Son miembros del C.E.I.T.M. todos los alumnos inscritos
-                            legalmente en el Instituto Tecnológico de Morelia que no hayan perdido sus derechos
-                            estudiantiles.
-                        </p>
-                    </section>
-
-                    <section>
-                        <h3 className="text-xl font-bold text-guinda-700 dark:text-guinda-400">CAPÍTULO III: De la
-                            Estructura</h3>
-                        <p>
-                            La estructura del Consejo se compone de:
-                        </p>
-                        <ul className="list-disc pl-6 space-y-2">
-                            <li><strong>Mesa Directiva:</strong> Presidente, Vicepresidente, Secretario General,
-                                Tesorero, Contralor.
-                            </li>
-                            <li><strong>Concejales:</strong> Representantes de cada carrera.</li>
-                            <li><strong>Coordinadores:</strong> Responsables de áreas específicas (Académica, Cultural,
-                                Deportiva, etc.).
-                            </li>
-                        </ul>
-                    </section>
-
-                    {/* BOTÓN PARA DESCARGAR EL COMPLETO */}
-                    <div
-                        className="mt-12 p-6 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 text-center">
-                        <p className="mb-4 text-sm font-medium">Para consultar el documento legal completo con todos sus
-                            artículos y sellos oficiales:</p>
-                        <button className="btn-primary inline-flex items-center gap-2">
-                            <Download size={18}/> Descargar Estatutos Completos (PDF)
-                        </button>
-                    </div>
-
+                {/* Botón Flotante para Descargar PDF (Opcional, pero útil) */}
+                <div className="mt-8 text-center pt-8 border-t border-gray-100 dark:border-slate-800">
+                    <p className="text-sm text-gray-500 mb-4">¿Necesitas el documento oficial firmado?</p>
+                    <a
+                        href="http://localhost:8000/static/uploads/ESTATUTOS_ACTUALIZADOS_2025.pdf"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn-secondary inline-flex items-center gap-2"
+                    >
+                        <FileText size={18} /> Descargar PDF Completo
+                    </a>
                 </div>
             </div>
-        )}
+        </div>
 
       </div>
     </div>

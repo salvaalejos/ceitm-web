@@ -2,12 +2,19 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 // Define qué forma tiene tu usuario (ajusta según lo que devuelva tu backend)
-interface User {
+export interface User {
   id: number;
   email: string;
   full_name: string;
-  role: string;
-  // ... otros campos que necesites
+  role: string;      // 'admin_sys' | 'estructura' | 'concejal' ...
+  area?: string;     // Opcional
+  career?: string;   // Opcional
+  is_active: boolean;
+
+  // --- CAMPOS NUEVOS ---
+  imagen_url?: string;
+  phone_number?: string;
+  instagram_url?: string;
 }
 
 interface AuthState {

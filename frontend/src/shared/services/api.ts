@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
+import type {Scholarship, ScholarshipApplication} from "../types.ts";
 
 const API_URL = 'http://localhost:8000/api/v1';
 
@@ -166,5 +167,76 @@ export const createDocument = async (docData: any) => {
 
 export const deleteDocument = async (id: number) => {
   const response = await api.delete(`/documentos/${id}`);
+  return response.data;
+};
+
+// Actualizar mi perfil
+export const updateProfile = async (data: any) => {
+  const response = await api.put('/users/me', data);
+  return response.data;
+};
+
+// Obtener lista pública de concejales (Para la página web)
+export const getConcejalesPublic = async () => {
+  const response = await api.get('/users/concejales');
+  return response.data;
+};
+
+// --- BUZÓN DE QUEJAS ---
+
+export const createComplaint = async (data: any) => {
+  const response = await api.post('/quejas/', data);
+  return response.data;
+};
+
+export const getComplaints = async () => {
+  const response = await api.get('/quejas/');
+  return response.data;
+};
+
+export const updateComplaintStatus = async (id: number, status: string) => {
+  const response = await api.patch(`/quejas/${id}`, { status });
+  return response.data;
+};
+
+
+
+// --- BECAS ---
+
+// Obtener todas las convocatorias (Público)
+export const getScholarships = async () => {
+  const response = await api.get<Scholarship[]>('/becas/');
+  return response.data;
+};
+
+// Enviar solicitud (Público - Sin Token)
+export const submitScholarshipApplication = async (data: any) => {
+  // Al ser público, axios enviará la petición sin header de auth si no lo configuras,
+  // pero como usamos una instancia global 'api', igual mandará el token si existe (si el admin está logueado).
+  // No afecta, el backend simplemente lo ignora.
+  const response = await api.post('/becas/apply', data);
+  return response.data;
+};
+
+// Ver solicitudes de una beca (Solo Admin/Concejal)
+export const getApplications = async (scholarshipId: number) => {
+  const response = await api.get<ScholarshipApplication[]>('/becas/applications', {
+    params: { scholarship_id: scholarshipId }
+  });
+  return response.data;
+};
+
+// Actualizar estatus (Concejal)
+export const updateApplicationStatus = async (appId: number, status: string, comments?: string) => {
+  const response = await api.patch(`/becas/applications/${appId}/status`, {
+    status,
+    admin_comments: comments
+  });
+  return response.data;
+};
+
+// Crear convocatoria (Admin)
+export const createScholarship = async (data: any) => {
+  const response = await api.post('/becas/', data);
   return response.data;
 };

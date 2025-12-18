@@ -11,6 +11,9 @@ import { NoticiasPage } from './modules/news/pages/NoticiasPage';
 import { NoticiaDetalle } from './modules/news/pages/NoticiaDetalle';
 import { TransparenciaPage } from './modules/transparency/pages/TransparenciaPage';
 import { ConveniosPage } from './modules/convenios/pages/ConveniosPage';
+import { BuzonPage } from './modules/transparency/pages/BuzonPage';
+import { BecasPage } from './modules/scholarships/pages/BecasPage';
+import { SolicitudPage } from './modules/scholarships/pages/SolicitudPage';
 
 // Pages Admin
 import { AdminConvenios } from './modules/admin/pages/AdminConvenios';
@@ -18,7 +21,9 @@ import { AdminUsuarios } from './modules/admin/pages/AdminUsuarios';
 import { AdminNoticias } from './modules/admin/pages/AdminNoticias';
 import { AdminDocumentos } from './modules/admin/pages/AdminDocumentos';
 import { AdminDashboard } from './modules/admin/pages/AdminDashboard';
+import { AdminQuejas } from './modules/admin/pages/AdminQuejas';
 
+import { AdminProfile } from './modules/admin/pages/AdminProfile';
 // Guard (Protector de Rutas)
 import { ProtectedRoute } from './modules/auth/components/ProtectedRoute';
 
@@ -34,6 +39,9 @@ function App() {
             <Route path="noticias" element={<NoticiasPage />} />
             <Route path="noticias/:slug" element={<NoticiaDetalle />} />
             <Route path="transparencia" element={<TransparenciaPage />} />
+            <Route path="buzon" element={<BuzonPage />} />
+            <Route path="becas" element={<BecasPage />} />
+            <Route path="becas/aplicar/:id" element={<SolicitudPage />} />
           {/* ... otras rutas públicas ... */}
         </Route>
 
@@ -56,6 +64,8 @@ function App() {
             <Route path="usuarios" element={<AdminUsuarios />} />
             <Route path="noticias" element={<AdminNoticias />} />
             <Route path="documentos" element={<AdminDocumentos />} />
+            <Route path="perfil" element={<AdminProfile />} />
+            <Route path="quejas" element={<AdminQuejas />} />
         </Route>
 
         {/* 404 - Ruta no encontrada */}

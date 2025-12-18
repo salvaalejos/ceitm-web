@@ -42,6 +42,9 @@ class User(SQLModel, table=True):
     hashed_password: str
     full_name: str
 
+    phone_number: Optional[str] = Field(default=None)  # Para WhatsApp
+    instagram_url: Optional[str] = Field(default=None)  # Link al perfil
+
     # --- NUEVA ESTRUCTURA ---
     role: UserRole = Field(default=UserRole.VOCAL)  # Jerarquía
     area: UserArea = Field(default=UserArea.NINGUNA)  # Departamento

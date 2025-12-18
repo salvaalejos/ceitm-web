@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles  # <--- NUEVO
 from sqlmodel import Session, select
 from app.core.database import init_db, get_session
 from app.core.config import settings
-from app.api.v1.endpoints import convenios, login, utils, users, news, documents # <--- Importar
+from app.api.v1.endpoints import convenios, login, utils, users, news, documents, complaints, scholarships # <--- Importar
 
 
 @asynccontextmanager
@@ -48,6 +48,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+
 # --- SERVIR ARCHIVOS ESTÁTICOS (IMÁGENES) ---
 # Esto hace que todo lo que esté en /backend/static sea accesible en /static
 # Ej: http://localhost:8000/static/images/flyer.jpg
@@ -60,6 +62,8 @@ app.include_router(utils.router, prefix="/api/v1/utils", tags=["Utilidades"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["Usuarios"])
 app.include_router(news.router, prefix="/api/v1/noticias", tags=["Noticias"])
 app.include_router(documents.router, prefix="/api/v1/documentos", tags=["Transparencia"])
+app.include_router(complaints.router, prefix="/api/v1/quejas", tags=["Buzón de Quejas"])
+app.include_router(scholarships.router, prefix="/api/v1/becas", tags=["Becas"])
 
 @app.get("/")
 def read_root():

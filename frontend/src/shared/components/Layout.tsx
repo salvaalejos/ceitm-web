@@ -31,6 +31,12 @@ export const Layout = () => {
                 <Link to="/transparencia" className="text-blue-gray-600 dark:text-gray-300 hover:text-guinda-600 dark:hover:text-guinda-400 font-medium transition-colors">
                     Transparencia
                 </Link>
+                <Link to="/buzon" className="text-blue-gray-600 dark:text-gray-300 hover:text-guinda-600 dark:hover:text-guinda-400 font-medium transition-colors">
+                    Buzón
+                </Link>
+                <Link to="/becas" className="text-blue-gray-600 dark:text-gray-300 hover:text-guinda-600 dark:hover:text-guinda-400 font-medium transition-colors">
+                    Becas
+                </Link>
 
                 {/* Borde del separador del toggle */}
                 <div className="border-l pl-4 border-gray-200 dark:border-gray-700">
@@ -51,6 +57,8 @@ export const Layout = () => {
                      <Link to="/concejales" className="text-blue-gray-600 dark:text-gray-300 hover:text-guinda-600" onClick={() => setIsMenuOpen(false)}>Concejales</Link>
                      <Link to="/noticias" className="text-blue-gray-600 dark:text-gray-300 hover:text-guinda-600" onClick={() => setIsMenuOpen(false)}>Noticias</Link>
                      <Link to="/transparencia" className="text-blue-gray-600 dark:text-gray-300 hover:text-guinda-600" onClick={() => setIsMenuOpen(false)}>Transparencia</Link>
+                     <Link to="/buzon" className="text-blue-gray-600 dark:text-gray-300 hover:text-guinda-600" onClick={() => setIsMenuOpen(false)}>Buzón</Link>
+                     <Link to="/becas" className="text-blue-gray-600 dark:text-gray-300 hover:text-guinda-600" onClick={() => setIsMenuOpen(false)}>Becas</Link>
                      <div className="flex justify-between items-center">
                          <span className="text-blue-gray-400 dark:text-gray-500">Tema</span>
                          <ThemeToggle />

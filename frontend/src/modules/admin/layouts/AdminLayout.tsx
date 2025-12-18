@@ -5,6 +5,7 @@ import {
     LayoutDashboard, Newspaper, Store, Users, FolderOpen
 } from 'lucide-react';
 import { useAuthStore } from '../../../shared/store/authStore';
+import { Inbox } from 'lucide-react';
 
 export const AdminLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -70,13 +71,14 @@ export const AdminLayout = () => {
             <div className="h-20 flex items-center px-6 border-b border-gray-100 dark:border-slate-800">
                 <div className="flex items-center gap-3">
                     {/* Icono/Logo */}
-                    <div className="w-10 h-10 bg-guinda-600 rounded-xl flex items-center justify-center shadow-md shadow-guinda-600/20 text-white font-bold text-xl">
-                        C
+                    <div
+                        className="w-12 h-12 flex items-center justify-center">
+                        <img src="http://localhost:8000/static/images/logo-consejo.png" alt="Logo" className="w-full h-full object-cover"/>
                     </div>
                     {/* Texto Legible en ambos modos */}
                     <div>
                         <h1 className="text-lg font-bold text-gray-900 dark:text-white leading-none">
-                            CEITM <span className="text-guinda-600 dark:text-guinda-500">Admin</span>
+                        CEITM <span className="text-guinda-600 dark:text-guinda-500">Admin</span>
                         </h1>
                         <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">
                             Panel de Control
@@ -105,6 +107,11 @@ export const AdminLayout = () => {
                     Noticias y Avisos
                 </Link>
 
+                <Link to="/admin/quejas" className={getLinkClass('/admin/quejas')}>
+                    <Inbox size={20} />
+                    <span>Buzón</span>
+                </Link>
+
                 <Link to="/admin/convenios" className={getLinkClass('/admin/convenios')}>
                     <Store size={20} />
                     Convenios
@@ -128,17 +135,24 @@ export const AdminLayout = () => {
 
             {/* FOOTER SIDEBAR (Perfil Resumido) */}
             <div className="p-4 border-t border-gray-100 dark:border-slate-800">
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-slate-800/50">
-                    <div className="w-8 h-8 rounded-full bg-guinda-100 dark:bg-guinda-900 flex items-center justify-center text-guinda-700 dark:text-guinda-400 font-bold text-xs">
-                        {user?.full_name?.charAt(0) || 'U'}
+                <Link
+                    to="/admin/perfil"
+                    className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-slate-800/50 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer group"
+                >
+                    <div className="w-10 h-10 rounded-full bg-guinda-100 dark:bg-guinda-900 flex items-center justify-center text-guinda-700 dark:text-guinda-400 font-bold text-xs overflow-hidden border border-gray-200 dark:border-slate-700">
+                        {user?.imagen_url ? (
+                            <img src={user.imagen_url} alt="User" className="w-full h-full object-cover" />
+                        ) : (
+                            user?.full_name?.charAt(0) || 'U'
+                        )}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate group-hover:text-guinda-600 transition-colors">
                             {user?.full_name?.split(' ')[0]}
                         </p>
-                        <p className="text-xs text-gray-500 truncate capitalize">{user?.role}</p>
+                        <p className="text-xs text-gray-500 truncate capitalize">Editar Perfil</p>
                     </div>
-                </div>
+                </Link>
             </div>
         </div>
       </aside>
