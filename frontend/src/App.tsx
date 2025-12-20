@@ -24,14 +24,21 @@ import { AdminDocumentos } from './modules/admin/pages/AdminDocumentos';
 import { AdminDashboard } from './modules/admin/pages/AdminDashboard';
 import { AdminQuejas } from './modules/admin/pages/AdminQuejas';
 import AdminBecas from './modules/admin/pages/AdminBecas';
-
+import { AdminLogs } from "./modules/admin/pages/AdminLogs.tsx";
 import { AdminProfile } from './modules/admin/pages/AdminProfile';
+
 // Guard (Protector de Rutas)
 import { ProtectedRoute } from './modules/auth/components/ProtectedRoute';
+
+// 👇 1. IMPORTAR EL TRACKER
+import RouteTracker from './shared/components/RouteTracker';
 
 function App() {
   return (
     <BrowserRouter>
+      {/* 👇 2. COLOCARLO AQUÍ (Dentro del Router, antes de Routes) */}
+      <RouteTracker />
+
       <Routes>
         {/* --- RUTAS PÚBLICAS --- */}
         <Route path="/" element={<Layout />}>
@@ -70,6 +77,7 @@ function App() {
             <Route path="perfil" element={<AdminProfile />} />
             <Route path="quejas" element={<AdminQuejas />} />
             <Route path="becas" element={<AdminBecas />} />
+            <Route path="auditoria" element={<AdminLogs />} />
         </Route>
 
         {/* 404 - Ruta no encontrada */}

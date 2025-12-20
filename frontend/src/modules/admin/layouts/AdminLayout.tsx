@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     Menu, X, Sun, Moon, LogOut,
-    LayoutDashboard, Newspaper, Store, Users, FolderOpen, GraduationCap
+    LayoutDashboard, Newspaper, Store, Users, FolderOpen, GraduationCap, Inbox, Activity
 } from 'lucide-react';
 import { useAuthStore } from '../../../shared/store/authStore';
-import { Inbox } from 'lucide-react';
+import { usePermissions } from '../../../shared/hooks/usePermissions'; // <--- IMPORTAMOS EL HOOK
 
 export const AdminLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -15,6 +15,15 @@ export const AdminLayout = () => {
   const navigate = useNavigate();
   const logout = useAuthStore((state) => state.logout);
   const user = useAuthStore((state) => state.user);
+
+  // 👇 Extraemos los permisos (El "cerebro" que definimos antes)
+  const {
+    canManageUsers,
+    canManageNoticias,
+    canManageConvenios,
+    canReviewBecas
+    // canManageQuejas <- Ya no lo usamos aquí porque pediste que TODOS vean el buzón
+  } = usePermissions();
 
   // Sincronizar tema al cargar
   useEffect(() => {
@@ -42,15 +51,12 @@ export const AdminLayout = () => {
 
   // Clases para links activos vs inactivos
   const getLinkClass = (path: string) => {
-    // Si la ruta actual es exactamente el path (para dashboard) o empieza con él (para subsecciones)
     const isActive = path === '/admin'
         ? location.pathname === '/admin'
         : location.pathname.startsWith(path);
 
     const baseClass = "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium group";
 
-    // MODO CLARO: Texto gris oscuro, Hover gris claro. Activo: Guinda suave.
-    // MODO OSCURO: Texto gris claro, Hover gris oscuro. Activo: Guinda oscuro.
     if (isActive) {
         return `${baseClass} bg-guinda-50 text-guinda-700 dark:bg-guinda-900/20 dark:text-guinda-400 border border-guinda-100 dark:border-guinda-900/50`;
     }
@@ -67,15 +73,12 @@ export const AdminLayout = () => {
       `}>
         <div className="h-full flex flex-col">
 
-            {/* HEADER DEL SIDEBAR (Corregido) */}
+            {/* HEADER DEL SIDEBAR */}
             <div className="h-20 flex items-center px-6 border-b border-gray-100 dark:border-slate-800">
                 <div className="flex items-center gap-3">
-                    {/* Icono/Logo */}
-                    <div
-                        className="w-12 h-12 flex items-center justify-center">
+                    <div className="w-12 h-12 flex items-center justify-center">
                         <img src="http://localhost:8000/static/images/logo-consejo.png" alt="Logo" className="w-full h-full object-cover"/>
                     </div>
-                    {/* Texto Legible en ambos modos */}
                     <div>
                         <h1 className="text-lg font-bold text-gray-900 dark:text-white leading-none">
                         CEITM <span className="text-guinda-600 dark:text-guinda-500">Admin</span>
@@ -91,8 +94,9 @@ export const AdminLayout = () => {
             </div>
 
             {/* NAV LINKS */}
-            <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+            <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
 
+                {/* DASHBOARD: Visible para todos */}
                 <Link to="/admin" className={getLinkClass('/admin')}>
                     <LayoutDashboard size={20} />
                     Dashboard
@@ -102,44 +106,64 @@ export const AdminLayout = () => {
                     Gestión
                 </div>
 
-                <Link to="/admin/noticias" className={getLinkClass('/admin/noticias')}>
-                    <Newspaper size={20} />
-                    Noticias y Avisos
-                </Link>
+                {/* NOTICIAS: Solo Marketing/Comunicación/Admin */}
+                {canManageNoticias && (
+                    <Link to="/admin/noticias" className={getLinkClass('/admin/noticias')}>
+                        <Newspaper size={20} />
+                        Noticias y Avisos
+                    </Link>
+                )}
 
+                {/* BUZÓN: Visible para TODOS (Como pediste) */}
                 <Link to="/admin/quejas" className={getLinkClass('/admin/quejas')}>
                     <Inbox size={20} />
                     <span>Buzón</span>
                 </Link>
 
-                <Link to="/admin/convenios" className={getLinkClass('/admin/convenios')}>
-                    <Store size={20} />
-                    Convenios
-                </Link>
-                <Link to="/admin/becas" className={getLinkClass('/admin/becas')}>
-                    <GraduationCap size={20} />
-                    Gestión Becas
-                </Link>
+                {/* CONVENIOS: Solo Vinculación/Admin */}
+                {canManageConvenios && (
+                    <Link to="/admin/convenios" className={getLinkClass('/admin/convenios')}>
+                        <Store size={20} />
+                        Convenios
+                    </Link>
+                )}
 
+                {/* BECAS: Coord. Becas, Admin y Concejales (Revisión) */}
+                {canReviewBecas && (
+                    <Link to="/admin/becas" className={getLinkClass('/admin/becas')}>
+                        <GraduationCap size={20} />
+                        Gestión Becas
+                    </Link>
+                )}
 
-
+                {/* DOCUMENTOS: Visible para TODOS */}
                 <Link to="/admin/documentos" className={getLinkClass('/admin/documentos')}>
                     <FolderOpen size={20} />
                     Repositorio / Docs
                 </Link>
 
-                <div className="pt-4 pb-2 px-4 text-xs font-bold text-gray-400 uppercase tracking-widest">
-                    Sistema
-                </div>
+                {/* SECCIÓN SISTEMA: Solo Admin */}
+                {canManageUsers && (
+                    <>
+                        <div className="pt-4 pb-2 px-4 text-xs font-bold text-gray-400 uppercase tracking-widest">
+                            Sistema
+                        </div>
 
-                <Link to="/admin/usuarios" className={getLinkClass('/admin/usuarios')}>
-                    <Users size={20} />
-                    Usuarios
-                </Link>
+                        <Link to="/admin/usuarios" className={getLinkClass('/admin/usuarios')}>
+                            <Users size={20} />
+                            Usuarios
+                        </Link>
+                        <Link to="/admin/auditoria" className={getLinkClass('/admin/auditoria')}>
+                            <Activity size={20} />
+                            Auditoría
+                        </Link>
+                    </>
+
+                )}
 
             </nav>
 
-            {/* FOOTER SIDEBAR (Perfil Resumido) */}
+            {/* FOOTER SIDEBAR (Perfil) */}
             <div className="p-4 border-t border-gray-100 dark:border-slate-800">
                 <Link
                     to="/admin/perfil"
@@ -156,7 +180,9 @@ export const AdminLayout = () => {
                         <p className="text-sm font-bold text-gray-900 dark:text-white truncate group-hover:text-guinda-600 transition-colors">
                             {user?.full_name?.split(' ')[0]}
                         </p>
-                        <p className="text-xs text-gray-500 truncate capitalize">Editar Perfil</p>
+                        <p className="text-xs text-gray-500 truncate capitalize">
+                            {user?.role?.replace('_', ' ')}
+                        </p>
                     </div>
                 </Link>
             </div>
@@ -169,20 +195,17 @@ export const AdminLayout = () => {
         {/* TOP NAVBAR */}
         <header className="h-20 bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 sticky top-0 z-30 px-6 flex items-center justify-between">
 
-            {/* Botón Menú Móvil */}
             <button className="lg:hidden p-2 text-gray-600 dark:text-gray-300" onClick={() => setIsSidebarOpen(true)}>
                 <Menu size={24} />
             </button>
 
-            {/* Título de la sección (Opcional, o espacio vacío) */}
             <div className="hidden md:block text-sm text-gray-400">
-                {/* Aquí podrías poner breadcrumbs si quisieras */}
+               {/* Espacio para breadcrumbs futuro */}
             </div>
 
-            {/* ACCIONES DERECHA (Tema y Logout) */}
+            {/* ACCIONES DERECHA */}
             <div className="flex items-center gap-4 ml-auto">
 
-                {/* BOTÓN DE TEMA (Restaurado) */}
                 <button
                     onClick={toggleTheme}
                     className="p-2.5 rounded-xl text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-slate-800 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-slate-700"

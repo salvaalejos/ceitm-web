@@ -36,25 +36,22 @@ def read_complaints(
     """
     Obtener lista de quejas.
     - Admin/Estructura: Ven TODAS.
-    - Concejales: Ven SOLO las de su carrera.
+    - Los demás (Concejal, Coordinador, Vocal): Ven SOLO las de su carrera.
     """
-    # 1. Si es Admin o Estructura -> Ve todo
+
+    # 1. Jerarquía Alta -> Ven todo sin filtros
     if current_user.role in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
         statement = select(Complaint).order_by(Complaint.created_at.desc())
 
-    # 2. Si es Concejal -> Filtra por su carrera
-    elif current_user.role == UserRole.CONCEJAL:
-        if not current_user.career:
-            # Si el concejal no tiene carrera asignada en su perfil, no ve nada por seguridad
-            return []
-        statement = select(Complaint).where(Complaint.career == current_user.career).order_by(
-            Complaint.created_at.desc())
-
-    # 3. Otros roles (Vocal, Coordinador, etc.) -> Acceso denegado (Opcional, ajusta según necesites)
+    # 2. Resto del personal -> Filtro por carrera obligatoria
     else:
-        # Opcional: Si quieres que Coordinadores vean todo, agrégalos al grupo 1.
-        # Por ahora lo dejamos restringido:
-        raise HTTPException(status_code=403, detail="No tienes permisos para ver el buzón")
+        # Validación de seguridad: Si no tiene carrera asignada, no ve nada.
+        if not current_user.career:
+            return []
+
+        statement = select(Complaint).where(
+            Complaint.career == current_user.career
+        ).order_by(Complaint.created_at.desc())
 
     complaints = session.exec(statement).all()
     return complaints

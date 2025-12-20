@@ -225,3 +225,10 @@ export const checkMyStatus = async (controlNumber: string) => {
   const response = await api.get<ScholarshipApplication[]>(`/becas/status/${controlNumber}`);
   return response.data;
 };
+
+export const getAuditLogs = async (module?: string) => {
+  // Si enviamos un módulo (ej. "BECAS"), filtramos. Si no, trae todo.
+  const params = module ? { module } : {};
+  const response = await api.get('/audit/', { params });
+  return response.data;
+};

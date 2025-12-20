@@ -7,6 +7,8 @@ from app.models.document_model import Document, DocumentCategory
 from app.models.user_model import User, UserRole
 from app.schemas.document_schema import DocumentCreate, DocumentUpdate, DocumentPublic
 from app.api.deps import get_current_user
+# 👇 IMPORTAMOS EL LOGGER
+from app.core.audit_logger import log_action
 
 router = APIRouter()
 
@@ -15,8 +17,8 @@ router = APIRouter()
 
 @router.get("/", response_model=List[DocumentPublic])
 def read_documents(
-    category: Optional[DocumentCategory] = None, # <--- CORRECCIÓN (Usa el Enum o Optional[str])
-    session: Session = Depends(get_session)
+        category: Optional[DocumentCategory] = None,
+        session: Session = Depends(get_session)
 ):
     """
     Obtener lista de documentos públicos.
@@ -34,7 +36,7 @@ def read_documents(
 
 # --- PRIVADO (ADMIN) ---
 
-# NUEVO: Ver TODOS los documentos (incluyendo privados)
+# Ver TODOS los documentos (incluyendo privados)
 @router.get("/admin", response_model=List[DocumentPublic])
 def read_all_documents(
         session: Session = Depends(get_session),
@@ -47,6 +49,7 @@ def read_all_documents(
     # Traer todo sin filtrar por is_public
     docs = session.exec(select(Document).order_by(Document.created_at.desc())).all()
     return docs
+
 
 @router.post("/", response_model=DocumentPublic)
 def create_document(
@@ -62,6 +65,18 @@ def create_document(
     session.add(doc)
     session.commit()
     session.refresh(doc)
+
+    # 👇 LOG: Registro de subida
+    log_action(
+        session=session,
+        user=current_user,
+        action="CREATE",
+        module="DOCUMENTOS",
+        details=f"Subió el documento: {doc.title} ({doc.category})",
+        resource_id=str(doc.id)
+    )
+    session.commit()
+
     return doc
 
 
@@ -78,6 +93,19 @@ def delete_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Documento no encontrado")
 
+    doc_title = doc.title  # Guardamos título para el log
+
     session.delete(doc)
+
+    # 👇 LOG: Registro de eliminación
+    log_action(
+        session=session,
+        user=current_user,
+        action="DELETE",
+        module="DOCUMENTOS",
+        details=f"Eliminó el documento: {doc_title}",
+        resource_id=str(doc_id)
+    )
+
     session.commit()
     return {"ok": True}

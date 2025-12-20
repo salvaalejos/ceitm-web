@@ -1,0 +1,99 @@
+import { useAuthStore } from '../store/authStore';
+
+// --- CONSTANTES (Espejo de tu backend/models/user_model.py) ---
+// Usamos esto para evitar errores de dedo al escribir "admin_sys" o "Becas y Apoyos"
+export const ROLES = {
+  ADMIN_SYS: 'admin_sys',
+  ESTRUCTURA: 'estructura',
+  COORDINADOR: 'coordinador',
+  CONCEJAL: 'concejal',
+  VOCAL: 'vocal',
+};
+
+export const AREAS = {
+  BECAS: 'Becas y Apoyos',
+  COMUNICACION: 'Comunicación y Difusión',
+  MARKETING: 'Marketing y Diseño',
+  VINCULACION: 'Vinculación',
+  CONTRALORIA: 'Contraloría',
+  ACADEMICO: 'Académico',
+  SISTEMAS: 'Sistemas',
+};
+
+export const usePermissions = () => {
+  const { user } = useAuthStore();
+
+  // Si no hay usuario logueado, todo es falso
+  if (!user) {
+    return {
+      isAdmin: false,
+      isEstructura: false,
+      isConcejal: false,
+      canManageUsers: false,
+      canManageBecas: false,
+      canReviewBecas: false,
+      canManageConvenios: false,
+      canManageNoticias: false,
+      canManageQuejas: false,
+      user: null
+    };
+  }
+
+  const role = user.role;
+  const area = user.area || ''; // Puede venir undefined
+
+  // --- 1. ROLES BÁSICOS ---
+  const isAdmin = role === ROLES.ADMIN_SYS;
+  const isEstructura = role === ROLES.ESTRUCTURA;
+  const isConcejal = role === ROLES.CONCEJAL;
+
+  // "Power User": Admin y Estructura ven TODO (Regla de oro que definiste)
+  const isPowerUser = isAdmin || isEstructura;
+
+  // --- 2. PERMISOS POR MÓDULO (Lógica de Negocio) ---
+
+  // A. USUARIOS
+  // Solo Admin y Estructura pueden ver/crear usuarios.
+  // Los coordinadores NO deberían poder crear otros usuarios.
+  const canManageUsers = isPowerUser;
+
+  // B. BECAS
+  // - Gestión (Crear/Editar Convocatorias): Power Users O Coordinadores del área de Becas
+  const isBecasTeam = area === AREAS.BECAS;
+  const canManageBecas = isPowerUser || isBecasTeam;
+
+  // - Revisión (Entrar al módulo): Los de arriba + Concejales (para revisar a sus alumnos)
+  // El concejal NO gestiona (no crea convocatorias), pero SÍ revisa.
+  const canReviewBecas = canManageBecas || isConcejal;
+
+  // C. CONVENIOS
+  // Power Users O área de Vinculación
+  const isVinculacion = area === AREAS.VINCULACION;
+  const canManageConvenios = isPowerUser || isVinculacion;
+
+  // D. NOTICIAS
+  // Power Users O áreas de Comunicación/Marketing
+  const isComu = area === AREAS.COMUNICACION || area === AREAS.MARKETING;
+  const canManageNoticias = isPowerUser || isComu;
+
+  // E. QUEJAS / BUZÓN
+  // Power Users O Contraloría O Concejales (suelen ser primer contacto)
+  const isContraloria = area === AREAS.CONTRALORIA;
+  const canManageQuejas = !!user;
+
+  return {
+    user,
+    role,
+    area,
+    isAdmin,
+    isEstructura,
+    isConcejal,
+    // Capabilities (Flags de permisos)
+    canManageUsers,
+    canManageBecas,     // Crear/Editar convocatorias
+    canReviewBecas,     // Entrar al módulo (incluye concejales)
+    canManageConvenios,
+    canManageNoticias,
+    canManageQuejas
+  };
+};

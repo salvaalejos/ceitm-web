@@ -11,9 +11,16 @@ import {
   CheckCircle, XCircle, Clock, Search, Filter, FileText,
   AlertTriangle, Edit, PlusCircle
 } from 'lucide-react';
+import { usePermissions } from '../../../shared/hooks/usePermissions'; // <--- IMPORTAMOS EL HOOK
 
 export default function AdminBecas() {
-  const [activeTab, setActiveTab] = useState<'convocatorias' | 'solicitudes'>('convocatorias');
+  // 👇 Traemos permisos
+  const { canManageBecas, isConcejal } = usePermissions();
+
+  // Si es Concejal, entra directo a ver solicitudes. Si es Admin, ve convocatorias primero.
+  const [activeTab, setActiveTab] = useState<'convocatorias' | 'solicitudes'>(
+      isConcejal ? 'solicitudes' : 'convocatorias'
+  );
 
   const [scholarships, setScholarships] = useState<Scholarship[]>([]);
   const [applications, setApplications] = useState<ScholarshipApplication[]>([]);
@@ -94,10 +101,15 @@ export default function AdminBecas() {
       <div className="flex justify-between items-center">
         <div>
             <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Gestión de Becas</h1>
-            <p className="text-sm text-gray-500 dark:text-slate-400">Administra convocatorias y evalúa a los aspirantes</p>
+            <p className="text-sm text-gray-500 dark:text-slate-400">
+                {canManageBecas
+                    ? "Administra convocatorias y evalúa a los aspirantes"
+                    : "Revisión de solicitudes asignadas a tu carrera"}
+            </p>
         </div>
 
-        {activeTab === 'convocatorias' && (
+        {/* BOTÓN CREAR: Solo si tienes permiso de GESTIÓN (canManageBecas) */}
+        {activeTab === 'convocatorias' && canManageBecas && (
           <button
             onClick={handleCreateScholarship}
             className="btn-primary flex items-center gap-2"
@@ -110,6 +122,8 @@ export default function AdminBecas() {
       {/* TABS */}
       <div className="border-b border-gray-200 dark:border-slate-700">
         <nav className="-mb-px flex space-x-8">
+
+          {/* Pestaña Convocatorias: Visible para todos, pero el Concejal solo la ve para informarse */}
           <button
             onClick={() => setActiveTab('convocatorias')}
             className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${
@@ -120,6 +134,7 @@ export default function AdminBecas() {
           >
             Convocatorias
           </button>
+
           <button
             onClick={() => setActiveTab('solicitudes')}
             className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${
@@ -142,7 +157,10 @@ export default function AdminBecas() {
                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">Nombre</th>
                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">Ciclo</th>
                 <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">Estado</th>
-                <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">Acciones</th>
+                {/* Columna Acciones: Solo si puedes gestionar */}
+                {canManageBecas && (
+                    <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">Acciones</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
@@ -159,21 +177,25 @@ export default function AdminBecas() {
                       {s.is_active ? 'Activa' : 'Cerrada'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right text-sm flex justify-end items-center gap-3">
-                    <button
-                      onClick={() => handleToggleActive(s)}
-                      className={`${s.is_active ? 'text-red-600 hover:text-red-800 dark:text-red-400' : 'text-green-600 hover:text-green-800 dark:text-green-400'} font-bold hover:underline text-xs`}
-                    >
-                      {s.is_active ? 'Cerrar' : 'Activar'}
-                    </button>
-                    <button
-                        onClick={() => handleEditScholarship(s)}
-                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                        title="Editar"
-                    >
-                        <Edit size={18} />
-                    </button>
-                  </td>
+
+                  {/* Celdas de Acciones: Solo si tienes permiso */}
+                  {canManageBecas && (
+                      <td className="px-6 py-4 text-right text-sm flex justify-end items-center gap-3">
+                        <button
+                          onClick={() => handleToggleActive(s)}
+                          className={`${s.is_active ? 'text-red-600 hover:text-red-800 dark:text-red-400' : 'text-green-600 hover:text-green-800 dark:text-green-400'} font-bold hover:underline text-xs`}
+                        >
+                          {s.is_active ? 'Cerrar' : 'Activar'}
+                        </button>
+                        <button
+                            onClick={() => handleEditScholarship(s)}
+                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                            title="Editar"
+                        >
+                            <Edit size={18} />
+                        </button>
+                      </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -233,7 +255,6 @@ export default function AdminBecas() {
                     ) : (
                         filteredApps.map((app) => (
                         <tr key={app.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                            {/* AQUI ESTABA EL PROBLEMA DEL NEGRO */}
                             <td className="px-6 py-4 font-mono text-sm text-gray-900 dark:text-gray-200 font-semibold">{app.control_number}</td>
 
                             <td className="px-6 py-4">

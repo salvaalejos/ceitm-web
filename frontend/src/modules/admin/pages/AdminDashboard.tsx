@@ -1,166 +1,281 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-    Users, FileText, Newspaper, Store,
-    Plus, ArrowRight, Activity
+  Users,
+  GraduationCap,
+  Newspaper,
+  MessageSquareWarning,
+  ArrowRight,
+  TrendingUp,
+  Activity,
+  FileText
 } from 'lucide-react';
 import { useAuthStore } from '../../../shared/store/authStore';
-import { getConvenios, getNews, getAllDocuments, getUsers } from '../../../shared/services/api';
+import { usePermissions } from '../../../shared/hooks/usePermissions';
+import {
+  getUsers,
+  getScholarships,
+  getNews,
+  getComplaints
+} from '../../../shared/services/api';
+// 👇 1. IMPORTAR WIDGET DE ANALYTICS
+import { AnalyticsWidget } from '../components/AnalyticsWidget';
+
+// --- COMPONENTE: TARJETA DE ESTADÍSTICA ---
+const StatCard = ({ title, value, icon: Icon, color, to, subtitle }: any) => (
+  <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all group">
+    <div className="flex justify-between items-start mb-4">
+      <div className={`p-3 rounded-xl ${color} bg-opacity-10 text-opacity-100`}>
+        <Icon size={24} className={color.replace('bg-', 'text-')} />
+      </div>
+      {to && (
+        <Link to={to} className="text-gray-400 hover:text-guinda-600 dark:hover:text-guinda-400 transition-colors">
+          <ArrowRight size={20} className="transform group-hover:translate-x-1 transition-transform" />
+        </Link>
+      )}
+    </div>
+    <div>
+      <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{value}</h3>
+      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
+      {subtitle && <p className="text-xs text-gray-400 mt-2">{subtitle}</p>}
+    </div>
+  </div>
+);
 
 export const AdminDashboard = () => {
-  const user = useAuthStore(state => state.user);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuthStore();
+  const {
+    isAdmin,
+    isConcejal,
+    canManageUsers,
+    canManageNoticias,
+    canReviewBecas
+  } = usePermissions();
+
   const [stats, setStats] = useState({
-    convenios: 0,
-    noticias: 0,
-    documentos: 0,
-    usuarios: 0
+    users: 0,
+    scholarships: 0,
+    activeScholarships: 0,
+    news: 0,
+    complaints: 0
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadStats = async () => {
-        try {
-            const [conv, news, docs, users] = await Promise.all([
-                getConvenios().catch(() => []),
-                getNews().catch(() => []),
-                getAllDocuments().catch(() => []),
-                getUsers().catch(() => [])
-            ]);
-
-            setStats({
-                convenios: conv.length,
-                noticias: news.length,
-                documentos: docs.length,
-                usuarios: users.length
-            });
-        } catch (error) {
-            console.error("Error cargando estadísticas", error);
-        } finally {
-            setLoading(false);
-        }
-    };
     loadStats();
   }, []);
 
-  // Tarjeta de Estadística Reutilizable
-  const StatCard = ({ title, count, icon: Icon, color, to }: any) => (
-    <Link to={to} className="card-base p-6 hover:-translate-y-1 transition-transform cursor-pointer group relative overflow-hidden flex flex-col justify-between h-32">
-        <div className={`absolute -right-4 -top-4 opacity-10 group-hover:opacity-20 transition-opacity ${color}`}>
-            <Icon size={100} />
-        </div>
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-2 ${color} bg-opacity-10 text-current`}>
-            <Icon size={20} className={color.replace('bg-', 'text-')} />
-        </div>
-        <div>
-            <h3 className="text-3xl font-bold text-gray-900 dark:text-white leading-none mb-1">
-                {loading ? '-' : count}
-            </h3>
-            <p className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
-                {title}
-            </p>
-        </div>
-    </Link>
-  );
+  const loadStats = async () => {
+    setLoading(true);
+    try {
+      const promises = [];
+
+      if (canManageUsers) {
+        promises.push(getUsers().then(data => ({ key: 'users', val: data.length })));
+      }
+
+      if (canReviewBecas) {
+        promises.push(getScholarships(false).then(data => {
+            const active = data.filter((s: any) => s.is_active).length;
+            return { key: 'scholarships', val: data.length, extra: active };
+        }));
+      }
+
+      if (canManageNoticias) {
+        promises.push(getNews().then(data => ({ key: 'news', val: data.length })));
+      }
+
+      promises.push(getComplaints().then(data => ({ key: 'complaints', val: data.length })));
+
+      const results = await Promise.allSettled(promises);
+      const newStats: any = { ...stats };
+      results.forEach((res: any) => {
+        if (res.status === 'fulfilled' && res.value) {
+            newStats[res.value.key] = res.value.val;
+            if (res.value.extra !== undefined) newStats.activeScholarships = res.value.extra;
+        }
+      });
+      setStats(newStats);
+
+    } catch (error) {
+      console.error("Error cargando dashboard:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="animate-fade-in space-y-8">
+    <div className="space-y-8 animate-fade-in">
 
-        {/* HEADER DE BIENVENIDA (DISEÑO MEJORADO) */}
-        <div className="relative rounded-3xl p-8 overflow-hidden shadow-lg">
-            {/* Fondo con degradado: Más vibrante en light mode, más profundo en dark mode */}
-            <div className="absolute inset-0 bg-gradient-to-r from-guinda-600 to-red-500 dark:from-guinda-900 dark:to-slate-900"></div>
-
-            {/* Decoración de fondo */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-            <div className="absolute bottom-0 left-10 w-40 h-40 bg-black opacity-10 rounded-full blur-2xl pointer-events-none"></div>
-
-            <div className="relative z-10 text-white">
-                <h1 className="text-3xl font-bold mb-2">
-                    ¡Hola, {user?.full_name?.split(' ')[0] || 'Colega'}! 👋
-                </h1>
-                <p className="text-guinda-50 dark:text-gray-300 max-w-xl text-lg opacity-90">
-                    Bienvenido al panel de administración del CEITM. Aquí tienes el resumen de hoy.
-                </p>
-            </div>
-        </div>
-
-        {/* GRID DE ESTADÍSTICAS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard
-                title="Convenios"
-                count={stats.convenios}
-                icon={Store}
-                color="text-blue-600 bg-blue-600"
-                to="/admin/convenios"
-            />
-            <StatCard
-                title="Noticias"
-                count={stats.noticias}
-                icon={Newspaper}
-                color="text-purple-600 bg-purple-600"
-                to="/admin/noticias"
-            />
-            <StatCard
-                title="Documentos"
-                count={stats.documentos}
-                icon={FileText}
-                color="text-amber-500 bg-amber-500"
-                to="/admin/documentos"
-            />
-            <StatCard
-                title="Usuarios"
-                count={stats.usuarios}
-                icon={Users}
-                color="text-emerald-500 bg-emerald-500"
-                to="/admin/usuarios"
-            />
-        </div>
-
-        {/* SECCIÓN DE ACCESOS RÁPIDOS */}
+      {/* --- HERO SECTION --- */}
+      <div className="flex flex-col md:flex-row justify-between items-end gap-4">
         <div>
-            <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2 px-1">
-                <Activity size={20} className="text-guinda-600" /> Accesos Rápidos
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+                Hola, {user?.full_name?.split(' ')[0]} 👋
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">
+                {isAdmin ? 'Bienvenido al panel de control general.' :
+                 isConcejal ? `Panel de gestión para ${user?.career || 'tu carrera'}.` :
+                 `Gestión del área de ${user?.area || 'Operaciones'}.`}
+            </p>
+        </div>
 
-                {/* Botón Rápido: Noticia */}
-                <Link to="/admin/noticias" className="card-base p-5 hover:border-guinda-500/50 transition-all group flex items-center gap-4">
-                    <div className="p-3 bg-guinda-50 dark:bg-guinda-900/20 rounded-xl text-guinda-600 shrink-0">
-                        <Plus size={24} />
+        <div className="text-sm text-gray-400 bg-white dark:bg-slate-900 px-4 py-2 rounded-lg border border-gray-100 dark:border-slate-800 shadow-sm">
+            📅 {new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        </div>
+      </div>
+
+      {/* --- SECCIÓN ANALYTICS (NUEVO) --- */}
+      {/* Solo mostramos esto a Admins/Estructura para no saturar a los Concejales */}
+      {canManageUsers && (
+          <section className="animate-fade-in">
+              <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                  <Activity className="text-guinda-600" size={20} /> Métricas de Google Analytics
+              </h2>
+              <AnalyticsWidget />
+          </section>
+      )}
+
+      {/* --- STATS GRID (Dinámico) --- */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+        {canManageUsers && (
+            <StatCard
+                title="Usuarios Totales"
+                value={loading ? '...' : stats.users}
+                icon={Users}
+                color="bg-blue-500 text-blue-600"
+                to="/admin/usuarios"
+                subtitle="Administradores y Staff"
+            />
+        )}
+
+        {canReviewBecas && (
+            <StatCard
+                title="Convocatorias"
+                value={loading ? '...' : stats.scholarships}
+                icon={GraduationCap}
+                color="bg-guinda-600 text-guinda-600"
+                to="/admin/becas"
+                subtitle={`${stats.activeScholarships} Activas actualmente`}
+            />
+        )}
+
+        {canManageNoticias && (
+            <StatCard
+                title="Noticias Publicadas"
+                value={loading ? '...' : stats.news}
+                icon={Newspaper}
+                color="bg-purple-500 text-purple-600"
+                to="/admin/noticias"
+                subtitle="Visibles en la app"
+            />
+        )}
+
+        <StatCard
+            title="Quejas Recibidas"
+            value={loading ? '...' : stats.complaints}
+            icon={MessageSquareWarning}
+            color="bg-orange-500 text-orange-600"
+            to="/admin/quejas"
+            subtitle="Buzón Estudiantil"
+        />
+
+      </div>
+
+      {/* --- SECCIONES ESPECÍFICAS POR ROL --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        {/* PANEL IZQUIERDO: ACCIONES RÁPIDAS */}
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 p-6 shadow-sm">
+            <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                <TrendingUp size={20} className="text-guinda-600" /> Acciones Rápidas
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                {canReviewBecas && (
+                    <Link to="/admin/becas" className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-slate-800 hover:bg-guinda-50 dark:hover:bg-slate-700 transition-colors group border border-transparent hover:border-guinda-200">
+                        <div className="bg-white dark:bg-slate-700 p-3 rounded-lg text-guinda-600 shadow-sm group-hover:scale-110 transition-transform">
+                            <GraduationCap size={24} />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-gray-900 dark:text-white">Revisar Solicitudes</h4>
+                            <p className="text-xs text-gray-500">Evaluar aspirantes pendientes</p>
+                        </div>
+                    </Link>
+                )}
+
+                {canManageNoticias && (
+                    <Link to="/admin/noticias" className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors group border border-transparent hover:border-blue-200">
+                        <div className="bg-white dark:bg-slate-700 p-3 rounded-lg text-blue-600 shadow-sm group-hover:scale-110 transition-transform">
+                            <Newspaper size={24} />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-gray-900 dark:text-white">Nueva Noticia</h4>
+                            <p className="text-xs text-gray-500">Publicar aviso o evento</p>
+                        </div>
+                    </Link>
+                )}
+
+                <Link to="/admin/quejas" className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-slate-700 transition-colors group border border-transparent hover:border-orange-200">
+                    <div className="bg-white dark:bg-slate-700 p-3 rounded-lg text-orange-600 shadow-sm group-hover:scale-110 transition-transform">
+                        <MessageSquareWarning size={24} />
                     </div>
                     <div>
-                        <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-guinda-600 transition-colors">Nueva Noticia</h3>
-                        <p className="text-xs text-gray-500">Publicar aviso o video</p>
+                        <h4 className="font-bold text-gray-900 dark:text-white">Atender Buzón</h4>
+                        <p className="text-xs text-gray-500">Revisar reportes recientes</p>
                     </div>
-                    <ArrowRight className="ml-auto text-gray-300 group-hover:text-guinda-600 transition-colors" size={18} />
                 </Link>
 
-                {/* Botón Rápido: Convenio */}
-                <Link to="/admin/convenios" className="card-base p-5 hover:border-blue-500/50 transition-all group flex items-center gap-4">
-                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 shrink-0">
-                        <Plus size={24} />
+                <Link to="/admin/documentos" className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-slate-800 hover:bg-green-50 dark:hover:bg-slate-700 transition-colors group border border-transparent hover:border-green-200">
+                    <div className="bg-white dark:bg-slate-700 p-3 rounded-lg text-green-600 shadow-sm group-hover:scale-110 transition-transform">
+                        <FileText size={24} />
                     </div>
                     <div>
-                        <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors">Nuevo Convenio</h3>
-                        <p className="text-xs text-gray-500">Registrar aliado</p>
+                        <h4 className="font-bold text-gray-900 dark:text-white">Repositorio</h4>
+                        <p className="text-xs text-gray-500">Formatos y reglamentos</p>
                     </div>
-                    <ArrowRight className="ml-auto text-gray-300 group-hover:text-blue-600 transition-colors" size={18} />
-                </Link>
-
-                {/* Botón Rápido: Documento */}
-                <Link to="/admin/documentos" className="card-base p-5 hover:border-amber-500/50 transition-all group flex items-center gap-4">
-                    <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl text-amber-600 shrink-0">
-                        <Plus size={24} />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-amber-600 transition-colors">Subir PDF</h3>
-                        <p className="text-xs text-gray-500">Actas o Transparencia</p>
-                    </div>
-                    <ArrowRight className="ml-auto text-gray-300 group-hover:text-amber-600 transition-colors" size={18} />
                 </Link>
 
             </div>
         </div>
+
+        {/* PANEL DERECHO: ACTIVIDAD RECIENTE */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 p-6 shadow-sm">
+            <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                <Activity size={20} className="text-blue-500" /> Estado del Sistema
+            </h3>
+
+            <div className="space-y-6">
+                <div className="flex items-start gap-4">
+                    <div className="w-2 h-2 mt-2 rounded-full bg-green-500 shrink-0"></div>
+                    <div>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Sistema Operativo</p>
+                        <p className="text-xs text-gray-500">Todos los servicios funcionando</p>
+                    </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                    <div className="w-2 h-2 mt-2 rounded-full bg-guinda-500 shrink-0"></div>
+                    <div>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Ciclo Escolar</p>
+                        <p className="text-xs text-gray-500">Enero - Junio 2025</p>
+                    </div>
+                </div>
+
+                {isConcejal && (
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-900/30">
+                        <p className="text-xs font-bold text-blue-700 dark:text-blue-400 mb-1">RECORDATORIO</p>
+                        <p className="text-xs text-blue-600 dark:text-blue-300">
+                            Revisar las solicitudes de beca antes del cierre de mes.
+                        </p>
+                    </div>
+                )}
+            </div>
+        </div>
+
+      </div>
     </div>
   );
 };

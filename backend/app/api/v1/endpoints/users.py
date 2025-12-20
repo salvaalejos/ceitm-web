@@ -5,9 +5,10 @@ from sqlmodel import Session, select
 from app.core.database import get_session
 from app.core.security import get_password_hash
 from app.models.user_model import User, UserRole
-# Asegúrate de importar UserUpdateMe
 from app.schemas.user_schema import UserPublic, UserCreate, UserUpdate, UserUpdateMe
 from app.api.deps import get_current_user
+# 👇 IMPORTAMOS EL LOGGER DE AUDITORÍA
+from app.core.audit_logger import log_action
 
 router = APIRouter()
 
@@ -15,7 +16,6 @@ router = APIRouter()
 # ==========================================
 # 1. RUTAS DE "MI PERFIL" (PRIORIDAD ALTA)
 # ==========================================
-# Estas deben ir PRIMERO para que 'me' no se confunda con un {user_id}
 
 @router.get("/me", response_model=UserPublic)
 def read_user_me(current_user: User = Depends(get_current_user)):
@@ -34,19 +34,27 @@ def update_user_me(
     """
     Actualizar mi propio perfil (Autoservicio).
     """
-    # exclude_unset=True es vital para no borrar datos que no enviaste
     user_data = user_in.model_dump(exclude_unset=True)
 
-    # Si viene password, hay que hashearla
     if "password" in user_data and user_data["password"]:
         user_data["hashed_password"] = get_password_hash(user_data["password"])
         del user_data["password"]
 
-    # Actualizar campos
     for field, value in user_data.items():
         setattr(current_user, field, value)
 
     session.add(current_user)
+
+    # 👇 LOG: Auto-edición
+    log_action(
+        session=session,
+        user=current_user,
+        action="UPDATE_PROFILE",
+        module="USUARIOS",
+        details="El usuario actualizó su propio perfil",
+        resource_id=str(current_user.id)
+    )
+
     session.commit()
     session.refresh(current_user)
     return current_user
@@ -101,15 +109,29 @@ def create_user(
         update={"hashed_password": get_password_hash(user_in.password)}
     )
     session.add(user)
+
+    # 👇 LOG: Creación de usuario
+    log_action(
+        session=session,
+        user=current_user,
+        action="CREATE",
+        module="USUARIOS",
+        details=f"Creó al usuario {user.email} con rol {user.role}",
+        resource_id=None  # No tenemos ID hasta el commit, pero podemos omitirlo o hacer flush si urge
+    )
+
     session.commit()
     session.refresh(user)
+
+    # Actualizamos el log con el ID si fuera crítico, pero por simplicidad lo dejamos así arriba
+    # o hacemos un session.flush() antes del log.
+
     return user
 
 
 # ==========================================
 # 3. RUTAS DINÁMICAS ({user_id})
 # ==========================================
-# Estas van AL FINAL porque {user_id} atrapa cualquier cosa
 
 @router.put("/{user_id}", response_model=UserPublic)
 def update_user(
@@ -138,6 +160,17 @@ def update_user(
         setattr(db_user, key, value)
 
     session.add(db_user)
+
+    # 👇 LOG: Edición administrativa
+    log_action(
+        session=session,
+        user=current_user,
+        action="UPDATE",
+        module="USUARIOS",
+        details=f"Editó datos del usuario {db_user.email}",
+        resource_id=str(user_id)
+    )
+
     session.commit()
     session.refresh(db_user)
     return db_user
@@ -162,6 +195,19 @@ def delete_user(
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
+    user_email_deleted = user.email  # Guardamos el mail para el log antes de borrar
+
     session.delete(user)
+
+    # 👇 LOG: Eliminación
+    log_action(
+        session=session,
+        user=current_user,
+        action="DELETE",
+        module="USUARIOS",
+        details=f"Eliminó al usuario {user_email_deleted}",
+        resource_id=str(user_id)
+    )
+
     session.commit()
     return {"ok": True}

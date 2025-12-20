@@ -1,7 +1,7 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
-from slugify import slugify  # Necesitaremos instalar esto o usar una función simple
+from slugify import slugify
 from datetime import datetime
 
 from app.core.database import get_session
@@ -9,6 +9,8 @@ from app.models.news_model import News
 from app.models.user_model import User
 from app.schemas.news_schema import NewsCreate, NewsUpdate, NewsPublic
 from app.api.deps import get_current_user
+# 👇 IMPORTAMOS EL LOGGER
+from app.core.audit_logger import log_action
 
 router = APIRouter()
 
@@ -24,7 +26,6 @@ def read_news(
     """
     Obtener noticias publicadas (paginadas).
     """
-    # Traer solo las publicadas, ordenadas por fecha descendente
     statement = (
         select(News)
         .where(News.is_published == True)
@@ -63,7 +64,6 @@ def create_news(
     slug = base_slug
     counter = 1
 
-    # Verificar si ya existe, si sí, agregar número (ej: titulo-1)
     while session.exec(select(News).where(News.slug == slug)).first():
         slug = f"{base_slug}-{counter}"
         counter += 1
@@ -72,6 +72,18 @@ def create_news(
     session.add(news)
     session.commit()
     session.refresh(news)
+
+    # 👇 LOG: Creación de noticia
+    log_action(
+        session=session,
+        user=current_user,
+        action="CREATE",
+        module="NOTICIAS",
+        details=f"Publicó noticia: {news.title}",
+        resource_id=str(news.id)
+    )
+    session.commit()
+
     return news
 
 
@@ -98,6 +110,18 @@ def update_news(
     session.add(news)
     session.commit()
     session.refresh(news)
+
+    # 👇 LOG: Edición de noticia
+    log_action(
+        session=session,
+        user=current_user,
+        action="UPDATE",
+        module="NOTICIAS",
+        details=f"Editó noticia: {news.title}",
+        resource_id=str(news.id)
+    )
+    session.commit()
+
     return news
 
 
@@ -111,6 +135,19 @@ def delete_news(
     if not news:
         raise HTTPException(status_code=404, detail="Noticia no encontrada")
 
+    news_title = news.title  # Guardamos el título para el log
+
     session.delete(news)
+
+    # 👇 LOG: Eliminación de noticia
+    log_action(
+        session=session,
+        user=current_user,
+        action="DELETE",
+        module="NOTICIAS",
+        details=f"Eliminó noticia: {news_title}",
+        resource_id=str(news_id)
+    )
+
     session.commit()
     return {"ok": True}

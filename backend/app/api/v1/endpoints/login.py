@@ -9,6 +9,8 @@ from app.core.security import create_access_token, verify_password
 from app.core.config import settings
 from app.models.user_model import User
 from app.models.token import Token
+# 👇 IMPORTAMOS EL LOGGER
+from app.core.audit_logger import log_action
 
 router = APIRouter()
 
@@ -26,6 +28,7 @@ def login_access_token(
 
     # 2. Validar usuario y contraseña
     if not user or not verify_password(form_data.password, user.hashed_password):
+        # Nota: Podríamos loguear intentos fallidos aquí, pero requiere cuidado para no llenar la BD
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email o contraseña incorrectos",
@@ -41,5 +44,17 @@ def login_access_token(
     access_token = create_access_token(
         subject=user.id, expires_delta=access_token_expires
     )
+
+    # 👇 LOG: REGISTRO DE INICIO DE SESIÓN
+    # Usamos el objeto 'user' que ya recuperamos de la base de datos
+    log_action(
+        session=session,
+        user=user,
+        action="LOGIN",
+        module="AUTH",
+        details="Inicio de sesión exitoso",
+        resource_id=None
+    )
+    session.commit()
 
     return Token(access_token=access_token, token_type="bearer")

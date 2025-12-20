@@ -1,14 +1,34 @@
 import { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, FileText, Youtube } from 'lucide-react';
+import { Plus, Edit, Trash2, FileText, Youtube, ShieldAlert } from 'lucide-react';
 import { getNews, deleteNews } from '../../../shared/services/api';
 import { NewsForm } from '../components/NewsForm';
+import { usePermissions } from '../../../shared/hooks/usePermissions';
 
 export const AdminNoticias = () => {
+  const { canManageNoticias } = usePermissions();
+
   const [news, setNews] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [newsToEdit, setNewsToEdit] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // --- 🔒 BLOQUEO DE SEGURIDAD ---
+  // Si no tienes permiso, te sacamos una alerta en lugar de la tabla.
+  if (!canManageNoticias) {
+    return (
+        <div className="flex flex-col items-center justify-center h-[60vh] text-center p-6 animate-fade-in">
+            <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mb-6">
+                <ShieldAlert size={40} />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Acceso Restringido</h2>
+            <p className="text-gray-500 dark:text-gray-400 max-w-md">
+                Este módulo es exclusivo para el área de Comunicación y Marketing.
+            </p>
+        </div>
+    );
+  }
+
+  // --- Lógica normal para quienes SÍ tienen permiso ---
   const cargarDatos = async () => {
     setLoading(true);
     try {
@@ -22,8 +42,10 @@ export const AdminNoticias = () => {
   };
 
   useEffect(() => {
-    cargarDatos();
-  }, []);
+    if (canManageNoticias) {
+        cargarDatos();
+    }
+  }, [canManageNoticias]);
 
   const handleDelete = async (id: number) => {
     if (confirm('¿Estás seguro de eliminar esta noticia?')) {
@@ -76,11 +98,6 @@ export const AdminNoticias = () => {
                                         <img src={item.imagen_url} className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center text-gray-400"><FileText size={24}/></div>
-                                    )}
-                                    {item.video_url && (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 text-white">
-                                            <Youtube size={20} />
-                                        </div>
                                     )}
                                 </div>
                             </td>

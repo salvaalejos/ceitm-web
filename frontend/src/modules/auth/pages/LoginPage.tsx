@@ -60,7 +60,7 @@ export const LoginPage = () => {
           setUser(userData);
 
           // 3. REDIRIGIR
-          navigate('/admin/noticias'); // O a donde prefieras
+          navigate('/admin'); // O a donde prefieras
       } catch (userError) {
           console.error("Error obteniendo perfil:", userError);
           // Si falla obtener el usuario, igual intentamos entrar o mostramos error específico

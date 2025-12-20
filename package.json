@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "openssl": "^2.0.0"
+    "openssl": "^2.0.0",
+    "react-ga4": "^2.x.x"
   }
 }

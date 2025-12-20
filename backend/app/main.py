@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles  # <--- NUEVO
 from sqlmodel import Session, select
 from app.core.database import init_db, get_session
 from app.core.config import settings
-from app.api.v1.endpoints import convenios, login, utils, users, news, documents, complaints, scholarships # <--- Importar
+from app.api.v1.endpoints import convenios, login, utils, users, news, documents, complaints, scholarships, audit # <--- Importar
 
 
 @asynccontextmanager
@@ -64,6 +64,7 @@ app.include_router(news.router, prefix="/api/v1/noticias", tags=["Noticias"])
 app.include_router(documents.router, prefix="/api/v1/documentos", tags=["Transparencia"])
 app.include_router(complaints.router, prefix="/api/v1/quejas", tags=["Buzón de Quejas"])
 app.include_router(scholarships.router, prefix="/api/v1/becas", tags=["Becas"])
+app.include_router(audit.router, prefix="/api/v1/audit", tags=["audit"])
 
 @app.get("/")
 def read_root():
