@@ -5,9 +5,7 @@ services:
     image: postgres:15-alpine
     restart: always
     env_file:
-      - .env
-    # Nota: Asegúrate en AWS Security Groups de que el puerto 5432
-    # solo acepte tráfico de tu IP (o ciérralo si no usarás gestor externo).
+      - ./backend/.env
     ports:
       - "5432:5432"
     volumes:
@@ -16,21 +14,17 @@ services:
   backend:
     build: ./backend
     restart: always
-    # CAMBIO 1: Quitamos --reload. Usamos el comando directo.
+    # SIN reload, directo a producción
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
-
     ports:
       - "8000:8000"
     depends_on:
       - db
     env_file:
-      - .env
-
-    # CAMBIO 2: Volumen dedicado para que las fotos NO se borren al actualizar
+      - ./backend/.env
     volumes:
       - ceitm_static:/app/static
 
-# Definimos los volúmenes persistentes
 volumes:
   postgres_data:
   ceitm_static:
