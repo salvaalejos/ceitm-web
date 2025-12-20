@@ -1,7 +1,8 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { Menu, X, Shield, MapPin, Mail, Facebook, Instagram, MessageCircle } from 'lucide-react';
+import { Menu, X, Shield, MapPin, Mail, Instagram, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
 import { ThemeToggle } from './ThemeToggle';
+import { IMAGES } from '../config/constants';
 
 export const Layout = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -27,7 +28,7 @@ export const Layout = () => {
             <Link to="/" className="flex items-center gap-3 group" onClick={() => setIsMenuOpen(false)}>
                 {/* Placeholder del Logo */}
                 <div className="w-12 h-12  flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
-                    <img src="http://localhost:8000/static/images/logo-consejo.png" alt="CEITM Logo" />
+                    <img src={IMAGES.LOGO} alt="CEITM Logo" className="w-full h-full object-contain drop-shadow-md"/>
                 </div>
 
                 <span className="text-xl font-bold text-gray-800 dark:text-white tracking-tight group-hover:text-guinda-700 dark:group-hover:text-guinda-400 transition-colors">

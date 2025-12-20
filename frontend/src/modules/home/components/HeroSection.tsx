@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import {IMAGES} from "../../../shared/config/constants.ts";
 
 export const HeroSection = () => {
-  const heroImage = "http://localhost:8000/static/images/hero-bg.jpg";
   const [isLoaded, setIsLoaded] = useState(false);
 
   const scrollToFunctions = () => {
@@ -19,7 +19,7 @@ export const HeroSection = () => {
 
       {/* 1. IMAGEN (z-0) */}
       <img
-        src={heroImage}
+        src={IMAGES.HERO_BG}
         alt="Hero Background"
         onLoad={() => setIsLoaded(true)}
         className={`

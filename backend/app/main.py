@@ -37,6 +37,8 @@ app = FastAPI(
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://ceitm.ddnsking.com",   # 👈 Frontend Producción (HTTP)
+    "https://ceitm.ddnsking.com",  # 👈 Frontend Producción (HTTPS - Futuro)
     "*"
 ]
 

@@ -5,7 +5,8 @@ import {
     LayoutDashboard, Newspaper, Store, Users, FolderOpen, GraduationCap, Inbox, Activity
 } from 'lucide-react';
 import { useAuthStore } from '../../../shared/store/authStore';
-import { usePermissions } from '../../../shared/hooks/usePermissions'; // <--- IMPORTAMOS EL HOOK
+import { usePermissions } from '../../../shared/hooks/usePermissions';
+import {IMAGES} from "../../../shared/config/constants.ts"; // <--- IMPORTAMOS EL HOOK
 
 export const AdminLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -77,7 +78,7 @@ export const AdminLayout = () => {
             <div className="h-20 flex items-center px-6 border-b border-gray-100 dark:border-slate-800">
                 <div className="flex items-center gap-3">
                     <div className="w-12 h-12 flex items-center justify-center">
-                        <img src="http://localhost:8000/static/images/logo-consejo.png" alt="Logo" className="w-full h-full object-cover"/>
+                        <img src={IMAGES.LOGO} alt="Logo" className="w-full h-full object-cover"/>
                     </div>
                     <div>
                         <h1 className="text-lg font-bold text-gray-900 dark:text-white leading-none">

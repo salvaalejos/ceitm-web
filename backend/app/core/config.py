@@ -13,11 +13,14 @@ class Settings(BaseSettings):
     DATABASE_URL: str
 
     # --- SEGURIDAD (JWT) ---
-    # La clave secreta debe ser larga y única.
-    # En producción, esto NUNCA debe ser valor por defecto, debe leerse del .env
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 días de sesión (ajustable)
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
+
+    # 👇 NUEVO: DOMINIO DEL BACKEND
+    # Valor por defecto: localhost (para desarrollo)
+    # En producción lo sobreescribiremos en el archivo .env
+    DOMAIN: str = "http://localhost:8000"
 
     class Config:
         case_sensitive = True
