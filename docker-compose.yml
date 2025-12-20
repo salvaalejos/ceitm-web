@@ -4,9 +4,10 @@ services:
   db:
     image: postgres:15-alpine
     restart: always
-    # AGREGAR ESTO: Le decimos que lea el .env
     env_file:
       - .env
+    # Nota: Asegúrate en AWS Security Groups de que el puerto 5432
+    # solo acepte tráfico de tu IP (o ciérralo si no usarás gestor externo).
     ports:
       - "5432:5432"
     volumes:
@@ -14,17 +15,22 @@ services:
 
   backend:
     build: ./backend
-    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-    volumes:
-      - ./backend:/app
+    restart: always
+    # CAMBIO 1: Quitamos --reload. Usamos el comando directo.
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
     ports:
       - "8000:8000"
     depends_on:
       - db
-    # AGREGAR ESTO: Para que Python reciba las variables
     env_file:
       - .env
-    # Ya no necesitamos definir DATABASE_URL aquí porque está en el .env
 
+    # CAMBIO 2: Volumen dedicado para que las fotos NO se borren al actualizar
+    volumes:
+      - ceitm_static:/app/static
+
+# Definimos los volúmenes persistentes
 volumes:
   postgres_data:
+  ceitm_static:
