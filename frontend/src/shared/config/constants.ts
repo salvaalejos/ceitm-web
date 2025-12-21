@@ -12,6 +12,7 @@ export const STATIC_IMAGES_URL = `${BACKEND_URL}/static/images`;
 export const IMAGES = {
     LOGO: `${STATIC_IMAGES_URL}/logo-consejo.png`,
     HERO_BG: `${STATIC_IMAGES_URL}/hero-bg.jpg`,
+    LOGO_BLANCO: `${STATIC_IMAGES_URL}/logo-consejo-blanco.png`,
     // Agrega aquí otras que uses mucho, ej:
     // DEFAULT_AVATAR: `${STATIC_IMAGES_URL}/default-user.png`,
     // LOGIN_BG: `${STATIC_IMAGES_URL}/login-bg.jpg`,

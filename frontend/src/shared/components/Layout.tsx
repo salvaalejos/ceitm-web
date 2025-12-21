@@ -9,12 +9,12 @@ export const Layout = () => {
   const location = useLocation();
 
   const navLinks = [
-    { name: 'Convenios', path: '/convenios' },
-    { name: 'Concejales', path: '/concejales' },
-    { name: 'Noticias', path: '/noticias' },
-    { name: 'Transparencia', path: '/transparencia' },
-    { name: 'Buzón', path: '/buzon' },
-    { name: 'Becas', path: '/becas' },
+        { name: 'Concejales', path: '/concejales' },
+        { name: 'Convenios', path: '/convenios' },
+        { name: 'Becas', path: '/becas' },
+        { name: 'Noticias', path: '/noticias' },
+        { name: 'Buzón', path: '/buzon' },
+        { name: 'Transparencia', path: '/transparencia' },
   ];
 
   return (
@@ -24,19 +24,40 @@ export const Layout = () => {
       <nav className="sticky top-0 z-50 w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-slate-800 transition-colors duration-300">
          <div className="container mx-auto px-6 h-20 flex justify-between items-center">
 
-            {/* 1. LOGO + TEXTO "CEITM" */}
+            {/* 1. LOGO + TEXTO ADAPTATIVO */}
             <Link to="/" className="flex items-center gap-3 group" onClick={() => setIsMenuOpen(false)}>
-                {/* Placeholder del Logo */}
-                <div className="w-12 h-12  flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
-                    <img src={IMAGES.LOGO} alt="CEITM Logo" className="w-full h-full object-contain drop-shadow-md"/>
+
+                {/* CONTENEDOR DE LOGOS */}
+                <div className="w-12 h-12 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                    {/* Logo Normal (Visible en Light Mode, Oculto en Dark Mode) */}
+                    <img
+                        src={IMAGES.LOGO}
+                        alt="CEITM Logo"
+                        className="w-full h-full object-contain drop-shadow-md block dark:hidden"
+                    />
+
+                    {/* Logo Blanco (Oculto en Light Mode, Visible en Dark Mode) */}
+                    <img
+                        src={IMAGES.LOGO_BLANCO}
+                        alt="CEITM Logo Blanco"
+                        className="w-full h-full object-contain drop-shadow-md hidden dark:block"
+                    />
                 </div>
 
-                <span className="text-xl font-bold text-gray-800 dark:text-white tracking-tight group-hover:text-guinda-700 dark:group-hover:text-guinda-400 transition-colors">
-                    Consejo Estudiantil del ITM
-                </span>
+                {/* Texto Responsivo */}
+                <div className="font-bold text-lg md:text-xl text-gray-800 dark:text-white tracking-tight group-hover:text-guinda-700 dark:group-hover:text-guinda-400 transition-colors">
+                    {/* Móvil: Texto Corto */}
+                    <span className="md:hidden">
+                        CEITM
+                    </span>
+                    {/* Escritorio: Texto Largo */}
+                    <span className="hidden md:block">
+                        Consejo Estudiantil del ITM
+                    </span>
+                </div>
             </Link>
 
-            {/* 2. MENÚ ESCRITORIO (Sin botón Acceder) */}
+            {/* 2. MENÚ ESCRITORIO */}
             <div className="hidden lg:flex items-center gap-1">
                 {navLinks.map((link) => {
                     const isActive = location.pathname === link.path;
@@ -68,14 +89,14 @@ export const Layout = () => {
                 <ThemeToggle />
                 <button
                     onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                    className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors active:scale-95"
                 >
                     {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
                 </button>
             </div>
          </div>
 
-         {/* MENÚ MÓVIL (Sin botón Acceder) */}
+         {/* MENÚ MÓVIL */}
          <div className={`lg:hidden overflow-hidden transition-all duration-300 ease-in-out ${isMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
              <div className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 shadow-xl">
                  <div className="flex flex-col p-4 space-y-2">
@@ -84,9 +105,10 @@ export const Layout = () => {
                             key={link.path}
                             to={link.path}
                             className={`
-                                block px-4 py-3 rounded-xl font-medium transition-colors
+                                block px-4 py-3 rounded-xl font-medium transition-all duration-200
+                                active:scale-[0.98]  /* <--- EFECTO CLICK EN MÓVIL */
                                 ${location.pathname === link.path 
-                                    ? 'bg-guinda-50 text-guinda-700 dark:bg-guinda-900/20 dark:text-guinda-300' 
+                                    ? 'bg-guinda-50 text-guinda-700 dark:bg-guinda-900/20 dark:text-guinda-300 font-bold' 
                                     : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800'
                                 }
                             `}
@@ -104,7 +126,7 @@ export const Layout = () => {
           <Outlet />
       </main>
 
-      {/* FOOTER MEJORADO */}
+      {/* FOOTER */}
       <footer className="bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 pt-12 pb-8 mt-auto">
         <div className="container mx-auto px-6">
 
@@ -122,7 +144,7 @@ export const Layout = () => {
                         Trabajando por y para los ponys. 🐴
                     </p>
                     <div className="flex items-center gap-4 pt-2">
-                        {/* Redes Sociales (Placeholders) */}
+                        {/* Redes Sociales */}
                         <a href="https://whatsapp.com/channel/0029VbBNbfS8kyyRQ2m1Pj2f" className="p-2 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-guinda-50 hover:text-guinda-600 dark:hover:bg-slate-700 transition-colors">
                             <MessageCircle size={18} />
                         </a>
@@ -165,7 +187,7 @@ export const Layout = () => {
                         </li>
                         <li className="flex items-center gap-3 text-gray-500 dark:text-gray-400">
                             <Mail size={18} className="text-guinda-600 shrink-0" />
-                            <a href="https://www.instagram.com/ceitm_oficial/" className="hover:text-guinda-600 transition-colors">
+                            <a href="mailto:consejo@morelia.tecnm.mx" className="hover:text-guinda-600 transition-colors">
                                 consejo@morelia.tecnm.mx
                             </a>
                         </li>

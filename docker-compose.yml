@@ -5,7 +5,7 @@ services:
     image: postgres:15-alpine
     restart: always
     env_file:
-      - ./backend/.env
+      - .env
     ports:
       - "5432:5432"
     volumes:
@@ -21,7 +21,7 @@ services:
     depends_on:
       - db
     env_file:
-      - ./backend/.env
+      - .env
     volumes:
       - ceitm_static:/app/static
 
