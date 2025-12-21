@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Users, Search, MessageCircle, Instagram, Mail, ChevronDown } from 'lucide-react';
-// IMPORTAMOS LA NUEVA FUNCIÓN
+import { useEffect, useState, useRef } from 'react';
+import { Users, Search, MessageCircle, Instagram, Mail, ChevronDown, Check, X } from 'lucide-react';
 import { getConcejalesPublic } from '../../../shared/services/api';
 import { CARRERAS } from '../../../shared/constants/carreras';
 
@@ -8,19 +7,32 @@ export const ConcejalesPage = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filtros
+  // Estados de Filtros
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCareer, setSelectedCareer] = useState('');
 
+  // Estados UI (Dropdown)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Carga de Datos
   useEffect(() => {
     const loadData = async () => {
         try {
-            // 1. Usamos la ruta pública (Backend ya filtra activos)
             const data = await getConcejalesPublic();
-
-            // 2. Opcional: Si quieres ocultar al 'admin_sys' de la vista pública:
+            // Filtramos admin_sys para que no salga
             const visibleUsers = data.filter((u: any) => u.role !== 'admin_sys');
-
             setUsers(visibleUsers);
         } catch (error) {
             console.error("Error cargando equipo", error);
@@ -31,7 +43,7 @@ export const ConcejalesPage = () => {
     loadData();
   }, []);
 
-  // Lógica de filtrado en frontend (Búsqueda y Carrera)
+  // Lógica de filtrado
   const filteredUsers = users.filter(u => {
     const matchesSearch = u.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (u.area && u.area.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -41,12 +53,26 @@ export const ConcejalesPage = () => {
     return matchesSearch && matchesCareer;
   });
 
+  const handleSelectCareer = (careerName: string) => {
+      setSelectedCareer(careerName);
+      setIsDropdownOpen(false);
+  };
+
+  const clearFilters = () => {
+      setSearchTerm('');
+      setSelectedCareer('');
+      setIsDropdownOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950 pb-20 animate-fade-in">
 
       {/* HERO SECTION */}
       <div className="bg-slate-900 text-white py-20 px-6 text-center relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-guinda-900/40 to-slate-900 z-0"></div>
+        {/* Patrón sutil */}
+        <div className="absolute inset-0 opacity-[0.05] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+
         <div className="relative z-10 container mx-auto">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
                 Conoce a tus <span className="text-guinda-500">Representantes</span>
@@ -60,10 +86,10 @@ export const ConcejalesPage = () => {
       <div className="container mx-auto px-6 -mt-8 relative z-20">
 
         {/* BARRA DE FILTROS */}
-        <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl shadow-xl max-w-4xl mx-auto flex flex-col md:flex-row gap-3 border border-gray-100 dark:border-slate-800">
+        <div className="bg-white dark:bg-slate-900 p-2 rounded-2xl shadow-xl max-w-4xl mx-auto flex flex-col md:flex-row gap-2 border border-gray-100 dark:border-slate-800 mb-10">
 
-            {/* Buscador */}
-            <div className="flex-1 flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-200 dark:border-slate-700 transition-colors focus-within:border-guinda-500 focus-within:ring-1 focus-within:ring-guinda-500/20">
+            {/* 1. Buscador */}
+            <div className="flex-1 flex items-center gap-3 px-4 py-3 bg-transparent rounded-xl transition-colors focus-within:bg-gray-50 dark:focus-within:bg-slate-800/50">
                 <Search className="text-gray-400" size={20} />
                 <input
                     type="text"
@@ -74,31 +100,77 @@ export const ConcejalesPage = () => {
                 />
             </div>
 
-            {/* Selector de Carrera */}
-            <div className="relative min-w-[250px]">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 z-10 pointer-events-none">
-                   <Users size={18} />
-                </div>
-                <select
-                    value={selectedCareer}
-                    onChange={(e) => setSelectedCareer(e.target.value)}
-                    className="w-full appearance-none bg-gray-50 dark:bg-slate-800/50 text-gray-700 dark:text-white py-3 pl-11 pr-10 rounded-xl border border-gray-200 dark:border-slate-700 outline-none cursor-pointer hover:border-guinda-500 transition-colors focus:border-guinda-500"
+            {/* 2. Selector de Carrera (Dropdown Personalizado) */}
+            <div className="relative min-w-[280px]" ref={dropdownRef}>
+                <button
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all duration-200 ${
+                        isDropdownOpen 
+                            ? 'bg-guinda-50 border-guinda-200 text-guinda-700 dark:bg-guinda-900/20 dark:border-guinda-800 dark:text-guinda-300' 
+                            : 'bg-gray-50 border-transparent text-gray-700 dark:bg-slate-800/50 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800'
+                    }`}
                 >
-                    <option value="">Todas las Carreras</option>
-                    {CARRERAS.map(c => (
-                        <option key={c.id} value={c.nombre}>
-                            {c.nombre}
-                        </option>
-                    ))}
-                </select>
-                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                    <div className="flex items-center gap-2 truncate">
+                        <Users size={18} className={isDropdownOpen ? 'text-guinda-600' : 'text-gray-500'} />
+                        <span className="font-medium truncate">
+                            {selectedCareer || 'Todas las Carreras'}
+                        </span>
+                    </div>
+                    <ChevronDown
+                        size={18}
+                        className={`transition-transform duration-300 ${isDropdownOpen ? 'rotate-180 text-guinda-600' : 'text-gray-400'}`}
+                    />
+                </button>
+
+                {/* Menú Desplegable */}
+                {isDropdownOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div className="max-h-[300px] overflow-y-auto custom-scrollbar p-1">
+                            {/* Opción: Todas */}
+                            <button
+                                onClick={() => handleSelectCareer('')}
+                                className={`
+                                    w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors text-left mb-1
+                                    ${selectedCareer === '' 
+                                        ? 'bg-guinda-50 text-guinda-700 dark:bg-guinda-900/20 dark:text-guinda-300 font-bold' 
+                                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800'
+                                    }
+                                `}
+                            >
+                                <span>Todas las Carreras</span>
+                                {selectedCareer === '' && <Check size={16} className="text-guinda-600" />}
+                            </button>
+
+                            {/* Opciones: Carreras */}
+                            {CARRERAS.map(c => {
+                                const isSelected = selectedCareer === c.nombre;
+                                return (
+                                    <button
+                                        key={c.id}
+                                        onClick={() => handleSelectCareer(c.nombre)}
+                                        className={`
+                                            w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors text-left
+                                            ${isSelected 
+                                                ? 'bg-guinda-50 text-guinda-700 dark:bg-guinda-900/20 dark:text-guinda-300 font-bold' 
+                                                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800'
+                                            }
+                                        `}
+                                    >
+                                        <span className="truncate">{c.nombre}</span>
+                                        {isSelected && <Check size={16} className="text-guinda-600" />}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
             </div>
 
-            {/* Botón Limpiar */}
+            {/* 3. Botón Limpiar */}
             {(searchTerm || selectedCareer) && (
                 <button
-                    onClick={() => { setSearchTerm(''); setSelectedCareer(''); }}
-                    className="px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl font-medium transition-colors"
+                    onClick={clearFilters}
+                    className="px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl font-medium transition-colors whitespace-nowrap hidden md:block"
                 >
                     Limpiar
                 </button>
@@ -114,12 +186,12 @@ export const ConcejalesPage = () => {
         ) : filteredUsers.length === 0 ? (
             <div className="text-center py-20 text-gray-500">
                 <p className="text-lg">No encontramos representantes con esos filtros.</p>
-                <button onClick={() => { setSearchTerm(''); setSelectedCareer(''); }} className="text-guinda-600 hover:underline mt-2">
+                <button onClick={clearFilters} className="text-guinda-600 hover:underline mt-2">
                     Ver todos
                 </button>
             </div>
         ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-16">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-16 animate-fade-in">
                 {filteredUsers.map(user => (
                     <div key={user.id} className="card-base group hover:-translate-y-2 transition-all duration-300 overflow-visible">
 

@@ -1,69 +1,76 @@
 import { Link } from 'react-router-dom';
-import { Calendar, User, ArrowRight, PlayCircle, FileText } from 'lucide-react';
+import { Calendar, ArrowRight, Tag } from 'lucide-react';
+import { COORDINACIONES } from '../../../shared/constants/coordinaciones';
 
 interface NewsProps {
-  slug: string;
-  title: string;
-  excerpt: string;
-  imagen_url?: string;
-  video_url?: string;
-  created_at: string;
+    id: number;
+    title: string;
+    excerpt: string;
+    imagen_url: string;
+    slug: string;
+    created_at: string;
+    category: string; // 👈 Asegúrate de recibir esto
 }
 
 export const NewsCard = ({ news }: { news: NewsProps }) => {
-  return (
-    <Link
-      to={`/noticias/${news.slug}`}
-      className="group bg-white dark:bg-slate-900 rounded-2xl shadow-sm hover:shadow-xl border border-gray-100 dark:border-slate-800 overflow-hidden transition-all duration-300 hover:-translate-y-1 flex flex-col h-full"
-    >
-      {/* 1. IMAGEN / MINIATURA */}
-      <div className="h-56 overflow-hidden relative bg-gray-100 dark:bg-slate-950">
-        {news.imagen_url ? (
-            <img
-                src={news.imagen_url}
-                alt={news.title}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-            />
-        ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-slate-800">
-                <FileText size={48} />
+
+    // Helper para encontrar el nombre bonito y color de la categoría
+    const getCategoryInfo = (catId: string) => {
+        if (catId === 'GENERAL') return { label: 'General', color: 'bg-gray-100 text-gray-600' };
+
+        const coord = COORDINACIONES.find(c => c.id === catId);
+        if (coord) {
+            // Extraemos el color base (ej. 'text-blue-600' -> 'bg-blue-50 text-blue-600')
+            // Truco rápido: Usamos clases estáticas o un mapa de colores si prefieres
+            // Por simplicidad, retornamos el label y un estilo genérico o el de la coordinación si lo tienes mapeado
+            return { label: coord.label, color: 'bg-guinda-50 text-guinda-700' };
+        }
+        return { label: catId, color: 'bg-gray-100 text-gray-600' };
+    };
+
+    const categoryInfo = getCategoryInfo(news.category);
+
+    return (
+        <article className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-slate-800 flex flex-col h-full group">
+
+            {/* Imagen con Overlay al hacer hover */}
+            <div className="relative h-52 overflow-hidden">
+                <img
+                    src={news.imagen_url || '/assets/demo-light.png'}
+                    alt={news.title}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+
+                {/* Badge de Categoría */}
+                <div className="absolute top-4 left-4">
+                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm backdrop-blur-md ${categoryInfo.color} bg-white/90`}>
+                        <Tag size={10} /> {categoryInfo.label}
+                    </span>
+                </div>
             </div>
-        )}
 
-        {/* Badge de Video si tiene video */}
-        {news.video_url && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
-                <PlayCircle size={48} className="text-white drop-shadow-lg opacity-90 group-hover:scale-110 transition-transform" />
+            <div className="p-6 flex flex-col flex-grow">
+                {/* Fecha */}
+                <div className="flex items-center gap-2 text-xs text-gray-400 mb-3">
+                    <Calendar size={14} />
+                    {new Date(news.created_at).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })}
+                </div>
+
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 line-clamp-2 group-hover:text-guinda-600 transition-colors">
+                    {news.title}
+                </h3>
+
+                <p className="text-gray-500 dark:text-gray-400 text-sm line-clamp-3 mb-6 flex-grow">
+                    {news.excerpt}
+                </p>
+
+                <Link
+                    to={`/noticias/${news.slug}`}
+                    className="inline-flex items-center gap-2 text-sm font-bold text-guinda-600 dark:text-guinda-500 hover:gap-3 transition-all"
+                >
+                    Leer nota completa <ArrowRight size={16} />
+                </Link>
             </div>
-        )}
-
-        {/* Fecha Overlay */}
-        <div className="absolute top-4 right-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-guinda-700 dark:text-guinda-400 shadow-sm flex items-center gap-1">
-            <Calendar size={12} />
-            {new Date(news.created_at).toLocaleDateString()}
-        </div>
-      </div>
-
-      {/* 2. CONTENIDO */}
-      <div className="p-6 flex flex-col flex-grow">
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 line-clamp-2 leading-tight group-hover:text-guinda-600 dark:group-hover:text-guinda-400 transition-colors">
-            {news.title}
-        </h3>
-
-        <p className="text-gray-600 dark:text-slate-400 text-sm line-clamp-3 mb-6 flex-grow">
-            {news.excerpt}
-        </p>
-
-        <div className="flex items-center justify-between border-t border-gray-100 dark:border-slate-800 pt-4 mt-auto">
-            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-500">
-                <User size={14} />
-                <span>Consejo Estudiantil</span>
-            </div>
-            <span className="text-sm font-bold text-guinda-600 dark:text-guinda-500 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                Leer más <ArrowRight size={16} />
-            </span>
-        </div>
-      </div>
-    </Link>
-  );
+        </article>
+    );
 };

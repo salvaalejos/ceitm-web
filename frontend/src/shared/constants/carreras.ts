@@ -12,6 +12,7 @@ export const CARRERAS = [
     { id: 'bioquimica', nombre: 'Ingeniería Bioquímica', campus: 'I' },
     { id: 'mecanica', nombre: 'Ingeniería Mecánica', campus: 'I' },
     { id: 'sistemas', nombre: 'Ingeniería en Sistemas Computacionales', campus: 'I' },
+    { id: 'mecatronica', nombre: 'Ingeniería en Mecatronica', campus: 'I' },
 
     // CAMPUS II (Ciudad del Conocimiento)
     { id: 'gestion', nombre: 'Ingeniería en Gestión Empresarial', campus: 'II' },

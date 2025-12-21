@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Search, Filter } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Search, FilterX, ChevronDown, Store, Heart, Utensils, Smartphone, GraduationCap, Ticket, Check } from 'lucide-react';
 import { ConvenioCard } from '../components/ConvenioCard';
-import { ConvenioModal } from '../components/ConvenioModal'; // Asegúrate que la ruta al componente sea correcta
+import { ConvenioModal } from '../components/ConvenioModal';
 import type { Convenio } from '../../../shared/types';
 import { getConvenios } from '../../../shared/services/api';
 
@@ -9,11 +9,27 @@ export const ConveniosPage = () => {
   const [convenios, setConvenios] = useState<Convenio[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Estados para Filtros y UI
+  // Estados de Filtros
   const [busqueda, setBusqueda] = useState('');
   const [categoria, setCategoria] = useState('all');
+
+  // Estados UI
   const [modalOpen, setModalOpen] = useState(false);
   const [convenioSeleccionado, setConvenioSeleccionado] = useState<Convenio | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     async function cargar() {
@@ -29,6 +45,19 @@ export const ConveniosPage = () => {
     cargar();
   }, []);
 
+  // Definición de Categorías con Iconos
+  const categoriasOptions = [
+      { id: 'all', label: 'Todas las categorías', icon: <Store size={18} /> },
+      { id: 'Salud', label: 'Salud y Bienestar', icon: <Heart size={18} /> },
+      { id: 'Comida', label: 'Alimentos y Bebidas', icon: <Utensils size={18} /> },
+      { id: 'Electrónica', label: 'Tecnología', icon: <Smartphone size={18} /> },
+      { id: 'Educación', label: 'Educación y Cursos', icon: <GraduationCap size={18} /> },
+      { id: 'Entretenimiento', label: 'Ocio y Diversión', icon: <Ticket size={18} /> },
+  ];
+
+  const selectedLabel = categoriasOptions.find(c => c.id === categoria)?.label;
+
+  // Lógica de Filtrado
   const conveniosFiltrados = convenios.filter(c => {
     const matchNombre = c.nombre.toLowerCase().includes(busqueda.toLowerCase());
     const matchCategoria = categoria === 'all' || c.categoria === categoria;
@@ -40,63 +69,144 @@ export const ConveniosPage = () => {
     setModalOpen(true);
   };
 
+  const handleSelectCategoria = (id: string) => {
+      setCategoria(id);
+      setIsDropdownOpen(false);
+  };
+
   return (
-    <div className="container mx-auto px-6 py-12 animate-fade-in">
-        <header className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold text-guinda-600 dark:text-guinda-400 mb-4">
-                Convenios Vigentes
-            </h1>
-            <p className="text-lg text-blue-gray-600 dark:text-blue-gray-300 max-w-2xl mx-auto">
-                Beneficios exclusivos para la comunidad del CEITM.
-            </p>
-        </header>
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 pb-20 animate-fade-in">
 
-        {/* BARRA DE FILTROS */}
-        {/* CAMBIO: Fondo oscuro, borde oscuro */}
-        <div className="flex flex-col md:flex-row gap-4 mb-10 sticky top-24 z-30 bg-blue-gray-50/95 dark:bg-gray-900/95 p-4 rounded-xl backdrop-blur-sm shadow-sm border border-blue-gray-200 dark:border-gray-700 transition-colors duration-300">
+        {/* 1. HERO SECTION (Igual que Noticias) */}
+        <div className="bg-slate-900 text-white py-20 px-6 text-center relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-guinda-900/50 to-slate-900 z-0"></div>
+            {/* Patrón de fondo opcional */}
+            <div className="absolute inset-0 opacity-[0.05] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
 
-            {/* Buscador */}
-            <div className="relative w-full md:flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-gray-400 dark:text-gray-500" size={20} />
-                {/* CAMBIO: Input con fondo oscuro y texto claro */}
-                <input
-                    type="text"
-                    placeholder="Buscar negocio..."
-                    className="w-full pl-10 pr-4 py-3 rounded-lg border border-blue-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-guinda-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-500"
-                    value={busqueda}
-                    onChange={(e) => setBusqueda(e.target.value)}
-                />
-            </div>
-
-            {/* Filtro */}
-            <div className="relative w-full md:w-64">
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-gray-400 dark:text-gray-500" size={20} />
-                {/* CAMBIO: Select con fondo oscuro y texto claro */}
-                <select
-                    className="w-full pl-10 pr-8 py-3 rounded-lg border border-blue-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-guinda-500 outline-none appearance-none cursor-pointer transition-all"
-                    value={categoria}
-                    onChange={(e) => setCategoria(e.target.value)}
-                >
-                    <option value="all">Todas las categorías</option>
-                    <option value="Salud">Salud</option>
-                    <option value="Comida">Comida</option>
-                    <option value="Electrónica">Electrónica</option>
-                    <option value="Educación">Educación</option>
-                    <option value="Entretenimiento">Entretenimiento</option>
-                </select>
+            <div className="relative z-10 container mx-auto">
+                <h1 className="text-4xl md:text-5xl font-bold mb-4">
+                    Convenios <span className="text-guinda-500">Vigentes</span>
+                </h1>
+                <p className="text-slate-300 max-w-2xl mx-auto text-lg">
+                    Aprovecha los descuentos y beneficios exclusivos para la comunidad del CEITM.
+                </p>
             </div>
         </div>
 
-        {/* GRID */}
-        {loading ? (
-            <div className="text-center py-20">Cargando...</div>
-        ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {conveniosFiltrados.map(c => (
-                    <ConvenioCard key={c.id} convenio={c} onVerMas={handleVerMas} />
-                ))}
+        <div className="container mx-auto px-6 -mt-8 relative z-20">
+
+            {/* 2. BARRA DE HERRAMIENTAS */}
+            <div className="bg-white dark:bg-slate-900 p-2 rounded-2xl shadow-xl max-w-4xl mx-auto flex flex-col md:flex-row gap-2 border border-gray-100 dark:border-slate-800 mb-10">
+
+                {/* Buscador */}
+                <div className="flex-1 flex items-center gap-3 px-4 py-3 bg-transparent rounded-xl transition-colors focus-within:bg-gray-50 dark:focus-within:bg-slate-800/50">
+                    <Search className="text-gray-400" size={20} />
+                    <input
+                        type="text"
+                        placeholder="Buscar negocio (ej. 'Gym', 'Pizza')..."
+                        className="flex-1 bg-transparent outline-none text-gray-700 dark:text-white placeholder-gray-400"
+                        value={busqueda}
+                        onChange={(e) => setBusqueda(e.target.value)}
+                    />
+                </div>
+
+                {/* Dropdown Personalizado */}
+                <div className="relative min-w-[260px]" ref={dropdownRef}>
+                    <button
+                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all duration-200 ${
+                            isDropdownOpen 
+                                ? 'bg-guinda-50 border-guinda-200 text-guinda-700 dark:bg-guinda-900/20 dark:border-guinda-800 dark:text-guinda-300' 
+                                : 'bg-gray-50 border-transparent text-gray-700 dark:bg-slate-800/50 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800'
+                        }`}
+                    >
+                        <div className="flex items-center gap-2 truncate">
+                            {categoriasOptions.find(c => c.id === categoria)?.icon}
+                            <span className="font-medium truncate">{selectedLabel}</span>
+                        </div>
+                        <ChevronDown
+                            size={18}
+                            className={`transition-transform duration-300 ${isDropdownOpen ? 'rotate-180 text-guinda-600' : 'text-gray-400'}`}
+                        />
+                    </button>
+
+                    {/* Menú Desplegable */}
+                    {isDropdownOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div className="max-h-[300px] overflow-y-auto custom-scrollbar p-1">
+                                {categoriasOptions.map(opt => {
+                                    const isSelected = categoria === opt.id;
+                                    return (
+                                        <button
+                                            key={opt.id}
+                                            onClick={() => handleSelectCategoria(opt.id)}
+                                            className={`
+                                                w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors text-left
+                                                ${isSelected 
+                                                    ? 'bg-guinda-50 text-guinda-700 dark:bg-guinda-900/20 dark:text-guinda-300 font-bold' 
+                                                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800'
+                                                }
+                                            `}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <span className={`${isSelected ? 'text-guinda-600' : 'text-gray-400'}`}>
+                                                    {opt.icon}
+                                                </span>
+                                                <span>{opt.label}</span>
+                                            </div>
+                                            {isSelected && <Check size={16} className="text-guinda-600" />}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Botón Limpiar */}
+                {(busqueda || categoria !== 'all') && (
+                    <button
+                        onClick={() => { setBusqueda(''); setCategoria('all'); setIsDropdownOpen(false); }}
+                        className="px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl font-medium transition-colors whitespace-nowrap hidden md:block"
+                    >
+                        Limpiar
+                    </button>
+                )}
             </div>
-        )}
+
+            {/* 3. GRID DE RESULTADOS */}
+            {loading ? (
+                <div className="flex flex-col items-center justify-center py-20 text-gray-400 animate-pulse">
+                    <Store size={48} className="mb-4 opacity-50" />
+                    <p>Cargando convenios...</p>
+                </div>
+            ) : conveniosFiltrados.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-fade-in">
+                    {conveniosFiltrados.map(c => (
+                        <ConvenioCard key={c.id} convenio={c} onVerMas={handleVerMas} />
+                    ))}
+                </div>
+            ) : (
+                /* EMPTY STATE */
+                <div className="text-center py-20 flex flex-col items-center animate-fade-in">
+                    <div className="w-20 h-20 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-gray-400 mb-4">
+                        <FilterX size={32} />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">
+                        No encontramos resultados
+                    </h3>
+                    <p className="text-gray-500 max-w-md mx-auto mb-6">
+                        No hay convenios que coincidan con tu búsqueda.
+                    </p>
+                    <button
+                        onClick={() => { setBusqueda(''); setCategoria('all'); }}
+                        className="btn-secondary"
+                    >
+                        Ver todos los convenios
+                    </button>
+                </div>
+            )}
+        </div>
 
         {/* MODAL */}
         {modalOpen && convenioSeleccionado && (

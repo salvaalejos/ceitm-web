@@ -20,10 +20,10 @@ class Settings(BaseSettings):
     # 👇 NUEVO: DOMINIO DEL BACKEND
     # Valor por defecto: localhost (para desarrollo)
     # En producción lo sobreescribiremos en el archivo .env
-    # ENVIRONMENT: str = "production"
-    # DOMAIN: str = "https://ceitm.ddnsking.com"
-    ENVIRONMENT: str = "local"
-    DOMAIN: str = "http://localhost:8000"
+    ENVIRONMENT: str = "production"
+    DOMAIN: str = "https://ceitm.ddnsking.com"
+    # ENVIRONMENT: str = "local"
+    # DOMAIN: str = "http://localhost:8000"
 
     class Config:
         case_sensitive = True

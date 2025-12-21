@@ -5,16 +5,8 @@ import {
 } from 'lucide-react';
 import { createUser, updateUser, uploadImage } from '../../../shared/services/api';
 import { CARRERAS } from '../../../shared/constants/carreras';
-
-// --- REGLAS DE NEGOCIO: ÁREAS POR ROL ---
-const AREAS_PERMITIDAS: Record<string, string[]> = {
-    estructura: ['Presidencia', 'Secretaría General', 'Tesorería', 'Contraloría'],
-    coordinador: ['Académico', 'Vinculación', 'Becas y Apoyos', 'Comunicación y Difusión', 'Eventos (SODECU)', 'Prevención y Logística', 'Marketing y Diseño'],
-    vocal: ['Académico', 'Vinculación', 'Becas y Apoyos', 'Comunicación y Difusión', 'Eventos (SODECU)', 'Prevención y Logística', 'Marketing y Diseño', 'Consejo General'],
-    concejal: ['Consejo General', 'Ninguna'],
-    admin_sys: ['Sistemas'],
-    alumno: ['Ninguna']
-};
+// 👇 IMPORTANTE: Ahora importamos la lógica desde el archivo maestro
+import { getAreasByRole } from '../../../shared/constants/coordinaciones';
 
 interface User {
   id: number;
@@ -43,8 +35,8 @@ export const UserForm = ({ onClose, onSuccess, userToEdit }: Props) => {
     full_name: '',
     email: '',
     password: '',
-    role: '', // <--- CAMBIO: Inicia vacío para obligar a elegir
-    area: '', // <--- CAMBIO: También vacío
+    role: '',
+    area: '',
     career: '',
     imagen_url: '',
     is_active: true,
@@ -78,11 +70,16 @@ export const UserForm = ({ onClose, onSuccess, userToEdit }: Props) => {
           return;
       }
 
-      const areasValidas = AREAS_PERMITIDAS[newRole] || ['Ninguna'];
+      // 👇 USAMOS LA NUEVA FUNCIÓN MAESTRA
+      const areasValidas = getAreasByRole(newRole);
+
+      // Fallback inteligente: si la lista tiene items, selecciona el primero. Si no, 'Ninguna'.
+      const defaultArea = areasValidas.length > 0 ? areasValidas[0] : 'Ninguna';
+
       setFormData(prev => ({
           ...prev,
           role: newRole,
-          area: areasValidas[0] // Seleccionar automáticamente la primera opción válida
+          area: defaultArea
       }));
   };
 
@@ -251,7 +248,8 @@ export const UserForm = ({ onClose, onSuccess, userToEdit }: Props) => {
                                 {!formData.role ? (
                                     <option value="">-- Primero selecciona Rol --</option>
                                 ) : (
-                                    AREAS_PERMITIDAS[formData.role]?.map(areaOption => (
+                                    // 👇 RENDEREAMOS LAS OPCIONES DESDE EL HELPER
+                                    getAreasByRole(formData.role).map(areaOption => (
                                         <option key={areaOption} value={areaOption}>{areaOption}</option>
                                     ))
                                 )}

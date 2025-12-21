@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, FileText, Youtube, ShieldAlert } from 'lucide-react';
+import { Plus, Edit, Trash2, FileText, ShieldAlert, CheckCircle, XCircle } from 'lucide-react';
 import { getNews, deleteNews } from '../../../shared/services/api';
 import { NewsForm } from '../components/NewsForm';
 import { usePermissions } from '../../../shared/hooks/usePermissions';
+// 👇 Importamos el catálogo para mostrar los nombres bonitos
+import { COORDINACIONES } from '../../../shared/constants/coordinaciones';
 
 export const AdminNoticias = () => {
   const { canManageNoticias } = usePermissions();
@@ -12,8 +14,6 @@ export const AdminNoticias = () => {
   const [newsToEdit, setNewsToEdit] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // --- 🔒 BLOQUEO DE SEGURIDAD ---
-  // Si no tienes permiso, te sacamos una alerta en lugar de la tabla.
   if (!canManageNoticias) {
     return (
         <div className="flex flex-col items-center justify-center h-[60vh] text-center p-6 animate-fade-in">
@@ -28,7 +28,6 @@ export const AdminNoticias = () => {
     );
   }
 
-  // --- Lógica normal para quienes SÍ tienen permiso ---
   const cargarDatos = async () => {
     setLoading(true);
     try {
@@ -64,6 +63,13 @@ export const AdminNoticias = () => {
     setNewsToEdit(null);
   };
 
+  // Helper para obtener el nombre de la categoría
+  const getCategoryLabel = (catId: string) => {
+      if (!catId || catId === 'GENERAL') return 'General / Institucional';
+      const found = COORDINACIONES.find(c => c.id === catId);
+      return found ? found.label : catId;
+  };
+
   return (
     <div className="animate-fade-in">
 
@@ -85,6 +91,8 @@ export const AdminNoticias = () => {
                     <tr>
                         <th className="px-6 py-4">Portada</th>
                         <th className="px-6 py-4">Título / Extracto</th>
+                        <th className="px-6 py-4">Categoría</th> {/* 👈 Nueva Columna */}
+                        <th className="px-6 py-4">Estado</th>    {/* 👈 Nueva Columna */}
                         <th className="px-6 py-4">Fecha</th>
                         <th className="px-6 py-4 text-right">Acciones</th>
                     </tr>
@@ -92,6 +100,7 @@ export const AdminNoticias = () => {
                 <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                     {news.map(item => (
                         <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
+                            {/* Portada */}
                             <td className="px-6 py-4">
                                 <div className="w-16 h-16 rounded-lg bg-gray-100 dark:bg-slate-900 overflow-hidden border border-gray-200 dark:border-slate-700 relative">
                                     {item.imagen_url ? (
@@ -101,26 +110,54 @@ export const AdminNoticias = () => {
                                     )}
                                 </div>
                             </td>
-                            <td className="px-6 py-4">
+
+                            {/* Info Principal */}
+                            <td className="px-6 py-4 max-w-xs">
                                 <div className="font-bold text-gray-900 dark:text-white mb-1 line-clamp-1">{item.title}</div>
                                 <div className="text-sm text-gray-500 dark:text-slate-400 line-clamp-1">{item.excerpt}</div>
                             </td>
-                            <td className="px-6 py-4 text-sm text-gray-500 dark:text-slate-400">
+
+                            {/* Categoría */}
+                            <td className="px-6 py-4">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-gray-300">
+                                    {getCategoryLabel(item.category)}
+                                </span>
+                            </td>
+
+                            {/* Estado (Publicado / Borrador) */}
+                            <td className="px-6 py-4">
+                                {item.is_published ? (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                        <CheckCircle size={12} /> Publicado
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+                                        <XCircle size={12} /> Borrador
+                                    </span>
+                                )}
+                            </td>
+
+                            {/* Fecha */}
+                            <td className="px-6 py-4 text-sm text-gray-500 dark:text-slate-400 whitespace-nowrap">
                                 {new Date(item.created_at).toLocaleDateString()}
                             </td>
-                            <td className="px-6 py-4 text-right flex justify-end gap-2">
-                                <button onClick={() => openEdit(item)} className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
-                                    <Edit size={18} />
-                                </button>
-                                <button onClick={() => handleDelete(item.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
-                                    <Trash2 size={18} />
-                                </button>
+
+                            {/* Acciones */}
+                            <td className="px-6 py-4 text-right">
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => openEdit(item)} className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
+                                        <Edit size={18} />
+                                    </button>
+                                    <button onClick={() => handleDelete(item.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                                        <Trash2 size={18} />
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     ))}
                     {news.length === 0 && !loading && (
                         <tr>
-                            <td colSpan={4} className="text-center py-12 text-gray-500 dark:text-slate-500">
+                            <td colSpan={6} className="text-center py-12 text-gray-500 dark:text-slate-500">
                                 No hay noticias publicadas aún.
                             </td>
                         </tr>

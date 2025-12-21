@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { X, Upload, Save, FileText, Youtube } from 'lucide-react';
+import { X, Upload, Save, FileText, Youtube, Tag } from 'lucide-react';
 import { createNews, updateNews, uploadImage } from '../../../shared/services/api';
+import { COORDINACIONES } from '../../../shared/constants/coordinaciones';
 
 interface NewsItem {
   id: number;
@@ -9,6 +10,7 @@ interface NewsItem {
   content: string;
   imagen_url: string;
   video_url: string;
+  category: string;
   is_published: boolean;
 }
 
@@ -27,6 +29,7 @@ export const NewsForm = ({ onClose, onSuccess, newsToEdit }: Props) => {
     content: '',
     imagen_url: '',
     video_url: '',
+    category: 'GENERAL',
     is_published: true
   });
 
@@ -38,14 +41,15 @@ export const NewsForm = ({ onClose, onSuccess, newsToEdit }: Props) => {
         content: newsToEdit.content,
         imagen_url: newsToEdit.imagen_url || '',
         video_url: newsToEdit.video_url || '',
+        category: newsToEdit.category || 'GENERAL',
         is_published: newsToEdit.is_published
       });
     }
   }, [newsToEdit]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    // Manejo especial para checkboxes
+    // @ts-ignore
     const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
     setFormData({ ...formData, [name]: val });
   };
@@ -83,9 +87,12 @@ export const NewsForm = ({ onClose, onSuccess, newsToEdit }: Props) => {
     }
   };
 
+  const categoriesOptions = COORDINACIONES.filter(
+      c => c.type === 'directiva' || c.type === 'operativa'
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      {/* Usamos 'card-base' del sistema de diseño */}
       <div className="card-base w-full max-w-4xl flex flex-col max-h-[90vh] animate-fade-in">
 
         {/* Header */}
@@ -100,15 +107,37 @@ export const NewsForm = ({ onClose, onSuccess, newsToEdit }: Props) => {
         {/* Body */}
         <form onSubmit={handleSubmit} className="p-8 overflow-y-auto space-y-6">
 
-            {/* 1. Título y Video */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* 1. Título y Categoría */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                {/* Título */}
                 <div className="md:col-span-2">
                     <label className="form-label">Título de la Noticia</label>
                     <input name="title" value={formData.title} onChange={handleChange} required className="form-input text-lg font-bold" placeholder="Ej. ¡Bienvenidos al Semestre 2026!" />
                 </div>
 
-                {/* Input de Video URL */}
-                <div className="md:col-span-2">
+                {/* Categoría */}
+                <div>
+                    <label className="form-label flex items-center gap-2">
+                        <Tag size={16} className="text-guinda-600" /> Categoría
+                    </label>
+                    <select
+                        name="category"
+                        value={formData.category}
+                        onChange={handleChange}
+                        className="form-input font-medium cursor-pointer"
+                    >
+                        <option value="GENERAL">📢 General / Institucional</option>
+                        {categoriesOptions.map(cat => (
+                            <option key={cat.id} value={cat.id}>
+                                {cat.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Video */}
+                <div className="md:col-span-3">
                     <label className="form-label flex items-center gap-2">
                         <Youtube size={16} className="text-red-600" /> Link de Video (Opcional)
                     </label>
@@ -119,9 +148,6 @@ export const NewsForm = ({ onClose, onSuccess, newsToEdit }: Props) => {
                         className="form-input"
                         placeholder="Ej. https://www.facebook.com/watch/?v=..."
                     />
-                    <p className="text-xs text-gray-500 mt-1 dark:text-slate-500">
-                        Soporta YouTube, Facebook, Instagram Reels, etc.
-                    </p>
                 </div>
             </div>
 
@@ -195,7 +221,8 @@ export const NewsForm = ({ onClose, onSuccess, newsToEdit }: Props) => {
         <div className="modal-footer">
             <button onClick={onClose} className="btn-secondary">Cancelar</button>
             <button onClick={handleSubmit} disabled={loading} className="btn-primary flex items-center gap-2">
-                <Save size={18} /> {loading ? 'Guardando...' : 'Publicar Noticia'}
+                {/* 👇 CAMBIO: Texto actualizado */}
+                <Save size={18} /> {loading ? 'Guardando...' : 'Guardar Noticia'}
             </button>
         </div>
 

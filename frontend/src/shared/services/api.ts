@@ -92,8 +92,14 @@ export const deleteConvenio = async (id: number) => {
 
 
 // --- NOTICIAS ---
-export const getNews = async () => {
-  const response = await api.get(ENDPOINTS.NEWS.BASE);
+export const getNews = async (category?: string) => {
+  // Construimos la URL con el parámetro si existe
+  let url = ENDPOINTS.NEWS.BASE;
+  if (category && category !== 'TODAS') { // 'TODAS' es un valor de control del frontend
+      url += `?category=${category}`;
+  }
+
+  const response = await api.get(url);
   return response.data;
 };
 

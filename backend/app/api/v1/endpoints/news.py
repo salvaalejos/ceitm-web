@@ -1,5 +1,5 @@
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlmodel import Session, select
 from slugify import slugify
 from datetime import datetime
@@ -21,18 +21,24 @@ router = APIRouter()
 def read_news(
         session: Session = Depends(get_session),
         limit: int = 10,
-        offset: int = 0
+        offset: int = 0,
+        # 👇 NUEVO PARÁMETRO DE FILTRO
+        category: Optional[str] = Query(None, description="Filtrar por categoría (ej. BECAS, ACADEMICO)")
 ):
     """
     Obtener noticias publicadas (paginadas).
+    Permite filtrar por categoría opcionalmente.
     """
-    statement = (
-        select(News)
-        .where(News.is_published == True)
-        .order_by(News.created_at.desc())
-        .offset(offset)
-        .limit(limit)
-    )
+    # 1. Iniciamos la consulta base (solo publicadas)
+    statement = select(News).where(News.is_published == True)
+
+    # 2. 👇 APLICAMOS FILTRO SI EXISTE
+    if category:
+        statement = statement.where(News.category == category)
+
+    # 3. Ordenamos y paginamos al final
+    statement = statement.order_by(News.created_at.desc()).offset(offset).limit(limit)
+
     news = session.exec(statement).all()
     return news
 
@@ -68,6 +74,7 @@ def create_news(
         slug = f"{base_slug}-{counter}"
         counter += 1
 
+    # Creamos la noticia (la categoría ya viene en news_in o usa el default)
     news = News.model_validate(news_in, update={"slug": slug, "author_id": current_user.id})
     session.add(news)
     session.commit()
@@ -79,7 +86,7 @@ def create_news(
         user=current_user,
         action="CREATE",
         module="NOTICIAS",
-        details=f"Publicó noticia: {news.title}",
+        details=f"Publicó noticia: {news.title} (Cat: {news.category})",
         resource_id=str(news.id)
     )
     session.commit()
