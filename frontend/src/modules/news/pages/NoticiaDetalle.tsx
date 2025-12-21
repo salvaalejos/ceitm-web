@@ -91,6 +91,7 @@ export const NoticiaDetalle = () => {
             /* CASO 2: Video Normal (YouTube, Vimeo, Facebook Watch, MP4) */
             noticia.video_url && !videoError ? (
                 <div className="w-full h-full">
+		    {/* @ts-ignore */}
                     <ReactPlayer
                         url={cleanVideoUrl} // Usamos la URL limpia
                         width="100%"
