@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, FilterX, ChevronDown, Store, Heart, Utensils, Smartphone, GraduationCap, Ticket, Check } from 'lucide-react';
+import { Search, FilterX, ChevronDown, Check, LayoutGrid } from 'lucide-react';
 import { ConvenioCard } from '../components/ConvenioCard';
 import { ConvenioModal } from '../components/ConvenioModal';
 import type { Convenio } from '../../../shared/types';
 import { getConvenios } from '../../../shared/services/api';
+// 👇 Importamos las constantes
+import { CATEGORIAS_CONVENIOS } from '../../../shared/constants/convenios';
 
 export const ConveniosPage = () => {
   const [convenios, setConvenios] = useState<Convenio[]>([]);
@@ -11,16 +13,15 @@ export const ConveniosPage = () => {
 
   // Estados de Filtros
   const [busqueda, setBusqueda] = useState('');
-  const [categoria, setCategoria] = useState('all');
+  const [categoria, setCategoria] = useState('TODAS'); // 'TODAS' en lugar de 'all' para consistencia
 
-  // Estados UI
+  // UI States
   const [modalOpen, setModalOpen] = useState(false);
   const [convenioSeleccionado, setConvenioSeleccionado] = useState<Convenio | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -45,22 +46,21 @@ export const ConveniosPage = () => {
     cargar();
   }, []);
 
-  // Definición de Categorías con Iconos
-  const categoriasOptions = [
-      { id: 'all', label: 'Todas las categorías', icon: <Store size={18} /> },
-      { id: 'Salud', label: 'Salud y Bienestar', icon: <Heart size={18} /> },
-      { id: 'Comida', label: 'Alimentos y Bebidas', icon: <Utensils size={18} /> },
-      { id: 'Electrónica', label: 'Tecnología', icon: <Smartphone size={18} /> },
-      { id: 'Educación', label: 'Educación y Cursos', icon: <GraduationCap size={18} /> },
-      { id: 'Entretenimiento', label: 'Ocio y Diversión', icon: <Ticket size={18} /> },
+  // Armamos las opciones para el Dropdown (Agregando "TODAS")
+  const opcionesDropdown = [
+      { id: 'TODAS', label: 'Todas las categorías', icon: LayoutGrid },
+      ...CATEGORIAS_CONVENIOS
   ];
 
-  const selectedLabel = categoriasOptions.find(c => c.id === categoria)?.label;
+  const selectedLabel = opcionesDropdown.find(c => c.id === categoria)?.label;
 
-  // Lógica de Filtrado
+  // 🧠 Lógica de Filtrado Corregida
   const conveniosFiltrados = convenios.filter(c => {
     const matchNombre = c.nombre.toLowerCase().includes(busqueda.toLowerCase());
-    const matchCategoria = categoria === 'all' || c.categoria === categoria;
+
+    // Aquí es donde fallaba: Aseguramos que el match sea exacto con el ID centralizado
+    const matchCategoria = categoria === 'TODAS' || c.categoria === categoria;
+
     return matchNombre && matchCategoria;
   });
 
@@ -69,18 +69,12 @@ export const ConveniosPage = () => {
     setModalOpen(true);
   };
 
-  const handleSelectCategoria = (id: string) => {
-      setCategoria(id);
-      setIsDropdownOpen(false);
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950 pb-20 animate-fade-in">
 
-        {/* 1. HERO SECTION (Igual que Noticias) */}
+        {/* HERO SECTION */}
         <div className="bg-slate-900 text-white py-20 px-6 text-center relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-guinda-900/50 to-slate-900 z-0"></div>
-            {/* Patrón de fondo opcional */}
             <div className="absolute inset-0 opacity-[0.05] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
 
             <div className="relative z-10 container mx-auto">
@@ -95,7 +89,7 @@ export const ConveniosPage = () => {
 
         <div className="container mx-auto px-6 -mt-8 relative z-20">
 
-            {/* 2. BARRA DE HERRAMIENTAS */}
+            {/* BARRA DE HERRAMIENTAS */}
             <div className="bg-white dark:bg-slate-900 p-2 rounded-2xl shadow-xl max-w-4xl mx-auto flex flex-col md:flex-row gap-2 border border-gray-100 dark:border-slate-800 mb-10">
 
                 {/* Buscador */}
@@ -121,7 +115,11 @@ export const ConveniosPage = () => {
                         }`}
                     >
                         <div className="flex items-center gap-2 truncate">
-                            {categoriasOptions.find(c => c.id === categoria)?.icon}
+                            {/* Renderizamos el icono dinámicamente */}
+                            {(() => {
+                                const Icon = opcionesDropdown.find(c => c.id === categoria)?.icon || LayoutGrid;
+                                return <Icon size={18} className={isDropdownOpen ? 'text-guinda-600' : 'text-gray-500'} />;
+                            })()}
                             <span className="font-medium truncate">{selectedLabel}</span>
                         </div>
                         <ChevronDown
@@ -130,16 +128,17 @@ export const ConveniosPage = () => {
                         />
                     </button>
 
-                    {/* Menú Desplegable */}
+                    {/* Menú Flotante */}
                     {isDropdownOpen && (
                         <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                             <div className="max-h-[300px] overflow-y-auto custom-scrollbar p-1">
-                                {categoriasOptions.map(opt => {
+                                {opcionesDropdown.map(opt => {
                                     const isSelected = categoria === opt.id;
+                                    const Icon = opt.icon;
                                     return (
                                         <button
                                             key={opt.id}
-                                            onClick={() => handleSelectCategoria(opt.id)}
+                                            onClick={() => { setCategoria(opt.id); setIsDropdownOpen(false); }}
                                             className={`
                                                 w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors text-left
                                                 ${isSelected 
@@ -149,9 +148,7 @@ export const ConveniosPage = () => {
                                             `}
                                         >
                                             <div className="flex items-center gap-3">
-                                                <span className={`${isSelected ? 'text-guinda-600' : 'text-gray-400'}`}>
-                                                    {opt.icon}
-                                                </span>
+                                                <Icon size={18} className={isSelected ? 'text-guinda-600' : 'text-gray-400'} />
                                                 <span>{opt.label}</span>
                                             </div>
                                             {isSelected && <Check size={16} className="text-guinda-600" />}
@@ -164,9 +161,9 @@ export const ConveniosPage = () => {
                 </div>
 
                 {/* Botón Limpiar */}
-                {(busqueda || categoria !== 'all') && (
+                {(busqueda || categoria !== 'TODAS') && (
                     <button
-                        onClick={() => { setBusqueda(''); setCategoria('all'); setIsDropdownOpen(false); }}
+                        onClick={() => { setBusqueda(''); setCategoria('TODAS'); setIsDropdownOpen(false); }}
                         className="px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl font-medium transition-colors whitespace-nowrap hidden md:block"
                     >
                         Limpiar
@@ -174,10 +171,10 @@ export const ConveniosPage = () => {
                 )}
             </div>
 
-            {/* 3. GRID DE RESULTADOS */}
+            {/* 3. GRID */}
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-20 text-gray-400 animate-pulse">
-                    <Store size={48} className="mb-4 opacity-50" />
+                    <LayoutGrid size={48} className="mb-4 opacity-50" />
                     <p>Cargando convenios...</p>
                 </div>
             ) : conveniosFiltrados.length > 0 ? (
@@ -196,13 +193,13 @@ export const ConveniosPage = () => {
                         No encontramos resultados
                     </h3>
                     <p className="text-gray-500 max-w-md mx-auto mb-6">
-                        No hay convenios que coincidan con tu búsqueda.
+                        No hay convenios para esta búsqueda.
                     </p>
                     <button
-                        onClick={() => { setBusqueda(''); setCategoria('all'); }}
+                        onClick={() => { setBusqueda(''); setCategoria('TODAS'); }}
                         className="btn-secondary"
                     >
-                        Ver todos los convenios
+                        Ver todos
                     </button>
                 </div>
             )}

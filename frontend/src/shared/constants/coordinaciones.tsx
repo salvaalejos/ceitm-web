@@ -65,6 +65,17 @@ export const COORDINACIONES: Coordination[] = [
 
     // --- 2. COORDINACIONES OPERATIVAS ---
     {
+        id: 'EVENTOS',
+        label: 'Eventos (SODECU)',
+        type: 'operativa',
+        allowedRoles: ['coordinador', 'vocal'],
+        icon: Activity,
+        description: 'Creación de experiencias culturales, deportivas y recreativas para la integración estudiantil.',
+        modalDescription: 'Organizamos la vida estudiantil fuera de las aulas: torneos deportivos, eventos culturales, fiestas de bienvenida y actividades de integración.',
+        color: 'text-green-600 bg-green-50 dark:bg-green-900/20 group-hover:bg-green-600 group-hover:text-white',
+        route: '/noticias'
+    },
+    {
         id: 'ACADEMICO',
         label: 'Académico',
         type: 'operativa',
@@ -118,17 +129,6 @@ export const COORDINACIONES: Coordination[] = [
         modalDescription: 'Buscamos y gestionamos convenios con empresas, descuentos comerciales y oportunidades externas que beneficien a los estudiantes del ITM.',
         color: 'text-purple-600 bg-purple-50 dark:bg-purple-900/20 group-hover:bg-purple-600 group-hover:text-white',
         route: '/convenios'
-    },
-    {
-        id: 'EVENTOS',
-        label: 'Eventos (SODECU)',
-        type: 'operativa',
-        allowedRoles: ['coordinador', 'vocal'],
-        icon: Activity,
-        description: 'Creación de experiencias culturales, deportivas y recreativas para la integración estudiantil.',
-        modalDescription: 'Organizamos la vida estudiantil fuera de las aulas: torneos deportivos, eventos culturales, fiestas de bienvenida y actividades de integración.',
-        color: 'text-green-600 bg-green-50 dark:bg-green-900/20 group-hover:bg-green-600 group-hover:text-white',
-        route: '/noticias'
     },
     {
         id: 'MARKETING',
