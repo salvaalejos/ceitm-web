@@ -91,7 +91,6 @@ export interface Scholarship {
 export interface ScholarshipCreate extends Omit<Scholarship, 'id'> {}
 export interface ScholarshipUpdate extends Partial<ScholarshipCreate> {}
 
-// 👇 ESTA ES LA INTERFAZ QUE TE DABA ERROR. ACTUALÍZALA COMPLETA:
 export interface ScholarshipApplication {
   id: number;
   scholarship_id: number;
@@ -141,4 +140,47 @@ export interface ScholarshipApplication {
 export interface ApplicationUpdate {
   status?: string;
   admin_comments?: string;
+}
+
+// --- BUZÓN DE QUEJAS (TICKETS) ---
+
+export enum ComplaintType {
+  QUEJA = 'Queja',
+  SUGERENCIA = 'Sugerencia',
+  AMBAS = 'Ambas',
+}
+
+export enum ComplaintStatus {
+  PENDIENTE = 'Pendiente',
+  EN_PROCESO = 'En Proceso', // Equivalente a "En Revisión" pero para tickets
+  RESUELTO = 'Resuelto',
+  RECHAZADO = 'Rechazado',
+}
+
+export interface Complaint {
+  id: number;
+
+  // Datos del alumno
+  full_name: string;
+  control_number: string;
+  phone_number: string;
+  email: string; // <--- Nuevo: Requerido para notificaciones
+  career: string;
+  semester: string;
+
+  // Detalle
+  type: ComplaintType;
+  description: string;
+  evidence_url?: string;
+
+  // Sistema de Rastreo
+  tracking_code?: string; // El folio (Ej: CEITM-2025-001)
+  status: ComplaintStatus;
+
+  // Resolución Admin
+  admin_response?: string;
+  resolution_evidence_url?: string;
+  resolved_at?: string;
+
+  created_at: string;
 }

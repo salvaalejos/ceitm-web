@@ -7,6 +7,8 @@ import type {
   Scholarship,
   ScholarshipApplication,
   ScholarshipCreate,
+  Complaint,
+  ComplaintStatus,
 } from "../types";
 
 // 👇 Usamos la URL dinámica
@@ -160,7 +162,7 @@ export const deleteDocument = async (id: number) => {
 
 
 // --- QUEJAS (BUZÓN) ---
-export const createComplaint = async (data: any) => {
+export const createComplaint = async (data: Omit<Complaint, 'id' | 'created_at' | 'status'>) => {
   const response = await api.post(ENDPOINTS.COMPLAINTS.BASE, data);
   return response.data;
 };
@@ -170,11 +172,32 @@ export const getComplaints = async () => {
   return response.data;
 };
 
+// NUEVO: Rastreo público por folio
+export const trackComplaint = async (folio: string) => {
+  // NOTA: Asegúrate de que ENDPOINTS.COMPLAINTS.BASE sea '/quejas'
+  // O ajusta aquí directamente: `/quejas/track/${folio}`
+  const response = await api.get<Complaint>(`/quejas/track/${folio}`);
+  return response.data;
+};
+// Alias para mantener compatibilidad con el código que te pasé antes
+export const getComplaintByFolio = trackComplaint;
+
+// NUEVO: Resolver Ticket (Admin)
+export const resolveComplaint = async (id: number, data: { status: ComplaintStatus; admin_response: string; resolution_evidence_url?: string }) => {
+  const response = await api.put(`/quejas/${id}/resolve`, data);
+  return response.data;
+};
+
+// Deprecado pero mantenido por compatibilidad (usa resolveComplaint preferiblemente)
 export const updateComplaintStatus = async (id: number, status: string) => {
   const response = await api.patch(ENDPOINTS.COMPLAINTS.BY_ID(id), { status });
   return response.data;
 };
 
+// NUEVO: Eliminar Queja
+export const deleteComplaint = async (id: number) => {
+  await api.delete(`/quejas/${id}`);
+};
 
 // --- BECAS ---
 export const getScholarships = async (activeOnly: boolean = true) => {
