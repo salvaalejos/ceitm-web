@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
   Send, Upload, CheckCircle, Loader2,
-  Search, FileText, MessageSquare, Clock, Check, AlertTriangle, ArrowRight
+  Search, FileText, MessageSquare, Clock, Check, AlertTriangle, ArrowRight, Trash2
 } from 'lucide-react';
-import { createComplaint, uploadImage, trackComplaint, getCareers } from '../../../shared/services/api';
-import {type Complaint, ComplaintStatus, type Career } from '../../../shared/types';
+// Quitamos uploadImage porque ya no se usa por separado
+import { createComplaint, trackComplaint, getCareers } from '../../../shared/services/api';
+import { type Complaint, ComplaintStatus, type Career } from '../../../shared/types';
 
 const SEMESTRES = [
     "1er Semestre", "2do Semestre", "3er Semestre", "4to Semestre",
@@ -13,7 +14,6 @@ const SEMESTRES = [
 ];
 
 // --- COMPONENTE: TIMELINE LIMPIO ---
-// Sin fondos que choquen, diseño flotante
 const StatusTimeline = ({ status, created_at, resolved_at }: { status: ComplaintStatus, created_at: string, resolved_at?: string }) => {
     const steps = [
         { label: 'Enviado', completed: true, date: created_at },
@@ -23,13 +23,10 @@ const StatusTimeline = ({ status, created_at, resolved_at }: { status: Complaint
 
     return (
         <div className="relative w-full py-6">
-            {/* Línea conectora */}
             <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gray-200 dark:bg-slate-700 -z-10 -translate-y-1/2 rounded-full" />
-
             <div className="flex justify-between w-full">
                 {steps.map((step, idx) => (
                     <div key={idx} className="flex flex-col items-center group">
-                        {/* Círculo del paso */}
                         <div className={`
                             w-10 h-10 rounded-full flex items-center justify-center border-4 transition-all duration-300 z-10
                             ${step.completed 
@@ -39,8 +36,6 @@ const StatusTimeline = ({ status, created_at, resolved_at }: { status: Complaint
                         `}>
                             {step.completed ? <Check size={16} strokeWidth={3} /> : <div className="w-2.5 h-2.5 rounded-full bg-gray-300 dark:bg-slate-600" />}
                         </div>
-
-                        {/* Texto */}
                         <div className="mt-3 text-center">
                             <span className={`block text-xs md:text-sm font-bold transition-colors ${step.completed ? 'text-guinda-700 dark:text-guinda-400' : 'text-gray-400'}`}>
                                 {step.label}
@@ -64,8 +59,10 @@ export const BuzonPage = () => {
 
   // --- ESTADOS: CREACIÓN ---
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [successFolio, setSuccessFolio] = useState<string | null>(null);
+
+  // NUEVO: Estado para el archivo seleccionado (sin subir aún)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -76,7 +73,7 @@ export const BuzonPage = () => {
     semester: '',
     type: 'Queja',
     description: '',
-    evidence_url: ''
+    // evidence_url ya no se usa aquí, se manda el archivo directo
   });
 
   // --- ESTADOS: RASTREO ---
@@ -99,24 +96,56 @@ export const BuzonPage = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-        const url = await uploadImage(file);
-        setFormData(prev => ({ ...prev, evidence_url: url }));
-    } catch { alert("Error al subir imagen"); } finally { setUploading(false); }
+  // NUEVO: Solo guarda el archivo en memoria, no lo sube todavía
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+        setSelectedFile(e.target.files[0]);
+    }
   };
 
+  const handleRemoveFile = () => {
+      setSelectedFile(null);
+  };
+
+  // NUEVO: Submit con FormData para enviar texto + archivo juntos
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-        const res = await createComplaint(formData);
+        const data = new FormData();
+        // Agregamos todos los campos de texto
+        data.append('full_name', formData.full_name);
+        data.append('control_number', formData.control_number);
+        data.append('phone_number', formData.phone_number);
+        data.append('email', formData.email);
+        data.append('career', formData.career);
+        data.append('semester', formData.semester);
+        data.append('type', formData.type);
+        data.append('description', formData.description);
+
+        // Agregamos el archivo SI existe
+        // IMPORTANTE: 'evidencia' debe coincidir con lo que pusimos en el backend (complaints.py)
+        if (selectedFile) {
+            data.append('evidencia', selectedFile);
+        }
+
+        // createComplaint ahora acepta FormData (según editamos api.ts)
+        const res = await createComplaint(data); // Asegúrate que createComplaint acepte "any" o "FormData" en api.ts
+
         setSuccessFolio(res.tracking_code || 'REGISTRADO');
         window.scrollTo(0, 0);
-    } catch { alert("Error al enviar"); } finally { setLoading(false); }
+
+        // Limpieza
+        setSelectedFile(null);
+        setFormData({ ...formData, description: '' });
+
+    } catch (error) {
+        console.error(error);
+        alert("Error al enviar el reporte. Verifica tu conexión.");
+    } finally {
+        setLoading(false);
+    }
   };
 
   const handleTrack = async (e: React.FormEvent) => {
@@ -206,7 +235,7 @@ export const BuzonPage = () => {
                             </div>
 
                             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                                 <button onClick={() => { setSuccessFolio(null); setFormData({ ...formData, description: '', evidence_url: '' }); }} className="btn-secondary">
+                                 <button onClick={() => { setSuccessFolio(null); setFormData({ ...formData, description: ''}); setSelectedFile(null); }} className="btn-secondary">
                                     Nuevo Reporte
                                 </button>
                                 <button onClick={() => { setActiveTab('track'); setSearchFolio(successFolio); }} className="btn-primary px-8">
@@ -216,8 +245,6 @@ export const BuzonPage = () => {
                         </div>
                     ) : (
                         <form onSubmit={handleSubmit} className="space-y-8 animate-fade-in">
-                            {/* ... (SECCIÓN DE DATOS PERSONALES IGUAL QUE ANTES) ... */}
-                            {/* Omito los campos repetitivos para ahorrar espacio, PERO se mantienen igual que en la versión anterior */}
                             <div className="space-y-6">
                                 <div className="flex items-center gap-3 pb-2 border-b border-gray-100 dark:border-slate-800">
                                     <div className="w-8 h-8 rounded-lg bg-guinda-100 dark:bg-guinda-900/30 text-guinda-600 flex items-center justify-center font-bold">1</div>
@@ -286,30 +313,57 @@ export const BuzonPage = () => {
                                     <label className="form-label">Descripción</label>
                                     <textarea name="description" required value={formData.description} onChange={handleChange} className="form-input w-full h-32 resize-none p-4" placeholder="Describe la situación..."></textarea>
                                 </div>
+
+                                {/* SECCIÓN DE EVIDENCIA ACTUALIZADA */}
                                 <div>
-                                    <label className="form-label">Evidencia (Opcional)</label>
-                                    <label className={`
-                                        flex items-center justify-center w-full h-24 mt-2 border-2 border-dashed rounded-xl cursor-pointer transition-all
-                                        ${uploading ? 'opacity-50' : 'hover:border-guinda-400 hover:bg-gray-50 dark:hover:bg-slate-800'}
-                                        ${formData.evidence_url ? 'border-green-500 bg-green-50 dark:bg-green-900/10' : 'border-gray-300 dark:border-slate-700'}
-                                    `}>
-                                        <div className="flex flex-col items-center">
-                                            {uploading ? <Loader2 className="animate-spin" /> : formData.evidence_url ? <CheckCircle className="text-green-600" /> : <Upload className="text-gray-400" />}
-                                            <span className="text-xs text-gray-500 font-medium mt-1">{uploading ? 'Subiendo...' : formData.evidence_url ? 'Archivo listo' : 'Subir Foto'}</span>
+                                    <label className="form-label mb-2 block">Evidencia (Opcional)</label>
+
+                                    {!selectedFile ? (
+                                        // Estado: Sin archivo
+                                        <label className="flex items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 dark:border-slate-700 hover:border-guinda-400 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-xl cursor-pointer transition-all">
+                                            <div className="flex flex-col items-center">
+                                                <Upload className="text-gray-400 mb-1" />
+                                                <span className="text-xs text-gray-500 font-medium">Click para subir foto o PDF</span>
+                                            </div>
+                                            <input type="file" className="hidden" accept="image/*,.pdf" onChange={handleFileSelect} />
+                                        </label>
+                                    ) : (
+                                        // Estado: Archivo seleccionado (Listo para enviar)
+                                        <div className="flex items-center justify-between p-3 border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/10 rounded-xl">
+                                            <div className="flex items-center gap-3 overflow-hidden">
+                                                <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center shrink-0 border border-green-100">
+                                                    <CheckCircle className="text-green-500" size={20} />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-bold text-green-700 dark:text-green-400 truncate">
+                                                        {selectedFile.name}
+                                                    </p>
+                                                    <p className="text-xs text-green-600 dark:text-green-500">
+                                                        {(selectedFile.size / 1024).toFixed(1)} KB - Listo para enviar
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={handleRemoveFile}
+                                                className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
                                         </div>
-                                        <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} disabled={uploading} />
-                                    </label>
+                                    )}
                                 </div>
                             </div>
 
-                            <button type="submit" disabled={loading} className="btn-primary w-full py-4 text-lg shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all">
+                            <button type="submit" disabled={loading} className="btn-primary w-full py-4 text-lg shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all flex items-center justify-center gap-2">
+                                {loading ? <Loader2 className="animate-spin" /> : null}
                                 {loading ? 'Enviando...' : 'Enviar Reporte'}
                             </button>
                         </form>
                     )
                 )}
 
-                {/* === MODO 2: RASTREAR === */}
+                {/* === MODO 2: RASTREAR === (Se mantiene igual, solo wrapper) */}
                 {activeTab === 'track' && (
                     <div className="animate-fade-in flex flex-col items-center">
                         <div className="text-center mb-8 max-w-md">
@@ -346,8 +400,6 @@ export const BuzonPage = () => {
 
                         {trackingResult && (
                             <div className="w-full max-w-2xl bg-gray-50 dark:bg-slate-800/40 rounded-2xl border border-gray-200 dark:border-slate-800 p-6 md:p-8 animate-fade-in-up">
-
-                                {/* Header Ticket */}
                                 <div className="flex justify-between items-center mb-8 pb-4 border-b border-gray-200 dark:border-slate-700">
                                     <div>
                                         <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Folio</span>
@@ -362,14 +414,12 @@ export const BuzonPage = () => {
                                     </div>
                                 </div>
 
-                                {/* Timeline Mejorado */}
                                 <StatusTimeline
                                     status={trackingResult.status}
                                     created_at={trackingResult.created_at}
                                     resolved_at={trackingResult.resolved_at}
                                 />
 
-                                {/* Área de Respuesta */}
                                 <div className="mt-8 pt-6 border-t border-gray-200 dark:border-slate-700">
                                     <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase mb-4 flex items-center gap-2">
                                         <MessageSquare size={16} className="text-guinda-600" /> Respuesta del Consejo

@@ -162,7 +162,8 @@ export const deleteDocument = async (id: number) => {
 
 
 // --- QUEJAS (BUZÓN) ---
-export const createComplaint = async (data: Omit<Complaint, 'id' | 'created_at' | 'status'>) => {
+export const createComplaint = async (data: FormData) => {
+  // Al pasar FormData, el Content-Type se ajusta solo a multipart/form-data
   const response = await api.post(ENDPOINTS.COMPLAINTS.BASE, data);
   return response.data;
 };
@@ -183,7 +184,8 @@ export const trackComplaint = async (folio: string) => {
 export const getComplaintByFolio = trackComplaint;
 
 // NUEVO: Resolver Ticket (Admin)
-export const resolveComplaint = async (id: number, data: { status: ComplaintStatus; admin_response: string; resolution_evidence_url?: string }) => {
+export const resolveComplaint = async (id: number, data: FormData) => {
+  // Axios detectará automáticamente que es FormData y pondrá los headers correctos
   const response = await api.put(`/quejas/${id}/resolve`, data);
   return response.data;
 };

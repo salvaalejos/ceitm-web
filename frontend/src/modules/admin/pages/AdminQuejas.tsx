@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
-    Inbox, Search, MessageSquare, CheckCircle, Filter, ChevronDown, Clock, XCircle, Trash2, Building
-} from 'lucide-react';
+    Inbox, Search, MessageSquare, CheckCircle, Filter, ChevronDown, Clock, XCircle, Trash2, Building, FileText, Download
+} from 'lucide-react'; // <--- AGREGUÉ ICONOS
 import { getComplaints, getCareers, deleteComplaint } from '../../../shared/services/api';
 import {type Complaint, ComplaintStatus, type Career } from '../../../shared/types';
 import { ComplaintModal } from '../components/ComplaintModal';
@@ -44,7 +44,6 @@ export const AdminQuejas = () => {
       try {
           await deleteComplaint(id);
           setComplaints(prev => prev.filter(c => c.id !== id));
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) { alert("Error al eliminar."); }
   };
 
@@ -96,19 +95,13 @@ export const AdminQuejas = () => {
                 </div>
 
                 <div className="flex flex-col md:flex-row w-full gap-3">
-
-                    {/* 2. Filtro Carrera (DROPDOWN MEJORADO) */}
+                    {/* 2. Filtro Carrera */}
                     <div className="relative w-full md:w-72 group">
                         <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-guinda-600 transition-colors" size={16} />
                         <select
                             value={filterCareer}
                             onChange={(e) => setFilterCareer(e.target.value)}
-                            className="w-full pl-10 pr-10 py-2.5 rounded-xl
-                                     bg-gray-50 dark:bg-slate-800
-                                     border border-transparent dark:border-slate-700
-                                     text-gray-700 dark:text-gray-200 text-sm font-medium
-                                     focus:ring-2 focus:ring-guinda-500 focus:bg-white dark:focus:bg-slate-800
-                                     appearance-none cursor-pointer transition-all hover:bg-gray-100 dark:hover:bg-slate-700/80"
+                            className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-800 border border-transparent dark:border-slate-700 text-gray-700 dark:text-gray-200 text-sm font-medium focus:ring-2 focus:ring-guinda-500 focus:bg-white dark:focus:bg-slate-800 appearance-none cursor-pointer transition-all hover:bg-gray-100 dark:hover:bg-slate-700/80"
                         >
                             <option value="Todas" className="dark:bg-slate-800">Todas las Carreras</option>
                             {careersList.map(c => (
@@ -217,21 +210,47 @@ export const AdminQuejas = () => {
                                 </div>
                             </div>
 
-                            {/* Descripción y Respuesta */}
+                            {/* Descripción y Evidencia del Alumno */}
                             <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-xl text-sm text-gray-700 dark:text-gray-300 mb-4 border border-gray-100 dark:border-slate-800">
-                                "{item.description}"
+                                <p className="mb-3">"{item.description}"</p>
+
+                                {/* NUEVO: BOTÓN EVIDENCIA ALUMNO */}
+                                {item.evidence_url && (
+                                    <a
+                                        href={item.evidence_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm"
+                                    >
+                                        <FileText size={14} />
+                                        Ver Evidencia Adjunta (Alumno)
+                                    </a>
+                                )}
                             </div>
 
+                            {/* Respuesta Admin y Evidencia Admin */}
                             {item.admin_response && (
                                 <div className="pl-4 border-l-2 border-guinda-200 dark:border-guinda-900 mb-4">
-                                    <p className="text-xs font-bold text-guinda-600 dark:text-guinda-400 uppercase mb-1">Respuesta:</p>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400 italic">
+                                    <p className="text-xs font-bold text-guinda-600 dark:text-guinda-400 uppercase mb-1">Respuesta Oficial:</p>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 italic mb-2">
                                         {item.admin_response}
                                     </p>
+
+                                    {/* NUEVO: BOTÓN EVIDENCIA ADMIN */}
+                                    {item.resolution_evidence_url && (
+                                        <a
+                                            href={item.resolution_evidence_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-2 text-xs font-bold text-green-600 dark:text-green-400 hover:underline"
+                                        >
+                                            <Download size={14} />
+                                            Ver Documento de Resolución
+                                        </a>
+                                    )}
                                 </div>
                             )}
 
-                            {/* Footer */}
                             <div className="flex items-center justify-end text-xs text-gray-400 border-t border-gray-100 dark:border-slate-800 pt-3 mt-2">
                                 <Clock size={12} className="mr-1" /> Creado el {new Date(item.created_at).toLocaleDateString()}
                             </div>

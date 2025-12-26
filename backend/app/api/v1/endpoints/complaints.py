@@ -7,23 +7,22 @@ from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks,
 from sqlmodel import Session, select, func
 from pydantic import BaseModel
 
-from app.core.config import settings  # <--- Importamos settings para usar el DOMAIN
+from app.core.config import settings
 from app.core.database import get_session
 from app.models.user_model import User, UserRole
 from app.models.complaint_model import Complaint, ComplaintStatus
 from app.schemas.complaint_schema import ComplaintCreate, ComplaintRead
-# Nota: ComplaintResolve ya no se usa en el input porque usamos Form, pero lo dejamos por si lo usas en otro lado
 from app.api.deps import get_current_user
 from app.core.limiter import limiter
 from app.core.email_utils import send_email_background
 
-# Definimos URL base del portal de transparencia
+# URL base para los correos
 PORTAL_TRANSPARENCIA_URL = "https://ceitm.ddnsking.com/buzon"
 
 router = APIRouter()
 
 
-# Schema local para la respuesta pública de rastreo (Privacidad)
+# Schema local para respuesta pública (Privacidad)
 class ComplaintTrackPublic(BaseModel):
     tracking_code: str
     status: ComplaintStatus
@@ -35,36 +34,92 @@ class ComplaintTrackPublic(BaseModel):
 
 # --- UTILIDAD: GENERAR FOLIO ---
 def generate_tracking_code(session: Session) -> str:
-    """Genera un folio único formato: CEITM-YYYY-XXX (Ej: CEITM-2025-001)"""
+    """Genera un folio único formato: CEITM-YYYY-XXX"""
     year = datetime.now().year
+    # Contamos cuántas quejas hay para el consecutivo
     count = session.exec(select(func.count()).select_from(Complaint)).one()
     return f"CEITM-{year}-{count + 1:03d}"
 
 
 # ==========================================
-# 1. PÚBLICO: CREAR QUEJA (CON FOLIO)
+# 1. PÚBLICO: CREAR QUEJA (CON FOLIO Y EVIDENCIA)
 # ==========================================
 @router.post("/", response_model=ComplaintRead)
 @limiter.limit("5/minute")
 def create_complaint(
         request: Request,
-        complaint_in: ComplaintCreate,
+        background_tasks: BackgroundTasks,
+        full_name: str = Form(...),
+        control_number: str = Form(...),
+        phone_number: str = Form(...),
+        email: str = Form(...),
+        career: str = Form(...),
+        semester: str = Form(...),
+        type: str = Form(...),
+        description: str = Form(...),
+        evidencia: UploadFile = File(None),
         session: Session = Depends(get_session)
 ):
     """
-    Crea la queja y genera un folio de rastreo automático.
+    Crea la queja, genera folio, sube evidencia y notifica por correo.
     """
     # 1. Generar Folio
     tracking_code = generate_tracking_code(session)
 
-    # 2. Crear objeto
-    complaint = Complaint.model_validate(complaint_in)
-    complaint.tracking_code = tracking_code
-    complaint.status = ComplaintStatus.PENDIENTE
+    # 2. Procesar Archivo (Si existe)
+    evidence_url = None
+    if evidencia:
+        upload_dir = "static/uploads/quejas"
+        os.makedirs(upload_dir, exist_ok=True)
+
+        try:
+            ext = evidencia.filename.split(".")[-1]
+            filename = f"{uuid4()}.{ext}"
+            file_path = os.path.join(upload_dir, filename)
+
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(evidencia.file, buffer)
+
+            evidence_url = f"{settings.DOMAIN}/{file_path}"
+        except Exception as e:
+            print(f"Error subiendo evidencia de queja: {e}")
+
+    # 3. Crear objeto
+    complaint = Complaint(
+        full_name=full_name,
+        control_number=control_number,
+        phone_number=phone_number,
+        email=email,
+        career=career,
+        semester=semester,
+        type=type,
+        description=description,
+        evidence_url=evidence_url,
+        tracking_code=tracking_code,
+        status=ComplaintStatus.PENDIENTE
+    )
 
     session.add(complaint)
     session.commit()
     session.refresh(complaint)
+
+    # 4. ENVIAR CORREO DE CONFIRMACIÓN (ADAPTADO)
+    if email:
+        try:
+            email_data = {
+                "name": full_name,
+                "folio": tracking_code,
+                "portal_url": PORTAL_TRANSPARENCIA_URL
+            }
+            send_email_background(
+                background_tasks=background_tasks,
+                subject=f"Reporte Recibido: {tracking_code}", # Asunto más claro
+                email_to=email,
+                template_name="complaint_received.html",  # <--- Plantilla NUEVA correcta
+                context=email_data
+            )
+        except Exception as e:
+            print(f"Error enviando correo de confirmación: {e}")
 
     return complaint
 
@@ -79,128 +134,108 @@ def track_complaint(
         tracking_code: str,
         session: Session = Depends(get_session)
 ):
-    """
-    Consulta el estatus de una queja por su folio.
-    NO devuelve datos personales del alumno, solo estatus y respuesta.
-    """
     statement = select(Complaint).where(Complaint.tracking_code == tracking_code.upper())
     complaint = session.exec(statement).first()
 
     if not complaint:
-        raise HTTPException(status_code=404, detail="Folio no encontrado. Verifica tus datos.")
+        raise HTTPException(status_code=404, detail="Folio no encontrado.")
 
     return complaint
 
 
 # ==========================================
-# 3. PRIVADO: RESOLVER TICKET (ADMIN) + CORREO + ARCHIVOS
+# 3. PRIVADO: RESOLVER TICKET (ADMIN)
 # ==========================================
 @router.put("/{complaint_id}/resolve", response_model=ComplaintRead)
 def resolve_complaint(
         complaint_id: int,
         background_tasks: BackgroundTasks,
-        # -- CAMBIO: Usamos Form y File para soportar carga de archivos --
         status: str = Form(...),
-        admin_response: str = Form(None),
-        evidencias: List[UploadFile] = File(None),
-        # ---------------------------------------------------------------
+        admin_response: str = Form(...),
+        evidencia: UploadFile = File(None),
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user)
 ):
     """
-    Cierra el ticket, guarda evidencia (archivos) y notifica al usuario por correo si lo proporcionó.
+    Cierra el ticket, guarda evidencia y notifica.
     """
-    # Verificación de permisos
     if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
-        raise HTTPException(status_code=403, detail="No tienes permisos para resolver tickets")
+        raise HTTPException(status_code=403, detail="No tienes permisos.")
 
     complaint = session.get(Complaint, complaint_id)
     if not complaint:
         raise HTTPException(status_code=404, detail="Queja no encontrada")
 
-    # 1. Procesar Archivos (Si se enviaron)
-    #    Usamos la misma lógica que en utils.py pero guardando en subcarpeta 'resoluciones'
-    evidence_urls_list = []
-
-    if evidencias:
+    # 1. Procesar Archivo Resolución (Si existe)
+    if evidencia:
         upload_dir = "static/uploads/resoluciones"
-        if not os.path.exists(upload_dir):
-            os.makedirs(upload_dir)
+        os.makedirs(upload_dir, exist_ok=True)
 
-        for file in evidencias:
-            try:
-                # Generar nombre único (Igual que en utils.py)
-                file_ext = file.filename.split(".")[-1]
-                unique_filename = f"{uuid4()}.{file_ext}"
-                file_path = os.path.join(upload_dir, unique_filename)
+        try:
+            file_ext = evidencia.filename.split(".")[-1]
+            unique_filename = f"{uuid4()}.{file_ext}"
+            file_path = os.path.join(upload_dir, unique_filename)
 
-                # Guardar físico
-                with open(file_path, "wb") as buffer:
-                    shutil.copyfileobj(file.file, buffer)
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(evidencia.file, buffer)
 
-                # Generar URL usando settings.DOMAIN (Igual que en utils.py)
-                full_url = f"{settings.DOMAIN}/static/uploads/resoluciones/{unique_filename}"
-                evidence_urls_list.append(full_url)
-            except Exception as e:
-                print(f"Error subiendo evidencia {file.filename}: {e}")
+            complaint.resolution_evidence_url = f"{settings.DOMAIN}/{file_path}"
+        except Exception as e:
+            print(f"Error subiendo evidencia resolución: {e}")
 
-    # 2. Actualizar datos en BD
-    # Convertimos el string status al Enum
+    # 2. Actualizar Status
     try:
         complaint.status = ComplaintStatus(status)
     except ValueError:
-        # Si por alguna razón el string no coincide exacto, intentamos manejarlo o lanzamos error
         raise HTTPException(status_code=400, detail=f"Estado inválido: {status}")
 
     complaint.admin_response = admin_response
     complaint.resolved_at = datetime.utcnow()
 
-    # Si hay nuevas evidencias, las guardamos (Concatenadas por comas si hay varias)
-    if evidence_urls_list:
-        joined_urls = ",".join(evidence_urls_list)
-        # Si ya había algo, lo concatenamos (opcional, depende de tu lógica de negocio)
-        if complaint.resolution_evidence_url:
-            complaint.resolution_evidence_url += f",{joined_urls}"
-        else:
-            complaint.resolution_evidence_url = joined_urls
-
     session.add(complaint)
     session.commit()
     session.refresh(complaint)
 
-    # --- ENVÍO DE CORREO EN SEGUNDO PLANO ---
+    # 3. ENVIAR CORREO RESOLUCIÓN (ADAPTADO)
     if complaint.email:
-        email_data = {
-            "name": complaint.full_name,
-            "folio": complaint.tracking_code,
-            "status": complaint.status.value,  # Usamos el valor actualizado del objeto
-            "admin_response": complaint.admin_response,
-            "evidence_url": complaint.resolution_evidence_url,
-            "portal_url": PORTAL_TRANSPARENCIA_URL
-        }
+        try:
+            # Seleccionar plantilla y asunto según el dictamen
+            if status == "Resuelto":
+                template = "complaint_resolved.html"
+                subject = f"¡Tu Reporte ha sido Atendido! - {complaint.tracking_code}"
+            else: # Rechazado u otro
+                template = "complaint_rejected.html"
+                subject = f"Actualización de Reporte - {complaint.tracking_code}"
 
-        send_email_background(
-            background_tasks=background_tasks,
-            subject=f"Actualización de Reporte: {complaint.tracking_code}",
-            email_to=complaint.email,
-            template_name="complaint_resolved.html",
-            template_data=email_data
-        )
+            email_data = {
+                "name": complaint.full_name,
+                "folio": complaint.tracking_code,
+                "status": complaint.status.value,
+                "admin_response": complaint.admin_response,
+                "evidence_url": complaint.resolution_evidence_url,
+                "portal_url": PORTAL_TRANSPARENCIA_URL
+            }
+            send_email_background(
+                background_tasks=background_tasks,
+                subject=subject,
+                email_to=complaint.email,
+                template_name=template,
+                context=email_data
+            )
+        except Exception as e:
+            print(f"Error enviando correo resolución: {e}")
 
     return complaint
 
 
 # ==========================================
-# 4. PRIVADO: LISTADO (FILTROS DE ROL)
+# 4. PRIVADO: LISTADO
 # ==========================================
 @router.get("/", response_model=List[ComplaintRead])
 def read_complaints(
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user)
 ):
-    """
-    Listado interno para el Dashboard.
-    """
     if current_user.role in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
         statement = select(Complaint).order_by(Complaint.created_at.desc())
     else:
@@ -215,7 +250,7 @@ def read_complaints(
 
 
 # ==========================================
-# 5. PRIVADO: ELIMINAR QUEJA (ADMIN)
+# 5. PRIVADO: ELIMINAR
 # ==========================================
 @router.delete("/{complaint_id}", status_code=204)
 def delete_complaint(
@@ -223,12 +258,8 @@ def delete_complaint(
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user)
 ):
-    """
-    Elimina permanentemente una queja y sus datos asociados.
-    Solo permitido para Administradores.
-    """
     if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
-        raise HTTPException(status_code=403, detail="No tienes permisos para eliminar tickets")
+        raise HTTPException(status_code=403, detail="Sin permisos.")
 
     complaint = session.get(Complaint, complaint_id)
     if not complaint:

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { X, Upload, CheckCircle, AlertCircle, Loader2, MessageSquare, FileText, Trash2 } from 'lucide-react';
 import { type Complaint, ComplaintStatus } from '../../../shared/types';
 import { resolveComplaint } from '../../../shared/services/api';
-// NOTA: Ya no necesitamos 'uploadFile' aquí, se manda directo al resolver.
 
 interface ComplaintModalProps {
     isOpen: boolean;
@@ -65,20 +64,16 @@ export const ComplaintModal: React.FC<ComplaintModalProps> = ({ isOpen, onClose,
         try {
             // --- SOLUCIÓN DEL ERROR 422 ---
             // En lugar de enviar JSON, enviamos FormData.
-            // Esto permite mandar el archivo binario y el texto al mismo tiempo.
             const formData = new FormData();
 
             formData.append('status', status);
             formData.append('admin_response', adminResponse);
 
-            // OJO: 'evidencia' debe coincidir con el nombre del parámetro en tu Backend (FastAPI/Flask/Express)
-            // Si en tu backend se llama 'evidence_file', cámbialo aquí.
+            // OJO: 'evidencia' debe coincidir con el nombre del parámetro en tu Backend
             if (selectedFile) {
                 formData.append('evidencia', selectedFile);
             }
 
-            // Enviamos el formData en lugar del objeto JSON
-            // (Asegúrate que tu función resolveComplaint en api.ts acepte este segundo argumento tal cual)
             await resolveComplaint(complaint.id, formData);
 
             onSuccess();
@@ -86,7 +81,6 @@ export const ComplaintModal: React.FC<ComplaintModalProps> = ({ isOpen, onClose,
 
         } catch (error: any) {
             console.error("Error submit:", error);
-            // Si sigue saliendo 422, imprime esto para ver qué campo falta
             console.log("Detalle error:", error.response?.data);
             alert("Error al guardar la resolución. Revisa la consola para detalles.");
         } finally {
@@ -114,6 +108,29 @@ export const ComplaintModal: React.FC<ComplaintModalProps> = ({ isOpen, onClose,
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto">
+
+                    {/* NUEVO: EVIDENCIA DEL ALUMNO (Para revisar antes de contestar) */}
+                    {complaint.evidence_url && (
+                        <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-xl p-3 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-white dark:bg-slate-800 rounded-lg text-blue-500">
+                                    <FileText size={20} />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase">Evidencia del Estudiante</p>
+                                    <p className="text-xs text-blue-600 dark:text-blue-500">Archivo adjunto al reporte original</p>
+                                </div>
+                            </div>
+                            <a
+                                href={complaint.evidence_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-xs font-bold bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 px-3 py-2 rounded-lg border border-blue-100 dark:border-blue-900/30 hover:shadow-sm transition-all"
+                            >
+                                Ver Archivo
+                            </a>
+                        </div>
+                    )}
 
                     {/* Decisión */}
                     <div>
