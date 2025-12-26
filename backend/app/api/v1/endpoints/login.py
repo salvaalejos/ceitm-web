@@ -1,6 +1,6 @@
 from typing import Annotated
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request # <--- AGREGADO: Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session, select
 
@@ -9,14 +9,16 @@ from app.core.security import create_access_token, verify_password
 from app.core.config import settings
 from app.models.user_model import User
 from app.models.token import Token
-# 👇 IMPORTAMOS EL LOGGER
 from app.core.audit_logger import log_action
+from app.core.limiter import limiter
 
 router = APIRouter()
 
 
 @router.post("/login/access-token", response_model=Token)
+@limiter.limit("5/minute") # 🛡️ PROTECCIÓN: Máx 5 intentos por minuto por IP
 def login_access_token(
+        request: Request, # <--- OBLIGATORIO: SlowAPI necesita el objeto Request para leer la IP
         session: Annotated[Session, Depends(get_session)],
         form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ):

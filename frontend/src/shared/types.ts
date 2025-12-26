@@ -37,6 +37,15 @@ export interface SocialLinks {
   web?: string;
 }
 
+export interface Career {
+  id: number;
+  name: string;
+  slug: string;
+  whatsapp_url?: string;
+  image_url?: string;
+  is_active: boolean;
+}
+
 export interface Convenio {
   id: number;
   nombre: string;

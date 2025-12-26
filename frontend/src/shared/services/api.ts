@@ -61,6 +61,17 @@ export const deleteUser = async (id: number) => {
   return response.data;
 };
 
+export const getCareers = async () => {
+  // Usamos la ruta directa para no obligarte a editar constants.ts ahorita
+  const response = await api.get('/carreras/');
+  return response.data;
+};
+
+export const updateCareer = async (id: number, data: any) => {
+  const response = await api.patch(`/carreras/${id}`, data);
+  return response.data;
+};
+
 export const getPublicConcejales = async () => {
   const response = await api.get(ENDPOINTS.USERS.CONCEJALES);
   return response.data;

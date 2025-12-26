@@ -2,11 +2,16 @@ import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles  # <--- NUEVO
+from fastapi.staticfiles import StaticFiles
 from sqlmodel import Session, select
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
 from app.core.database import init_db, get_session
 from app.core.config import settings
-from app.api.v1.endpoints import convenios, login, utils, users, news, documents, complaints, scholarships, audit # <--- Importar
+from app.core.limiter import limiter  # <--- Importamos el objeto limiter creado en el paso anterior
+from app.api.v1.endpoints import convenios, login, utils, users, news, documents, complaints, scholarships, audit, careers
 
 
 @asynccontextmanager
@@ -33,6 +38,13 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
+# --- RATE LIMITER SETUP ---
+# Conectamos el limitador a la instancia de la app
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
+
 # --- CONFIGURACIÓN CORS ---
 origins = [
     "http://localhost:5173",
@@ -51,7 +63,6 @@ app.add_middleware(
 )
 
 
-
 # --- SERVIR ARCHIVOS ESTÁTICOS (IMÁGENES) ---
 # Esto hace que todo lo que esté en /backend/static sea accesible en /static
 # Ej: http://localhost:8000/static/images/flyer.jpg
@@ -67,6 +78,7 @@ app.include_router(documents.router, prefix="/api/v1/documentos", tags=["Transpa
 app.include_router(complaints.router, prefix="/api/v1/quejas", tags=["Buzón de Quejas"])
 app.include_router(scholarships.router, prefix="/api/v1/becas", tags=["Becas"])
 app.include_router(audit.router, prefix="/api/v1/audit", tags=["audit"])
+app.include_router(careers.router, prefix="/api/v1/carreras", tags=["Carreras"])
 
 @app.get("/")
 def read_root():

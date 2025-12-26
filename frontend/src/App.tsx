@@ -26,12 +26,14 @@ import { AdminQuejas } from './modules/admin/pages/AdminQuejas';
 import AdminBecas from './modules/admin/pages/AdminBecas';
 import { AdminLogs } from "./modules/admin/pages/AdminLogs.tsx";
 import { AdminProfile } from './modules/admin/pages/AdminProfile';
+import { AdminCarreras } from './modules/admin/pages/AdminCarreras'; // <--- Importar
 
 // Guard (Protector de Rutas)
 import { ProtectedRoute } from './modules/auth/components/ProtectedRoute';
 
 // 👇 1. IMPORTAR EL TRACKER
 import RouteTracker from './shared/components/RouteTracker';
+import {ReloadPrompt} from "./shared/components/ReloadPrompt.tsx";
 
 function App() {
   return (
@@ -78,12 +80,16 @@ function App() {
             <Route path="quejas" element={<AdminQuejas />} />
             <Route path="becas" element={<AdminBecas />} />
             <Route path="auditoria" element={<AdminLogs />} />
+            <Route path="carreras" element={<AdminCarreras />} />
         </Route>
 
         {/* 404 - Ruta no encontrada */}
         <Route path="*" element={<div className="p-10 text-center">404 - Página no encontrada</div>} />
 
+
+
       </Routes>
+      <ReloadPrompt />
     </BrowserRouter>
   );
 }

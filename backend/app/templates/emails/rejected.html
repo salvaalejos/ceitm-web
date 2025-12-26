@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Actualización de Solicitud</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+
+    <div style="text-align: center; margin-bottom: 30px;">
+        <img src="https://ceitm.ddnsking.com/static/images/logo-consejo.png" alt="Logo CEITM" style="width: 100px; height: auto;">
+        <h3 style="color: #555; margin-top: 10px;">Actualización de Estatus</h3>
+    </div>
+
+    <div style="background-color: #f9f9f9; padding: 20px; border-radius: 10px; border-left: 5px solid #dc3545;">
+        <p>Hola <strong>{{ name }}</strong>,</p>
+
+        <p>Gracias por tu interés en la convocatoria <strong>{{ scholarship_name }}</strong>.</p>
+
+        <p>Tras revisar tu expediente, te informamos que tu solicitud requiere atención o ha sido marcada como <strong style="color: #dc3545;">NO APROBADA</strong>.</p>
+
+        <p><strong>Observaciones del Comité:</strong></p>
+        <blockquote style="background-color: #fff; border: 1px solid #ddd; padding: 15px; font-style: italic; color: #555; border-radius: 5px;">
+            "{{ observations }}"
+        </blockquote>
+
+        <p>Te invitamos a estar pendiente de futuras convocatorias o corregir los documentos si aplica.</p>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="{{ link }}" style="color: #800020; text-decoration: underline; font-weight: bold;">Ver detalles en la plataforma</a>
+        </div>
+    </div>
+
+    <div style="margin-top: 40px; text-align: center; font-size: 12px; color: #888;">
+        <p>Consejo Estudiantil del Instituto Tecnológico de Morelia<br>
+        <em>"Quién no vive para servir, no sirve para vivir"</em></p>
+        <p>Por favor no respondas a este correo automático.</p>
+    </div>
+
+</body>
+</html>

@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request # <--- AGREGADO: Request
 from sqlmodel import Session, select
 
 from app.core.database import get_session
@@ -7,13 +7,16 @@ from app.models.user_model import User, UserRole
 from app.models.complaint_model import Complaint, ComplaintStatus
 from app.schemas.complaint_schema import ComplaintCreate, ComplaintRead, ComplaintUpdate
 from app.api.deps import get_current_user
+from app.core.limiter import limiter
 
 router = APIRouter()
 
 
 # --- PÚBLICO: CREAR QUEJA ---
 @router.post("/", response_model=ComplaintRead)
+@limiter.limit("5/minute") # 🛡PROTECCIÓN ANTI-SPAM
 def create_complaint(
+        request: Request, # <--- OBLIGATORIO para SlowAPI
         complaint_in: ComplaintCreate,
         session: Session = Depends(get_session)
 ):

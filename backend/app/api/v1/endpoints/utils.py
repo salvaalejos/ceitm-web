@@ -2,9 +2,12 @@ import shutil
 import os
 from pathlib import Path
 from uuid import uuid4
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
+from pydantic import EmailStr
+
 # 👇 Importamos settings
 from app.core.config import settings
+from app.core.email_utils import send_email_background, send_email_async
 
 router = APIRouter()
 
@@ -65,3 +68,26 @@ async def upload_file(file: UploadFile = File(...)):
     except Exception as e:
         print(f"Error subiendo archivo: {e}")
         raise HTTPException(status_code=500, detail=f"No se pudo guardar el archivo: {str(e)}")
+
+@router.post("/test-email")
+async def test_email_sending(email_to: EmailStr): # Quitamos background_tasks
+    """
+    Prueba de envío SÍNCRONA. Espera a que el SMTP responda.
+    """
+    try:
+        await send_email_async(
+            subject="🧪 Prueba Síncrona CEITM",
+            email_to=email_to,
+            template_name="accepted.html",
+            context={
+                "name": "Tester",
+                "scholarship_name": "Debug",
+                "folio": "0000",
+                "link": "http://localhost:5173"
+            }
+        )
+        return {"mensaje": "✅ Correo enviado correctamente (Revisa tu bandeja)"}
+    except Exception as e:
+        # Aquí veremos el error real: Credenciales, Puerto, Bloqueo, etc.
+        print(f"❌ ERROR SMTP: {str(e)}")
+        return {"error_grave": str(e)}

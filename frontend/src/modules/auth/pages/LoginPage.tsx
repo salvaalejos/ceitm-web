@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react'; // <--- useRef agregado
 import { useNavigate, Link } from 'react-router-dom';
 import { User, Lock, ArrowLeft, Sun, Moon, LogIn, Loader2 } from 'lucide-react';
+import ReCAPTCHA from 'react-google-recaptcha'; // <--- 1. Importar ReCaptcha
 import { useAuthStore } from '../../../shared/store/authStore';
 import { login, getCurrentUser } from '../../../shared/services/api';
 
@@ -12,10 +13,13 @@ export const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Estado local para el tema (para el botón flotante)
+  // <--- 2. Estado para el Captcha
+  const [captchaValido, setCaptchaValido] = useState<string | null>(null);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
+
+  // Estado local para el tema
   const [isDark, setIsDark] = useState(false);
 
-  // Sincronizar estado del botón con el tema actual del sistema
   useEffect(() => {
     if (document.documentElement.classList.contains('dark')) {
         setIsDark(true);
@@ -39,8 +43,21 @@ export const LoginPage = () => {
     password: ''
   });
 
+  // <--- 3. Handler para cuando el usuario resuelve el captcha
+  const onChangeCaptcha = (token: string | null) => {
+    setCaptchaValido(token);
+    if(token) setError(''); // Limpiar errores si resuelve
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // <--- 4. Validación antes de enviar
+    if (!captchaValido) {
+        setError('Por favor verifica que no eres un robot.');
+        return;
+    }
+
     setLoading(true);
     setError('');
 
@@ -49,27 +66,24 @@ export const LoginPage = () => {
       const tokenData = await login(formData.email, formData.password);
       const token = tokenData.access_token;
 
-      // Guardamos el token primero (para que las siguientes peticiones ya vayan firmadas)
       setToken(token);
 
-      // 2. OBTENER USUARIO (Usando el token que acabamos de guardar)
-      // Esperamos un milisegundo para asegurar que el store se actualizó o pasamos el token manual si fuera necesario,
-      // pero con el interceptor leyendo getState() debería funcionar directo.
       try {
           const userData = await getCurrentUser();
           setUser(userData);
-
-          // 3. REDIRIGIR
-          navigate('/admin'); // O a donde prefieras
+          navigate('/admin');
       } catch (userError) {
           console.error("Error obteniendo perfil:", userError);
-          // Si falla obtener el usuario, igual intentamos entrar o mostramos error específico
           setError('Token válido pero error cargando perfil.');
       }
 
     } catch (err) {
       console.error(err);
       setError('Credenciales incorrectas o error de conexión.');
+
+      // Si falla, reseteamos el captcha para obligar a hacerlo de nuevo (seguridad)
+      recaptchaRef.current?.reset();
+      setCaptchaValido(null);
     } finally {
       setLoading(false);
     }
@@ -84,7 +98,7 @@ export const LoginPage = () => {
           <div className="absolute bottom-[-10%] left-[-5%] w-96 h-96 bg-blue-600/10 dark:bg-blue-900/10 rounded-full blur-3xl"></div>
       </div>
 
-      {/* BARRA SUPERIOR DE NAVEGACIÓN */}
+      {/* BARRA SUPERIOR */}
       <div className="absolute top-0 left-0 w-full p-6 flex justify-between items-center z-10">
           <Link
             to="/"
@@ -105,7 +119,6 @@ export const LoginPage = () => {
       {/* TARJETA DE LOGIN */}
       <div className="card-base w-full max-w-md p-8 relative z-20 animate-fade-in shadow-2xl dark:shadow-black/50">
 
-        {/* Header */}
         <div className="text-center mb-8">
             <div className="w-16 h-16 bg-guinda-100 dark:bg-guinda-900/30 text-guinda-700 dark:text-guinda-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner">
                 <LogIn size={32} />
@@ -116,7 +129,6 @@ export const LoginPage = () => {
             </p>
         </div>
 
-        {/* Formulario */}
         <form onSubmit={handleSubmit} className="space-y-6">
 
             {error && (
@@ -133,7 +145,7 @@ export const LoginPage = () => {
                         <input
                             type="email"
                             required
-                            className="form-input pl-11" // Padding extra para el ícono
+                            className="form-input pl-11"
                             placeholder="usuario@morelia.tecnm.mx"
                             value={formData.email}
                             onChange={(e) => setFormData({...formData, email: e.target.value})}
@@ -157,16 +169,25 @@ export const LoginPage = () => {
                 </div>
             </div>
 
+            {/* <--- 5. Componente ReCAPTCHA */}
+            <div className="flex justify-center transform scale-90 sm:scale-100 origin-center">
+                <ReCAPTCHA
+                    ref={recaptchaRef}
+                    sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"} // Clave Test Google si no hay env
+                    onChange={onChangeCaptcha}
+                    theme={isDark ? "dark" : "light"}
+                />
+            </div>
+
             <button
                 type="submit"
-                disabled={loading}
-                className="btn-primary w-full flex items-center justify-center gap-2 py-3 mt-4 text-base"
+                disabled={loading} // Ya no deshabilitamos si no hay captcha, mejor mostramos error al clickear para mejor UX
+                className={`btn-primary w-full flex items-center justify-center gap-2 py-3 mt-4 text-base ${!captchaValido ? 'opacity-75' : ''}`}
             >
                 {loading ? <Loader2 className="animate-spin" size={20} /> : 'Iniciar Sesión'}
             </button>
         </form>
 
-        {/* Footer del Card */}
         <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-800 text-center">
             <p className="text-xs text-gray-400 dark:text-slate-500">
                 ¿Olvidaste tu contraseña? Contacta al <span className="text-guinda-600 dark:text-guinda-500 font-medium cursor-pointer hover:underline">SysAdmin</span>.
