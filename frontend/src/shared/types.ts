@@ -9,11 +9,11 @@ export interface User {
   id: number;
   email: string;
   full_name: string;
-  role: UserRole; // Usamos el enum
+  role: UserRole;
   is_active: boolean;
   career?: string;
 
-  // Opcionales que tenías
+  // Opcionales
   imagen_url?: string;
   phone_number?: string;
   instagram_url?: string;
@@ -60,7 +60,6 @@ export interface Convenio {
 
 // --- BECAS ---
 
-// Usamos Enums para coincidir con Backend y evitar errores de "magic strings"
 export enum ScholarshipType {
   ALIMENTICIA = "Alimenticia",
   REINSCRIPCION = "Reinscripción",
@@ -76,6 +75,16 @@ export enum ApplicationStatus {
   DOCUMENTACION_FALTANTE = "Documentación Faltante"
 }
 
+// --- NUEVO: CUPOS (QUOTAS) ---
+export interface ScholarshipQuota {
+  id: number;
+  scholarship_id: number;
+  career_name: string;
+  total_slots: number;      // Definidos por coordinador
+  used_slots: number;       // Aprobados reales
+  available_slots: number;  // Calculado (total - used)
+}
+
 export interface Scholarship {
   id: number;
   name: string;
@@ -86,15 +95,16 @@ export interface Scholarship {
   results_date: string;
   cycle: string;
   is_active: boolean;
+  quotas?: ScholarshipQuota[]; // Matriz de cupos (Opcional)
 }
 
-export interface ScholarshipCreate extends Omit<Scholarship, 'id'> {}
+export interface ScholarshipCreate extends Omit<Scholarship, 'id' | 'quotas'> {}
 export interface ScholarshipUpdate extends Partial<ScholarshipCreate> {}
 
 export interface ScholarshipApplication {
   id: number;
   scholarship_id: number;
-  scholarship_name?: string; // Opcional, si el backend lo manda o no
+  scholarship_name?: string;
 
   // Datos Personales
   full_name: string;
@@ -104,9 +114,16 @@ export interface ScholarshipApplication {
   career: string;
   semester: string;
 
+  // NUEVO: Foto Infantil (Ahora es un campo explícito obligatorio)
+  student_photo: string;
+
   // Específicos CLE (Opcionales)
   cle_control_number?: string;
   level_to_enter?: string;
+
+  // Académicos (NUEVOS - Requeridos por Formato Oficial)
+  arithmetic_average: number;
+  certified_average: number;
 
   // Socioeconómicos
   address: string;
@@ -116,23 +133,32 @@ export interface ScholarshipApplication {
   family_income: number;
   income_per_capita: number;
 
-  // Motivos
+  // Motivos e Historial
   previous_scholarship?: string;
+
+  // NUEVO: Folio de Liberación (Condicional)
+  release_folio?: string;
+
   activities?: string;
   motivos: string;
 
   // Documentos (URLs)
+  // doc_request y doc_motivos ahora son opcionales porque se generan automáticamente
   doc_request?: string;
   doc_motivos?: string;
+
   doc_address?: string;
   doc_income?: string;
   doc_ine?: string;
   doc_school_id?: string;
-  doc_schedule?: string;
+
+  // ACTUALIZADO: Cambiamos doc_schedule por doc_kardex para ser consistentes con la solicitud
+  doc_kardex?: string;
+
   doc_extra?: string;
 
   // Control
-  status: 'Pendiente' | 'En Revisión' | 'Aprobada' | 'Rechazada' | 'Documentación Faltante';
+  status: ApplicationStatus;
   created_at: string;
   admin_comments?: string;
 }
@@ -152,7 +178,7 @@ export enum ComplaintType {
 
 export enum ComplaintStatus {
   PENDIENTE = 'Pendiente',
-  EN_PROCESO = 'En Proceso', // Equivalente a "En Revisión" pero para tickets
+  EN_PROCESO = 'En Proceso',
   RESUELTO = 'Resuelto',
   RECHAZADO = 'Rechazado',
 }
@@ -164,7 +190,7 @@ export interface Complaint {
   full_name: string;
   control_number: string;
   phone_number: string;
-  email: string; // <--- Nuevo: Requerido para notificaciones
+  email: string;
   career: string;
   semester: string;
 
@@ -174,7 +200,7 @@ export interface Complaint {
   evidence_url?: string;
 
   // Sistema de Rastreo
-  tracking_code?: string; // El folio (Ej: CEITM-2025-001)
+  tracking_code?: string;
   status: ComplaintStatus;
 
   // Resolución Admin

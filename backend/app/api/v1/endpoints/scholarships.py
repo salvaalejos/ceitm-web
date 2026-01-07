@@ -5,10 +5,12 @@ from datetime import datetime
 
 from app.core.database import get_session
 from app.models.user_model import User, UserRole
-from app.models.scholarship_model import Scholarship, ScholarshipApplication, ApplicationStatus
+from app.models.scholarship_model import Scholarship, ScholarshipApplication, ApplicationStatus, ScholarshipQuota
+from app.models.career_model import Career  # Necesario para inicializar cupos
 from app.schemas.scholarship_schema import (
     ScholarshipCreate, ScholarshipRead, ScholarshipUpdate,
-    ApplicationCreate, ApplicationRead, ApplicationUpdate, ApplicationPublicStatus
+    ApplicationCreate, ApplicationRead, ApplicationUpdate, ApplicationPublicStatus,
+    ScholarshipQuotaRead, ScholarshipQuotaUpdate
 )
 from app.api.deps import get_current_user
 from app.core.limiter import limiter
@@ -24,7 +26,104 @@ def get_frontend_url():
     return "https://ceitm.ddnsking.com"
 
 
-# --- PÚBLICO: ENVIAR (O CORREGIR) SOLICITUD ---
+# ==========================================
+# 1. GESTIÓN DE CUPOS (QUOTAS) - NUEVO
+# ==========================================
+
+@router.post("/{scholarship_id}/quotas/init", response_model=List[ScholarshipQuotaRead])
+def initialize_quotas(
+        scholarship_id: int,
+        session: Session = Depends(get_session),
+        current_user: User = Depends(get_current_user),
+):
+    """
+    Inicializa los cupos para todas las carreras activas en 0.
+    Útil cuando se acaba de crear una convocatoria.
+    """
+    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+    scholarship = session.get(Scholarship, scholarship_id)
+    if not scholarship:
+        raise HTTPException(status_code=404, detail="Convocatoria no encontrada")
+
+    # Obtener todas las carreras activas
+    careers = session.exec(select(Career).where(Career.is_active == True)).all()
+
+    quotas_created = []
+    for career in careers:
+        # Verificar si ya existe cupo para esta carrera en esta beca
+        existing = session.exec(
+            select(ScholarshipQuota)
+            .where(ScholarshipQuota.scholarship_id == scholarship_id)
+            .where(ScholarshipQuota.career_name == career.name)
+        ).first()
+
+        if not existing:
+            new_quota = ScholarshipQuota(
+                scholarship_id=scholarship_id,
+                career_name=career.name,
+                total_slots=0,
+                used_slots=0
+            )
+            session.add(new_quota)
+            quotas_created.append(new_quota)
+
+    session.commit()
+    # Retornamos todos los cupos de la beca
+    return session.exec(select(ScholarshipQuota).where(ScholarshipQuota.scholarship_id == scholarship_id)).all()
+
+
+@router.get("/{scholarship_id}/quotas", response_model=List[ScholarshipQuotaRead])
+def get_quotas(
+        scholarship_id: int,
+        session: Session = Depends(get_session),
+        current_user: User = Depends(get_current_user),
+):
+    """Obtiene la matriz de cupos (Carrera | Total | Usados | Disponibles)"""
+    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA, UserRole.CONCEJAL]:
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+    quotas = session.exec(select(ScholarshipQuota).where(ScholarshipQuota.scholarship_id == scholarship_id)).all()
+    return quotas
+
+
+@router.patch("/quotas/{quota_id}", response_model=ScholarshipQuotaRead)
+def update_quota(
+        quota_id: int,
+        quota_in: ScholarshipQuotaUpdate,
+        session: Session = Depends(get_session),
+        current_user: User = Depends(get_current_user),
+):
+    """
+    Permite al Coordinador mover cupos (Reasignación Dinámica).
+    Validación: No puedes reducir el total por debajo de lo que ya se usó (aprobados).
+    """
+    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+    quota = session.get(ScholarshipQuota, quota_id)
+    if not quota:
+        raise HTTPException(status_code=404, detail="Cupo no encontrado")
+
+    # VALIDACIÓN DE INTEGRIDAD
+    if quota_in.total_slots < quota.used_slots:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No puedes reducir el cupo a {quota_in.total_slots} porque ya hay {quota.used_slots} becarios aprobados en esta carrera."
+        )
+
+    quota.total_slots = quota_in.total_slots
+    session.add(quota)
+    session.commit()
+    session.refresh(quota)
+    return quota
+
+
+# ==========================================
+# 2. ENDPOINTS DE SOLICITUD (EXISTENTES + MEJORAS)
+# ==========================================
+
 @router.post("/apply", response_model=ApplicationRead)
 @limiter.limit("5/minute")
 def submit_application(
@@ -33,10 +132,8 @@ def submit_application(
         session: Session = Depends(get_session)
 ):
     """
-    Enviar solicitud de beca.
-    - Si es NUEVA: Crea el registro.
-    - Si YA EXISTE y tiene estatus 'Documentación Faltante' o 'Rechazada': ACTUALIZA la info y la pone en 'Pendiente'.
-    - Si YA EXISTE y está 'Pendiente' o 'Aprobada': Bloquea (Error 400).
+    Enviar solicitud de beca (Público).
+    El Schema ya valida los campos nuevos (Folio, Promedios, Documentos).
     """
     # 1. Verificar Beca
     scholarship = session.get(Scholarship, application_in.scholarship_id)
@@ -48,45 +145,39 @@ def submit_application(
     if now < scholarship.start_date or now > scholarship.end_date:
         raise HTTPException(status_code=400, detail="Fuera del periodo de registro")
 
-    # 3. BUSCAR EXISTENCIA
+    # 3. BUSCAR EXISTENCIA (Evitar duplicados)
     existing = session.exec(
         select(ScholarshipApplication)
         .where(ScholarshipApplication.control_number == application_in.control_number)
         .where(ScholarshipApplication.scholarship_id == application_in.scholarship_id)
     ).first()
 
-    # --- LÓGICA DE REENVÍO ---
     if existing:
-        # Solo permitimos re-enviar si le pidieron correcciones o fue rechazada (y quiere intentar de nuevo)
+        # Permitir reenvío solo si se requieren correcciones
         if existing.status in [ApplicationStatus.DOCUMENTACION_FALTANTE, ApplicationStatus.RECHAZADA]:
-
-            # Actualizamos los campos con la nueva info del formulario
             existing_data = application_in.model_dump(exclude_unset=True)
             existing.sqlmodel_update(existing_data)
-
-            # IMPORTANTE: Reiniciar estatus a PENDIENTE para que aparezca en el inbox del Admin
             existing.status = ApplicationStatus.PENDIENTE
-            existing.admin_comments = None  # Limpiamos comentarios viejos
-
+            existing.admin_comments = None
             session.add(existing)
             session.commit()
             session.refresh(existing)
             return existing
-
         else:
-            # Si ya está Pendiente o Aprobada, no dejamos duplicar
-            raise HTTPException(status_code=400,
-                                detail="Ya tienes una solicitud activa para esta beca. Espera resultados.")
+            raise HTTPException(status_code=400, detail="Ya tienes una solicitud activa. Espera resultados.")
 
-    # 4. CREAR NUEVA (Si no existía)
+    # 4. CREAR NUEVA
     application = ScholarshipApplication.model_validate(application_in)
+
+    # IMPORTANTE: Normalizar carrera (opcional, para asegurar match con Quotas)
+    # application.career = application.career.strip()
+
     session.add(application)
     session.commit()
     session.refresh(application)
     return application
 
 
-# --- PÚBLICO: LISTAR CONVOCATORIAS ---
 @router.get("/", response_model=List[ScholarshipRead])
 def read_scholarships(
         active_only: bool = True,
@@ -98,7 +189,6 @@ def read_scholarships(
     return session.exec(query).all()
 
 
-# --- PRIVADO: GESTIÓN DE CONVOCATORIAS (ADMIN) ---
 @router.post("/", response_model=ScholarshipRead)
 def create_scholarship(
         scholarship_in: ScholarshipCreate,
@@ -115,7 +205,6 @@ def create_scholarship(
     return scholarship
 
 
-# --- PRIVADO: REVISIÓN (CONCEJALES/ADMIN) ---
 @router.get("/applications", response_model=List[ApplicationRead])
 def read_all_applications(
         scholarship_id: int,
@@ -136,7 +225,6 @@ def read_all_applications(
     return session.exec(query).all()
 
 
-# --- PRIVADO: ACTUALIZAR CONVOCATORIA (ADMIN) ---
 @router.patch("/{scholarship_id}", response_model=ScholarshipRead)
 def update_scholarship(
         scholarship_id: int,
@@ -161,7 +249,10 @@ def update_scholarship(
     return scholarship
 
 
-# --- PRIVADO: ACTUALIZAR ESTATUS (CON CORREO) ---
+# ==========================================
+# 3. ACTUALIZACIÓN DE ESTATUS (CON LÓGICA DE CUPOS)
+# ==========================================
+
 @router.patch("/applications/{application_id}", response_model=ApplicationRead)
 def update_application_status(
         application_id: int,
@@ -170,10 +261,17 @@ def update_application_status(
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user),
 ):
+    """
+    Aprueba o Rechaza solicitudes.
+    LÓGICA CRÍTICA:
+    - Si apruebas: Verifica cupo disponible y resta 1.
+    - Si rechazas (y estaba aprobada): Suma 1 al cupo (libera).
+    """
     application = session.get(ScholarshipApplication, application_id)
     if not application:
         raise HTTPException(status_code=404, detail="Solicitud no encontrada")
 
+    # Permisos
     if current_user.role in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
         pass
     elif current_user.role == UserRole.CONCEJAL:
@@ -185,6 +283,41 @@ def update_application_status(
     old_status = application.status
     new_status = application_in.status
 
+    # --- LÓGICA DE CUPOS (QUOTAS) ---
+    if new_status and new_status != old_status:
+
+        # Buscar el cupo correspondiente a la carrera y beca
+        quota = session.exec(
+            select(ScholarshipQuota)
+            .where(ScholarshipQuota.scholarship_id == application.scholarship_id)
+            .where(ScholarshipQuota.career_name == application.career)
+        ).first()
+
+        # CASO 1: INTENTAR APROBAR
+        if new_status == ApplicationStatus.APROBADA:
+            if not quota:
+                # Si no existe cupo inicializado, asumimos 0 o bloqueamos.
+                # Bloqueamos por seguridad. El admin debe inicializar cupos primero.
+                raise HTTPException(status_code=400,
+                                    detail="No se han definido cupos para esta carrera. Contacta al Coordinador.")
+
+            if quota.used_slots >= quota.total_slots:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"¡CUPO LLENO! ({quota.used_slots}/{quota.total_slots}). Solicita más cupos al Coordinador."
+                )
+
+            # Si pasa, incrementamos uso
+            quota.used_slots += 1
+            session.add(quota)
+
+        # CASO 2: REVOCAR APROBACIÓN (Estaba aprobada y ahora se rechaza o pone pendiente)
+        elif old_status == ApplicationStatus.APROBADA and new_status != ApplicationStatus.APROBADA:
+            if quota and quota.used_slots > 0:
+                quota.used_slots -= 1
+                session.add(quota)
+
+    # --- ACTUALIZAR DATOS ---
     update_data = application_in.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(application, key, value)
@@ -193,7 +326,7 @@ def update_application_status(
     session.commit()
     session.refresh(application)
 
-    # Enviar correo si cambió el estatus
+    # --- NOTIFICACIONES EMAIL ---
     if new_status and new_status != old_status:
         session.refresh(application)  # Recargar relaciones
         scholarship_name = application.scholarship.name if application.scholarship else "Beca CEITM"
@@ -234,7 +367,6 @@ def update_application_status(
     return application
 
 
-# --- PÚBLICO: CONSULTAR ESTATUS ---
 @router.get("/status/{control_number}", response_model=List[ApplicationPublicStatus])
 @limiter.limit("5/minute")
 def check_application_status(
@@ -247,5 +379,4 @@ def check_application_status(
         .where(ScholarshipApplication.control_number == control_number)
         .order_by(ScholarshipApplication.created_at.desc())
     ).all()
-
     return applications

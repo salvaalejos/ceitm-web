@@ -9,7 +9,8 @@ from app.models.user_model import User, UserRole, UserArea
 from app.models.career_model import Career
 from app.models.news_model import News
 from app.models.convenio_model import Convenio
-from app.models.scholarship_model import Scholarship, ScholarshipType
+# AGREGAMOS ScholarshipQuota AQUÍ
+from app.models.scholarship_model import Scholarship, ScholarshipType, ScholarshipQuota
 from app.models.complaint_model import Complaint, ComplaintType, ComplaintStatus
 
 # Configuración básica de logs
@@ -124,40 +125,75 @@ def seed_convenios(session: Session):
 
 
 # ==========================================
-# 4. DATOS DE BECAS
+# 4. DATOS DE BECAS Y CUPOS
 # ==========================================
 def seed_scholarships(session: Session):
     logger.info("⏳ Sembrando becas...")
-    # Verificar si existe alguna
-    if session.exec(select(Scholarship)).first():
-        return
 
-    beca1 = Scholarship(
-        name="Beca de Reinscripción 2025",
-        type=ScholarshipType.REINSCRIPCION,
-        description="Apoyo para el pago de la inscripción al semestre Enero-Junio 2025.",
-        start_date=datetime.utcnow(),
-        end_date=datetime.utcnow() + timedelta(days=30),  # Activa por 30 días
-        results_date=datetime.utcnow() + timedelta(days=45),
-        cycle="2025-1",
-        is_active=True
-    )
+    # Buscamos la beca principal por nombre para evitar duplicados
+    beca_active = session.exec(select(Scholarship).where(Scholarship.name == "Beca de Reinscripción 2025")).first()
 
-    beca2 = Scholarship(
-        name="Beca Alimenticia (Comedor)",
-        type=ScholarshipType.ALIMENTICIA,
-        description="Desayunos gratuitos en la cafetería del campus.",
-        start_date=datetime.utcnow() - timedelta(days=60),
-        end_date=datetime.utcnow() - timedelta(days=10),  # Ya venció
-        results_date=datetime.utcnow() - timedelta(days=5),
-        cycle="2024-2",
-        is_active=False
-    )
+    if not beca_active:
+        beca_active = Scholarship(
+            name="Beca de Reinscripción 2025",
+            type=ScholarshipType.REINSCRIPCION,
+            description="Apoyo para el pago de la inscripción al semestre Enero-Junio 2025.",
+            start_date=datetime.utcnow(),
+            end_date=datetime.utcnow() + timedelta(days=30),  # Activa por 30 días
+            results_date=datetime.utcnow() + timedelta(days=45),
+            cycle="2025-1",
+            is_active=True
+        )
+        session.add(beca_active)
+        session.commit()
+        session.refresh(beca_active)  # Necesitamos el ID para los cupos
+        logger.info("✅ Beca Activa 'Reinscripción 2025' creada.")
 
-    session.add(beca1)
-    session.add(beca2)
+    # Beca Inactiva (Histórico)
+    if not session.exec(select(Scholarship).where(Scholarship.name == "Beca Alimenticia (Comedor)")).first():
+        beca2 = Scholarship(
+            name="Beca Alimenticia (Comedor)",
+            type=ScholarshipType.ALIMENTICIA,
+            description="Desayunos gratuitos en la cafetería del campus.",
+            start_date=datetime.utcnow() - timedelta(days=60),
+            end_date=datetime.utcnow() - timedelta(days=10),
+            results_date=datetime.utcnow() - timedelta(days=5),
+            cycle="2024-2",
+            is_active=False
+        )
+        session.add(beca2)
+        session.commit()
+        logger.info("✅ Beca Inactiva 'Alimenticia' creada.")
+
+    # --- NUEVO: INICIALIZAR CUPOS PARA LA BECA ACTIVA ---
+    # Esto es vital para que el módulo 2.5 funcione al probar
+    logger.info("📊 Verificando Cupos (Quotas) para la beca activa...")
+
+    # Obtenemos todas las carreras que acabamos de sembrar
+    active_careers = session.exec(select(Career).where(Career.is_active == True)).all()
+
+    quotas_count = 0
+    for career in active_careers:
+        # Buscamos si ya existe cupo para esta carrera en esta beca
+        quota = session.exec(
+            select(ScholarshipQuota)
+            .where(ScholarshipQuota.scholarship_id == beca_active.id)
+            .where(ScholarshipQuota.career_name == career.name)
+        ).first()
+
+        if not quota:
+            # Creamos cupo por defecto (Ej: 10 becas por carrera)
+            new_quota = ScholarshipQuota(
+                scholarship_id=beca_active.id,
+                career_name=career.name,
+                total_slots=10,  # Valor inicial para pruebas
+                used_slots=0
+            )
+            session.add(new_quota)
+            quotas_count += 1
+
     session.commit()
-    logger.info("✅ 2 convocatorias de becas agregadas.")
+    logger.info(f"✅ Cupos inicializados ({quotas_count} carreras con 10 cupos c/u).")
 
 
 # ==========================================
