@@ -17,7 +17,13 @@ pydantic-settings>=2.2.1   # Para leer variables de entorno (.env) de forma segu
 email-validator>=2.1.0     # Para validar emails institucionales
 
 python-slugify>=8.0.1      # Para generar slugs amigables en URLs
-slowapi>=0.1.9            # Para limitar la tasa de solicitudes (Evitar abusos)
+slowapi>=0.1.9             # Para limitar la tasa de solicitudes (Evitar abusos)
 
-fastapi-mail       # Para enviar correos electrónicos (Notificaciones)
-jinja2 >=3.1.2            # Motor de plantillas para correos electrónicos
+fastapi-mail               # Para enviar correos electrónicos (Notificaciones)
+jinja2>=3.1.2              # Motor de plantillas para correos electrónicos
+
+# --- NUEVO: Motor de PDF y Archivos (Paso 4) ---
+fpdf2>=2.7.7               # Generación de PDFs (Reportes y Solicitudes)
+pypdf>=3.17.4              # Manipulación y Fusión de PDFs (Merge)
+httpx>=0.26.0              # Cliente HTTP asíncrono (Para descargar evidencias de la nube)
+Pillow>=10.2.0             # Procesamiento de imágenes (Fotos de alumnos)

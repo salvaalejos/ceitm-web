@@ -25,10 +25,16 @@ class ScholarshipQuotaRead(ScholarshipQuotaBase):
     used_slots: int
     available_slots: int
 
+    # Calculamos disponible al vuelo si viene del ORM o usamos el valor si ya existe
     @field_validator('available_slots', mode='before', check_fields=False)
     @classmethod
     def calculate_available(cls, v, values):
-        return values.data.get('total_slots', 0) - values.data.get('used_slots', 0)
+        # Si 'v' ya tiene valor (por la propiedad del modelo), lo usamos.
+        if v is not None:
+            return v
+        # Fallback de seguridad
+        data = values.data
+        return data.get('total_slots', 0) - data.get('used_slots', 0)
 
 
 # --- 2. CONVOCATORIA (ADMIN) ---
@@ -49,6 +55,7 @@ class ScholarshipCreate(ScholarshipBase):
 
 class ScholarshipRead(ScholarshipBase):
     id: int
+    # Incluimos los cupos al leer la convocatoria completa
     quotas: List[ScholarshipQuotaRead] = []
 
 
@@ -73,7 +80,7 @@ class ApplicationBase(SQLModel):
     career: str
     semester: str
 
-    # NUEVO: Foto del alumno (URL subida a Cloudinary/S3)
+    # FOTO OBLIGATORIA (La sube el alumno)
     student_photo: str
 
     # Específicos
@@ -106,7 +113,8 @@ class ApplicationBase(SQLModel):
     doc_kardex: str
     doc_extra: Optional[str] = None
 
-    # --- VALIDACIONES ---
+    # --- VALIDACIONES DE NEGOCIO ---
+
     @field_validator('arithmetic_average', 'certified_average')
     @classmethod
     def validate_averages(cls, v):
@@ -119,13 +127,9 @@ class ApplicationBase(SQLModel):
         prev = self.previous_scholarship
         folio = self.release_folio
 
-        # Validamos si seleccionó alguna opción que implique beca previa
-        # Incluye "Otro: ..." porque en el frontend concatenamos el texto
-        es_becado = prev not in ["No", ""] and prev is not None
-
-        # O podemos ser más específicos buscando palabras clave
+        # Detectar si la respuesta implica haber tenido beca
         keywords = ["Alimenticia", "Reinscripción", "CLE", "Otro:", "Sí"]
-        has_keyword = any(k in prev for k in keywords)
+        has_keyword = any(k in prev for k in keywords) if prev else False
 
         if has_keyword and (not folio or len(folio.strip()) == 0):
             raise ValueError(f'Debes ingresar tu Folio de Liberación si tuviste beca ({prev}) anteriormente.')
@@ -135,7 +139,7 @@ class ApplicationBase(SQLModel):
 
 class ApplicationCreate(ApplicationBase):
     scholarship_id: int
-    # Permitimos que doc_request/doc_motivos sean opcionales al crear
+    # Permitimos que sean nulos al crear la solicitud
     doc_request: Optional[str] = None
     doc_motivos: Optional[str] = None
 
@@ -146,7 +150,8 @@ class ApplicationRead(ApplicationBase):
     admin_comments: Optional[str] = None
     created_at: datetime
     scholarship_name: Optional[str] = None
-    # Al leer, incluimos los docs generados (que pueden ser null si aún no se procesan)
+
+    # Al leer, pueden venir nulos si aún no se generan
     doc_request: Optional[str] = None
     doc_motivos: Optional[str] = None
 
@@ -154,11 +159,12 @@ class ApplicationRead(ApplicationBase):
 class ApplicationUpdate(SQLModel):
     status: Optional[ApplicationStatus] = None
     admin_comments: Optional[str] = None
-    # Permitir al sistema actualizar estos campos cuando genere el PDF
+    # Permitimos actualizar estos campos (cuando el sistema genere el PDF)
     doc_request: Optional[str] = None
     doc_motivos: Optional[str] = None
 
 
+# --- RESULTADOS PÚBLICOS (SAFE) ---
 class ApplicationPublicStatus(SQLModel):
     id: int
     scholarship_id: int

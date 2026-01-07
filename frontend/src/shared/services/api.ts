@@ -266,3 +266,46 @@ export const getAuditLogs = async (module?: string) => {
   const response = await api.get(ENDPOINTS.AUDIT.BASE, { params });
   return response.data;
 };
+
+export const downloadExpediente = async (applicationId: number, controlNumber: string) => {
+    try {
+        const response = await api.get(`/becas/applications/${applicationId}/download`, {
+            responseType: 'blob' // Importante: Le dice a Axios que esperamos un archivo
+        });
+
+        // Crear una URL temporal para el archivo descargado
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+
+        // Nombre del archivo que se guardará
+        link.setAttribute('download', `Expediente_${controlNumber}.pdf`);
+
+        // Click automático
+        document.body.appendChild(link);
+        link.click();
+
+        // Limpieza
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error("Error descargando expediente:", error);
+        throw error;
+    }
+};
+
+// --- GESTIÓN DE CUPOS (QUOTAS) ---
+export const getQuotas = async (scholarshipId: number) => {
+    const response = await api.get(`/becas/${scholarshipId}/quotas`);
+    return response.data;
+};
+
+export const initQuotas = async (scholarshipId: number) => {
+    const response = await api.post(`/becas/${scholarshipId}/quotas/init`);
+    return response.data;
+};
+
+export const updateQuota = async (quotaId: number, totalSlots: number) => {
+    const response = await api.patch(`/becas/quotas/${quotaId}`, { total_slots: totalSlots });
+    return response.data;
+};

@@ -7,18 +7,19 @@ import {
 import type { Scholarship, ScholarshipApplication } from '../../../shared/types';
 import { RevisionModal } from '../components/RevisionModal';
 import { ScholarshipModal } from '../components/ScholarshipModal';
+// Importamos el gestor de cupos
+import { QuotaManager } from '../components/QuotaManager';
 import {
   CheckCircle, XCircle, Clock, Search, Filter, FileText,
-  AlertTriangle, Edit, PlusCircle
+  AlertTriangle, Edit, PlusCircle, BarChart3
 } from 'lucide-react';
-import { usePermissions } from '../../../shared/hooks/usePermissions'; // <--- IMPORTAMOS EL HOOK
+import { usePermissions } from '../../../shared/hooks/usePermissions';
 
 export default function AdminBecas() {
-  // 👇 Traemos permisos
   const { canManageBecas, isConcejal } = usePermissions();
 
-  // Si es Concejal, entra directo a ver solicitudes. Si es Admin, ve convocatorias primero.
-  const [activeTab, setActiveTab] = useState<'convocatorias' | 'solicitudes'>(
+  // Estado de pestañas actualizado con 'cupos'
+  const [activeTab, setActiveTab] = useState<'convocatorias' | 'solicitudes' | 'cupos'>(
       isConcejal ? 'solicitudes' : 'convocatorias'
   );
 
@@ -103,12 +104,12 @@ export default function AdminBecas() {
             <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Gestión de Becas</h1>
             <p className="text-sm text-gray-500 dark:text-slate-400">
                 {canManageBecas
-                    ? "Administra convocatorias y evalúa a los aspirantes"
+                    ? "Administra convocatorias, cupos y evalúa a los aspirantes"
                     : "Revisión de solicitudes asignadas a tu carrera"}
             </p>
         </div>
 
-        {/* BOTÓN CREAR: Solo si tienes permiso de GESTIÓN (canManageBecas) */}
+        {/* Solo mostrar botón de crear si estás en la pestaña de convocatorias y eres admin */}
         {activeTab === 'convocatorias' && canManageBecas && (
           <button
             onClick={handleCreateScholarship}
@@ -119,11 +120,10 @@ export default function AdminBecas() {
         )}
       </div>
 
-      {/* TABS */}
+      {/* TABS DE NAVEGACIÓN */}
       <div className="border-b border-gray-200 dark:border-slate-700">
         <nav className="-mb-px flex space-x-8">
 
-          {/* Pestaña Convocatorias: Visible para todos, pero el Concejal solo la ve para informarse */}
           <button
             onClick={() => setActiveTab('convocatorias')}
             className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${
@@ -145,6 +145,20 @@ export default function AdminBecas() {
           >
             Revisión de Solicitudes
           </button>
+
+          {/* Pestaña Cupos (Solo Admin/Estructura) */}
+          {canManageBecas && (
+            <button
+                onClick={() => setActiveTab('cupos')}
+                className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'cupos'
+                    ? 'border-guinda-600 text-guinda-600 dark:text-guinda-400 dark:border-guinda-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                }`}
+            >
+                Control de Cupos
+            </button>
+          )}
         </nav>
       </div>
 
@@ -157,7 +171,6 @@ export default function AdminBecas() {
                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">Nombre</th>
                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">Ciclo</th>
                 <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">Estado</th>
-                {/* Columna Acciones: Solo si puedes gestionar */}
                 {canManageBecas && (
                     <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">Acciones</th>
                 )}
@@ -178,7 +191,6 @@ export default function AdminBecas() {
                     </span>
                   </td>
 
-                  {/* Celdas de Acciones: Solo si tienes permiso */}
                   {canManageBecas && (
                       <td className="px-6 py-4 text-right text-sm flex justify-end items-center gap-3">
                         <button
@@ -291,6 +303,38 @@ export default function AdminBecas() {
                 </table>
              )}
           </div>
+        </div>
+      )}
+
+      {/* VISTA 3: CUPOS (NUEVA) */}
+      {activeTab === 'cupos' && canManageBecas && (
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700">
+            <div className="mb-6 border-b border-gray-100 dark:border-slate-700 pb-4">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <BarChart3 className="text-guinda-600"/>
+                    Monitor de Cupos por Carrera
+                </h2>
+                <div className="flex items-center gap-4 mt-4">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Selecciona Convocatoria:</label>
+                    <select
+                        value={selectedScholarshipId || ''}
+                        onChange={(e) => setSelectedScholarshipId(Number(e.target.value))}
+                        className="form-input py-2 px-3 text-sm w-full md:w-64"
+                    >
+                        {scholarships.map(s => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
+            {selectedScholarshipId ? (
+                <QuotaManager scholarshipId={selectedScholarshipId} />
+            ) : (
+                <div className="text-center py-10 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-900 rounded-lg border-2 border-dashed border-gray-200 dark:border-slate-700">
+                    Selecciona una convocatoria activa para gestionar sus límites de aceptación.
+                </div>
+            )}
         </div>
       )}
 

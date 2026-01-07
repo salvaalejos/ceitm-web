@@ -19,14 +19,20 @@ class ApplicationStatus(str, Enum):
     DOCUMENTACION_FALTANTE = "Documentación Faltante"
 
 
-# --- CUPOS POR CARRERA ---
+# --- NUEVO: CUPOS POR CARRERA ---
 class ScholarshipQuota(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     scholarship_id: int = Field(foreign_key="scholarship.id", index=True)
     career_name: str = Field(index=True)
     total_slots: int = Field(default=0)
     used_slots: int = Field(default=0)
+
     scholarship: "Scholarship" = Relationship(back_populates="quotas")
+
+    # Propiedad para facilitar cálculos en el backend
+    @property
+    def available_slots(self) -> int:
+        return self.total_slots - self.used_slots
 
 
 # --- CONVOCATORIA ---
@@ -40,11 +46,13 @@ class Scholarship(SQLModel, table=True):
     results_date: datetime
     cycle: str
     is_active: bool = True
+
+    # Relaciones
     applications: List["ScholarshipApplication"] = Relationship(back_populates="scholarship")
-    quotas: List["ScholarshipQuota"] = Relationship(back_populates="scholarship")
+    quotas: List["ScholarshipQuota"] = Relationship(back_populates="scholarship")  # <--- ESTA LÍNEA FALTABA
 
 
-# --- SOLICITUD (MODIFICADA) ---
+# --- SOLICITUD ---
 class ScholarshipApplication(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     scholarship_id: int = Field(foreign_key="scholarship.id")
@@ -57,7 +65,7 @@ class ScholarshipApplication(SQLModel, table=True):
     career: str
     semester: str
 
-    # NUEVO: Foto del Estudiante (Obligatoria para la solicitud generada)
+    # NUEVO: Foto del Estudiante
     student_photo: str
 
     # Específicos
@@ -83,12 +91,11 @@ class ScholarshipApplication(SQLModel, table=True):
     motivos: str = Field(max_length=2000)
 
     # 5. DOCUMENTOS
-    # doc_request y doc_motivos ahora son OPCIONALES (Null) al inicio.
-    # Se llenarán cuando el sistema genere el PDF unificado.
+    # Opcionales porque se generan automáticamente
     doc_request: Optional[str] = None
     doc_motivos: Optional[str] = None
 
-    # Evidencias obligatorias (subidas por alumno)
+    # Obligatorios (Evidencias subidas)
     doc_address: str
     doc_income: str
     doc_ine: str
