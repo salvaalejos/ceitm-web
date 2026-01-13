@@ -19,7 +19,7 @@ from app.api.deps import get_current_user
 from app.core.limiter import limiter
 from app.core.email_utils import send_email_background
 from app.core.config import settings
-from app.services.pdf_service import generate_scholarship_pdf  # <--- IMPORTANTE: Importamos el servicio
+from app.services.pdf_service import generate_scholarship_pdf
 
 router = APIRouter()
 
@@ -111,7 +111,7 @@ def update_quota(
 
 
 # ==========================================
-# 2. ENDPOINTS DE SOLICITUD
+# 2. ENDPOINTS DE SOLICITUD (CORREGIDO)
 # ==========================================
 
 @router.post("/apply", response_model=ApplicationRead)
@@ -119,6 +119,7 @@ def update_quota(
 def submit_application(
         request: Request,
         application_in: ApplicationCreate,
+        background_tasks: BackgroundTasks,  # <--- AGREGADO: Para enviar correos en segundo plano
         session: Session = Depends(get_session)
 ):
     scholarship = session.get(Scholarship, application_in.scholarship_id)
@@ -144,14 +145,38 @@ def submit_application(
             session.add(existing)
             session.commit()
             session.refresh(existing)
-            return existing
+            application = existing  # Usamos la existente para el correo
         else:
             raise HTTPException(status_code=400, detail="Ya tienes una solicitud activa.")
+    else:
+        # Crear nueva solicitud si no existe
+        application = ScholarshipApplication.model_validate(application_in)
+        session.add(application)
+        session.commit()
+        session.refresh(application)
 
-    application = ScholarshipApplication.model_validate(application_in)
-    session.add(application)
-    session.commit()
-    session.refresh(application)
+    # --- NUEVO: ENVIAR CORREO DE CONFIRMACIÓN ---
+    try:
+        scholarship_name = scholarship.name
+        frontend_link = f"{get_frontend_url()}/becas/resultados"
+
+        send_email_background(
+            background_tasks,
+            subject=f"📝 Solicitud Recibida: {scholarship_name}",
+            email_to=application.email,
+            template_name="complaint_received.html",
+            context={
+                "name": application.full_name,
+                "scholarship_name": scholarship_name,
+                "folio": application.control_number,
+                "date": now.strftime("%d/%m/%Y"),
+                "portal_url": frontend_link
+            }
+        )
+    except Exception as e:
+        # Logueamos el error pero NO fallamos la solicitud HTTP, para que el alumno sí quede registrado
+        print(f"⚠️ Error enviando correo de confirmación: {e}")
+
     return application
 
 
