@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import 'mapbox-gl/dist/mapbox-gl.css';
 
-import { Layout } from './shared/components/Layout'; // Layout Público
-import { AdminLayout } from './modules/admin/layouts/AdminLayout'; // Layout Privado
+import { Layout } from './shared/components/Layout';
+import { AdminLayout } from './modules/admin/layouts/AdminLayout';
 import { LoginPage } from './modules/auth/pages/LoginPage';
 
 // Pages Públicas
@@ -15,6 +16,7 @@ import { BuzonPage } from './modules/transparency/pages/BuzonPage';
 import { BecasPage } from './modules/scholarships/pages/BecasPage';
 import { SolicitudPage } from './modules/scholarships/pages/SolicitudPage';
 import { ResultadosBecaPage } from './modules/scholarships/pages/ResultadosBecaPage';
+import MapPage from './modules/map/pages/MapPage'; // <--- 1. AGREGAR ESTE IMPORT
 
 // Pages Admin
 import { AdminConvenios } from './modules/admin/pages/AdminConvenios';
@@ -26,21 +28,16 @@ import { AdminQuejas } from './modules/admin/pages/AdminQuejas';
 import AdminBecas from './modules/admin/pages/AdminBecas';
 import { AdminLogs } from "./modules/admin/pages/AdminLogs.tsx";
 import { AdminProfile } from './modules/admin/pages/AdminProfile';
-import { AdminCarreras } from './modules/admin/pages/AdminCarreras'; // <--- Importar
+import { AdminCarreras } from './modules/admin/pages/AdminCarreras';
 
-// Guard (Protector de Rutas)
 import { ProtectedRoute } from './modules/auth/components/ProtectedRoute';
-
-// 👇 1. IMPORTAR EL TRACKER
 import RouteTracker from './shared/components/RouteTracker';
 import {ReloadPrompt} from "./shared/components/ReloadPrompt.tsx";
 
 function App() {
   return (
     <BrowserRouter>
-      {/* 👇 2. COLOCARLO AQUÍ (Dentro del Router, antes de Routes) */}
       <RouteTracker />
-
       <Routes>
         {/* --- RUTAS PÚBLICAS --- */}
         <Route path="/" element={<Layout />}>
@@ -54,7 +51,10 @@ function App() {
             <Route path="becas" element={<BecasPage />} />
             <Route path="becas/resultados" element={<ResultadosBecaPage />} />
             <Route path="becas/aplicar/:id" element={<SolicitudPage />} />
-          {/* ... otras rutas públicas ... */}
+
+            {/* NUEVA RUTA DEL MAPA */}
+            <Route path="mapa" element={<MapPage />} />
+
         </Route>
 
         {/* --- LOGIN --- */}
@@ -69,9 +69,7 @@ function App() {
                 </ProtectedRoute>
             }
         >
-            {/* ESTA ES LA RUTA PRINCIPAL (DASHBOARD) */}
             <Route index element={<AdminDashboard />} />
-
             <Route path="convenios" element={<AdminConvenios />} />
             <Route path="usuarios" element={<AdminUsuarios />} />
             <Route path="noticias" element={<AdminNoticias />} />
@@ -83,11 +81,7 @@ function App() {
             <Route path="carreras" element={<AdminCarreras />} />
         </Route>
 
-        {/* 404 - Ruta no encontrada */}
         <Route path="*" element={<div className="p-10 text-center">404 - Página no encontrada</div>} />
-
-
-
       </Routes>
       <ReloadPrompt />
     </BrowserRouter>

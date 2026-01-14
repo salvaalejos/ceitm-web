@@ -11,7 +11,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.core.database import init_db, get_session
 from app.core.config import settings
 from app.core.limiter import limiter  # <--- Importamos el objeto limiter creado en el paso anterior
-from app.api.v1.endpoints import convenios, login, utils, users, news, documents, complaints, scholarships, audit, careers
+from app.api.v1.endpoints import convenios, login, utils, users, news, documents, complaints, scholarships, audit, careers, map
 
 
 @asynccontextmanager
@@ -79,6 +79,7 @@ app.include_router(complaints.router, prefix="/api/v1/quejas", tags=["Buzón de 
 app.include_router(scholarships.router, prefix="/api/v1/becas", tags=["Becas"])
 app.include_router(audit.router, prefix="/api/v1/audit", tags=["audit"])
 app.include_router(careers.router, prefix="/api/v1/carreras", tags=["Carreras"])
+app.include_router(map.router, prefix="/api/v1/map", tags=["Mapa"])
 
 @app.get("/")
 def read_root():

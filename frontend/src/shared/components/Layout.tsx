@@ -14,6 +14,7 @@ export const Layout = () => {
         { name: 'Becas', path: '/becas' },
         { name: 'Noticias', path: '/noticias' },
         { name: 'Buzón', path: '/buzon' },
+        { name: 'PonyMapa', path: '/mapa' },
         { name: 'Transparencia', path: '/transparencia' },
   ];
 

@@ -74,3 +74,32 @@
 ::-webkit-scrollbar-thumb:hover {
     @apply bg-gray-400 dark:bg-slate-600;
 }
+
+/* =========================================
+   ESTILOS DEL PONYMAP (SVG)
+   ========================================= */
+
+/* Estilo Base de los Edificios */
+.map-building {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  vector-effect: non-scaling-stroke; /* Para que el borde no se engrose al hacer zoom */
+}
+
+/* Modo Claro (Default) */
+.map-ground { fill: #f1f5f9; } /* Slate-100 */
+.map-road { stroke: #cbd5e1; stroke-width: 15px; fill: none; } /* Slate-300 */
+.map-building { fill: #e2e8f0; stroke: #94a3b8; stroke-width: 2px; } /* Slate-200 / 400 */
+.map-building:hover { fill: #cbd5e1; transform: translateY(-2px); filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
+.map-building.active { fill: #9f1239; stroke: #881337; } /* Rose-800 */
+.map-green-area { fill: #dcfce7; opacity: 0.6; } /* Green-100 */
+.map-text { fill: #475569; font-weight: 600; font-size: 14px; pointer-events: none; }
+
+/* Modo Oscuro (Dark Class) */
+.dark .map-ground { fill: #0f172a; } /* Slate-900 */
+.dark .map-road { stroke: #1e293b; } /* Slate-800 */
+.dark .map-building { fill: #1e293b; stroke: #475569; } /* Slate-800 / 600 */
+.dark .map-building:hover { fill: #334155; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); }
+.dark .map-building.active { fill: #be123c; stroke: #e11d48; } /* Rose-700 */
+.dark .map-green-area { fill: #14532d; opacity: 0.3; } /* Green-900 */
+.dark .map-text { fill: #cbd5e1; }
