@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Menu, X, Shield, MapPin, Mail, Instagram, MessageCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ThemeToggle } from './ThemeToggle';
 import { IMAGES } from '../config/constants';
 
@@ -8,14 +8,23 @@ export const Layout = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
 
+  // Cerrar el menú automáticamente si se cambia el tamaño de la pantalla a escritorio
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) setIsMenuOpen(false);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const navLinks = [
-        { name: 'Concejales', path: '/concejales' },
-        { name: 'Convenios', path: '/convenios' },
-        { name: 'Becas', path: '/becas' },
-        { name: 'Noticias', path: '/noticias' },
-        { name: 'Buzón', path: '/buzon' },
-        { name: 'PonyMapa', path: '/mapa' },
-        { name: 'Transparencia', path: '/transparencia' },
+    { name: 'Concejales', path: '/concejales' },
+    { name: 'Convenios', path: '/convenios' },
+    { name: 'Becas', path: '/becas' },
+    { name: 'Noticias', path: '/noticias' },
+    { name: 'Buzón', path: '/buzon' },
+    { name: 'PonyMapa', path: '/mapa' },
+    { name: 'Transparencia', path: '/transparencia' },
   ];
 
   return (
@@ -23,195 +32,173 @@ export const Layout = () => {
 
       {/* NAVBAR */}
       <nav className="sticky top-0 z-50 w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-slate-800 transition-colors duration-300">
-         <div className="container mx-auto px-6 h-20 flex justify-between items-center">
+        <div className="container mx-auto px-6 h-20 flex justify-between items-center">
 
-            {/* 1. LOGO + TEXTO ADAPTATIVO */}
-            <Link to="/" className="flex items-center gap-3 group" onClick={() => setIsMenuOpen(false)}>
-
-                {/* CONTENEDOR DE LOGOS */}
-                <div className="w-12 h-12 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
-                    {/* Logo Normal (Visible en Light Mode, Oculto en Dark Mode) */}
-                    <img
-                        src={IMAGES.LOGO}
-                        alt="CEITM Logo"
-                        className="w-full h-full object-contain drop-shadow-md block dark:hidden"
-                    />
-
-                    {/* Logo Blanco (Oculto en Light Mode, Visible en Dark Mode) */}
-                    <img
-                        src={IMAGES.LOGO_BLANCO}
-                        alt="CEITM Logo Blanco"
-                        className="w-full h-full object-contain drop-shadow-md hidden dark:block"
-                    />
-                </div>
-
-                {/* Texto Responsivo */}
-                <div className="font-bold text-lg md:text-xl text-gray-800 dark:text-white tracking-tight group-hover:text-guinda-700 dark:group-hover:text-guinda-400 transition-colors">
-                    {/* Móvil: Texto Corto */}
-                    <span className="md:hidden">
-                        CEITM
-                    </span>
-                    {/* Escritorio: Texto Largo */}
-                    <span className="hidden md:block">
-                        Consejo Estudiantil del ITM
-                    </span>
-                </div>
-            </Link>
-
-            {/* 2. MENÚ ESCRITORIO */}
-            <div className="hidden lg:flex items-center gap-1">
-                {navLinks.map((link) => {
-                    const isActive = location.pathname === link.path;
-                    return (
-                        <Link
-                            key={link.path}
-                            to={link.path}
-                            className={`
-                                px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
-                                ${isActive 
-                                    ? 'bg-guinda-50 text-guinda-700 dark:bg-guinda-900/20 dark:text-guinda-300 font-bold' 
-                                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white'
-                                }
-                            `}
-                        >
-                            {link.name}
-                        </Link>
-                    );
-                })}
-
-                {/* Separador y ThemeToggle */}
-                <div className="ml-4 pl-4 border-l border-gray-200 dark:border-slate-700 flex items-center">
-                    <ThemeToggle />
-                </div>
+          {/* 1. LOGO + TEXTO ADAPTATIVO */}
+          <Link to="/" className="flex items-center gap-3 group" onClick={() => setIsMenuOpen(false)}>
+            <div className="w-12 h-12 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+              <img
+                src={IMAGES.LOGO}
+                alt="CEITM Logo"
+                className="w-full h-full object-contain drop-shadow-md block dark:hidden"
+              />
+              <img
+                src={IMAGES.LOGO_BLANCO}
+                alt="CEITM Logo Blanco"
+                className="w-full h-full object-contain drop-shadow-md hidden dark:block"
+              />
             </div>
 
-            {/* BOTÓN HAMBURGUESA (MÓVIL) */}
-            <div className="flex items-center gap-4 lg:hidden">
-                <ThemeToggle />
-                <button
-                    onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors active:scale-95"
+            <div className="font-bold text-lg md:text-xl text-gray-800 dark:text-white tracking-tight group-hover:text-guinda-700 dark:group-hover:text-guinda-400 transition-colors">
+              <span className="md:hidden">CEITM</span>
+              <span className="hidden md:block">Consejo Estudiantil del ITM</span>
+            </div>
+          </Link>
+
+          {/* 2. MENÚ ESCRITORIO */}
+          <div className="hidden lg:flex items-center gap-1">
+            {navLinks.map((link) => {
+              const isActive = location.pathname === link.path;
+              return (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`
+                    px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
+                    ${isActive 
+                      ? 'bg-guinda-50 text-guinda-700 dark:bg-guinda-900/20 dark:text-guinda-300 font-bold' 
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white'
+                    }
+                  `}
                 >
-                    {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-                </button>
+                  {link.name}
+                </Link>
+              );
+            })}
+            <div className="ml-4 pl-4 border-l border-gray-200 dark:border-slate-700 flex items-center">
+              <ThemeToggle />
             </div>
-         </div>
+          </div>
 
-         {/* MENÚ MÓVIL */}
-         <div className={`lg:hidden overflow-hidden transition-all duration-300 ease-in-out ${isMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-             <div className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 shadow-xl">
-                 <div className="flex flex-col p-4 space-y-2">
-                     {navLinks.map((link) => (
-                         <Link
-                            key={link.path}
-                            to={link.path}
-                            className={`
-                                block px-4 py-3 rounded-xl font-medium transition-all duration-200
-                                active:scale-[0.98]  /* <--- EFECTO CLICK EN MÓVIL */
-                                ${location.pathname === link.path 
-                                    ? 'bg-guinda-50 text-guinda-700 dark:bg-guinda-900/20 dark:text-guinda-300 font-bold' 
-                                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800'
-                                }
-                            `}
-                            onClick={() => setIsMenuOpen(false)}
-                        >
-                            {link.name}
-                         </Link>
-                     ))}
-                 </div>
-             </div>
-         </div>
+          {/* BOTÓN HAMBURGUESA (MÓVIL) */}
+          <div className="flex items-center gap-4 lg:hidden">
+            <ThemeToggle />
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors active:scale-95"
+              aria-label="Abrir menú"
+            >
+              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+        </div>
+
+        {/* MENÚ MÓVIL OPTIMIZADO */}
+        <div
+          className={`lg:hidden overflow-hidden transition-all duration-300 ease-in-out ${
+            isMenuOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+          }`}
+        >
+          <div className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 shadow-xl">
+            {/* Agregamos scroll interno en caso de pantallas muy pequeñas */}
+            <div className="flex flex-col p-4 space-y-2 max-h-[70vh] overflow-y-auto">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`
+                    block px-4 py-3 rounded-xl font-medium transition-all duration-200
+                    active:scale-[0.98]
+                    ${location.pathname === link.path 
+                      ? 'bg-guinda-50 text-guinda-700 dark:bg-guinda-900/20 dark:text-guinda-300 font-bold' 
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800'
+                    }
+                  `}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {link.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
       </nav>
 
       <main className="flex-grow">
-          <Outlet />
+        <Outlet />
       </main>
 
       {/* FOOTER */}
       <footer className="bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 pt-12 pb-8 mt-auto">
         <div className="container mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-8">
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-
-                {/* Columna 1: Marca y Descripción */}
-                <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                        <Shield className="text-guinda-600 dark:text-guinda-500" size={24} />
-                        <span className="text-xl font-bold text-gray-900 dark:text-white">CEITM</span>
-                    </div>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed max-w-xs">
-                        Representación oficial de los estudiantes del Instituto Tecnológico de Morelia.
-                        <br/>
-                        Trabajando por y para los ponys. 🐴
-                    </p>
-                    <div className="flex items-center gap-4 pt-2">
-                        {/* Redes Sociales */}
-                        <a href="https://whatsapp.com/channel/0029VbBNbfS8kyyRQ2m1Pj2f" className="p-2 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-guinda-50 hover:text-guinda-600 dark:hover:bg-slate-700 transition-colors">
-                            <MessageCircle size={18} />
-                        </a>
-                        <a href="https://www.instagram.com/ceitm_oficial/" className="p-2 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-guinda-50 hover:text-guinda-600 dark:hover:bg-slate-700 transition-colors">
-                            <Instagram size={18} />
-                        </a>
-                    </div>
-                </div>
-
-                {/* Columna 2: Enlaces Rápidos */}
-                <div>
-                    <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Enlaces</h4>
-                    <ul className="space-y-2 text-sm">
-                        <li>
-                            <Link to="/becas" className="text-gray-500 dark:text-gray-400 hover:text-guinda-600 dark:hover:text-guinda-400 transition-colors">Convocatorias de Becas</Link>
-                        </li>
-                        <li>
-                            <Link to="/convenios" className="text-gray-500 dark:text-gray-400 hover:text-guinda-600 dark:hover:text-guinda-400 transition-colors">Descuentos y Convenios</Link>
-                        </li>
-                        <li>
-                            <Link to="/transparencia" className="text-gray-500 dark:text-gray-400 hover:text-guinda-600 dark:hover:text-guinda-400 transition-colors">Portal de Transparencia</Link>
-                        </li>
-                        <li>
-                            <Link to="/buzon" className="text-gray-500 dark:text-gray-400 hover:text-guinda-600 dark:hover:text-guinda-400 transition-colors">Buzón Estudiantil</Link>
-                        </li>
-                    </ul>
-                </div>
-
-                {/* Columna 3: Contacto */}
-                <div>
-                    <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Contacto</h4>
-                    <ul className="space-y-4 text-sm">
-                        <li className="flex items-start gap-3 text-gray-500 dark:text-gray-400">
-                            <MapPin size={18} className="text-guinda-600 shrink-0 mt-0.5" />
-                            <span>
-                                Av. Tecnológico 1500, Lomas de Santiaguito.<br/>
-                                Edificio "S1".<br/>
-                                Morelia, Mich.
-                            </span>
-                        </li>
-                        <li className="flex items-center gap-3 text-gray-500 dark:text-gray-400">
-                            <Mail size={18} className="text-guinda-600 shrink-0" />
-                            <a href="mailto:consejo@morelia.tecnm.mx" className="hover:text-guinda-600 transition-colors">
-                                consejo@morelia.tecnm.mx
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-
+            {/* Columna 1: Marca y Descripción */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Shield className="text-guinda-600 dark:text-guinda-500" size={24} />
+                <span className="text-xl font-bold text-gray-900 dark:text-white">CEITM</span>
+              </div>
+              <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed max-w-xs">
+                Representación oficial de los estudiantes del Instituto Tecnológico de Morelia.
+                <br/>
+                Trabajando por y para los ponys. 🐴
+              </p>
+              <div className="flex items-center gap-4 pt-2">
+                <a href="https://whatsapp.com/channel/0029VbBNbfS8kyyRQ2m1Pj2f" target="_blank" rel="noopener noreferrer" className="p-2 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-guinda-50 hover:text-guinda-600 dark:hover:bg-slate-700 transition-colors">
+                  <MessageCircle size={18} />
+                </a>
+                <a href="https://www.instagram.com/ceitm_oficial/" target="_blank" rel="noopener noreferrer" className="p-2 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-guinda-50 hover:text-guinda-600 dark:hover:bg-slate-700 transition-colors">
+                  <Instagram size={18} />
+                </a>
+              </div>
             </div>
 
-            {/* Barra Inferior */}
-            <div className="border-t border-gray-200 dark:border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-                <p className="text-gray-400 dark:text-slate-500 text-xs">
-                    © {new Date().getFullYear()} Consejo Estudiantil del ITM.
-                </p>
-                <p className="text-gray-400 dark:text-slate-500 text-xs flex items-center gap-1">
-                    Desarrollado con <span className="text-red-500 text-[10px]">❤️</span> por
-                    <a href="https://www.instagram.com/comite_isc_itm/" target="_blank" rel="noopener noreferrer" className="font-bold text-gray-500 dark:text-slate-400 hover:text-guinda-600 transition-colors">
-                        Cómite de ISC.
-                    </a>
-                </p>
+            {/* Columna 2: Enlaces Rápidos */}
+            <div>
+              <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Enlaces Rápidos</h4>
+              <ul className="space-y-3 text-sm">
+                <li><Link to="/becas" className="text-gray-500 dark:text-gray-400 hover:text-guinda-600 dark:hover:text-guinda-400 transition-colors">Convocatorias de Becas</Link></li>
+                <li><Link to="/convenios" className="text-gray-500 dark:text-gray-400 hover:text-guinda-600 dark:hover:text-guinda-400 transition-colors">Descuentos y Convenios</Link></li>
+                <li><Link to="/transparencia" className="text-gray-500 dark:text-gray-400 hover:text-guinda-600 dark:hover:text-guinda-400 transition-colors">Portal de Transparencia</Link></li>
+                <li><Link to="/buzon" className="text-gray-500 dark:text-gray-400 hover:text-guinda-600 dark:hover:text-guinda-400 transition-colors">Buzón Estudiantil</Link></li>
+              </ul>
             </div>
+
+            {/* Columna 3: Contacto */}
+            <div>
+              <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Contacto Directo</h4>
+              <ul className="space-y-4 text-sm">
+                <li className="flex items-start gap-3 text-gray-500 dark:text-gray-400">
+                  <MapPin size={18} className="text-guinda-600 shrink-0 mt-0.5" />
+                  <span>
+                    Av. Tecnológico 1500, Lomas de Santiaguito.<br/>
+                    Edificio "S1". Morelia, Mich.
+                  </span>
+                </li>
+                <li className="flex items-center gap-3 text-gray-500 dark:text-gray-400">
+                  <Mail size={18} className="text-guinda-600 shrink-0" />
+                  <a href="mailto:consejo@morelia.tecnm.mx" className="hover:text-guinda-600 transition-colors">
+                    consejo@morelia.tecnm.mx
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-200 dark:border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
+            <p className="text-gray-400 dark:text-slate-500 text-xs">
+              © {new Date().getFullYear()} Consejo Estudiantil del ITM.
+            </p>
+            <p className="text-gray-400 dark:text-slate-500 text-xs flex items-center gap-1">
+              Hecho con <span className="text-red-500 animate-pulse text-[10px]">❤️</span> por
+              <a href="https://www.instagram.com/comite_isc_itm/" target="_blank" rel="noopener noreferrer" className="font-bold text-gray-500 dark:text-slate-400 hover:text-guinda-600 transition-colors">
+                Comité de ISC.
+              </a>
+            </p>
+          </div>
         </div>
       </footer>
-
     </div>
   );
 };
