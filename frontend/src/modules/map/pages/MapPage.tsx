@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import {
-    Search, X, Navigation, Info, Layers, Crosshair,
+    Search, X, Navigation, Layers, Crosshair,
     BookOpen, FlaskConical, Monitor, Utensils, FileText, Briefcase, Footprints, Clock,
-    ChevronDown, ChevronUp, MapPinOff // Icono para fuera de zona
+    ChevronDown, ChevronUp, MapPinOff
 } from 'lucide-react';
 import { useTheme } from '../../../shared/hooks/useTheme';
 import { getBuildings, getBuildingById, searchMap } from '../../../shared/services/api';
@@ -14,8 +14,8 @@ import type { Building, MapSearchResult } from '../../../shared/types';
 mapboxgl.accessToken = 'pk.eyJ1Ijoic2FsdmFhbGVqb3MiLCJhIjoiY21rZGZ4ZmUzMGJ6bzNmcTc5dW53MjZ5YiJ9.frpiERMPQTU5-TcKBHzP0Q';
 
 const ITM_BOUNDS = [
-    [-101.1950, 19.7150], // SW (Oeste, Sur)
-    [-101.1750, 19.7300]  // NE (Este, Norte)
+    [-101.1950, 19.7150], // SW
+    [-101.1750, 19.7300]  // NE
 ] as [number, number, number, number];
 
 // --- AYUDANTES DE ESTILO ---
@@ -46,7 +46,6 @@ const getRoomStyle = (type?: string) => {
 
 const formatFloor = (floor: string) => floor === 'PB' ? 'Planta Baja' : `Piso ${floor}`;
 
-// Función auxiliar para checar si estás en el Tec
 const isInsideBounds = (lng: number, lat: number) => {
     const [swLng, swLat, neLng, neLat] = ITM_BOUNDS;
     return lng >= swLng && lng <= neLng && lat >= swLat && lat <= neLat;
@@ -105,7 +104,6 @@ const MapPage = () => {
             }
         });
 
-        // Controles estándar de Mapbox (Zoom) - Esquina superior derecha, debajo de la búsqueda
         initMap.addControl(new mapboxgl.NavigationControl({ showCompass: true }), 'top-right');
 
         return () => {
@@ -165,7 +163,6 @@ const MapPage = () => {
         });
     };
 
-    // --- 3. SELECCIÓN ---
     const handleBuildingSelect = async (b: Partial<Building>) => {
         if (b.coordinates?.lng && b.coordinates?.lat && b.id) {
             const isMobile = window.innerWidth < 768;
@@ -201,12 +198,11 @@ const MapPage = () => {
         return () => clearTimeout(timer);
     }, [searchText]);
 
-    // --- 5. GPS REAL CON VALIDACIÓN DE ZONA ---
+    // --- 5. GPS REAL ---
     const updateUserMarker = (coords: [number, number]) => {
         if (!map.current) return;
         if (userMarkerRef.current) userMarkerRef.current.remove();
 
-        // Solo dibujamos el marcador si está dentro o cerca (opcional, aquí lo dibujamos siempre para referencia)
         const el = document.createElement('div');
         el.className = 'user-marker';
         el.innerHTML = `
@@ -232,15 +228,12 @@ const MapPage = () => {
                 setIsLocating(false);
                 const coords: [number, number] = [pos.coords.longitude, pos.coords.latitude];
 
-                // VALIDACIÓN: ¿ESTÁ DENTRO DEL TEC?
                 if (isInsideBounds(coords[0], coords[1])) {
                     setUserLocation(coords);
                     updateUserMarker(coords);
                     map.current?.flyTo({ center: coords, zoom: 18, pitch: 0 });
                 } else {
-                    // Si está fuera, NO movemos el mapa y mostramos alerta
                     setOutOfZoneAlert(true);
-                    // Ocultamos la alerta después de 3 segundos
                     setTimeout(() => setOutOfZoneAlert(false), 4000);
                 }
             },
@@ -253,10 +246,8 @@ const MapPage = () => {
         );
     };
 
-    // --- RUTA Y NAVEGACIÓN ---
     const getRoute = async (start: [number, number], end: [number, number]) => {
         if (!map.current) return;
-        // Validación extra por si acaso
         if (!isInsideBounds(start[0], start[1])) {
             setOutOfZoneAlert(true);
             setTimeout(() => setOutOfZoneAlert(false), 4000);
@@ -321,19 +312,19 @@ const MapPage = () => {
     const buildingColor = activeBuilding ? getCategoryColor(activeBuilding.category) : '#2563eb';
 
     return (
-        <div className="relative w-full h-[calc(100vh-64px)] overflow-hidden bg-gray-200 dark:bg-slate-900">
-            {/* MAPA */}
+        // 👇 SOLUCIÓN EDGE MÓVIL: Usamos 'dvh' (Dynamic Viewport Height) para descontar la barra del navegador
+        <div className="relative w-full h-[calc(100vh-64px)] supports-[height:100dvh]:h-[calc(100dvh-64px)] overflow-hidden bg-gray-200 dark:bg-slate-900">
             <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
 
-            {/* TOAST: ALERTA FUERA DE ZONA */}
+            {/* TOAST ALERTA */}
             {outOfZoneAlert && (
-                <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-red-500/90 backdrop-blur text-white px-6 py-3 rounded-full shadow-2xl z-50 flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
-                    <MapPinOff size={20} className="stroke-2"/>
-                    <span className="font-bold text-sm">Lo sentimos, te encuentras fuera de la zona</span>
+                <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-red-500/90 backdrop-blur text-white px-6 py-3 rounded-full shadow-2xl z-50 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 w-max max-w-[90%]">
+                    <MapPinOff size={20} className="stroke-2 shrink-0"/>
+                    <span className="font-bold text-xs md:text-sm text-center">Lo sentimos, te encuentras fuera de la zona</span>
                 </div>
             )}
 
-            {/* INFO RUTA FLOTANTE */}
+            {/* INFO RUTA */}
             {routeInfo && (
                 <div className="absolute top-24 left-1/2 transform -translate-x-1/2 bg-guinda-600 text-white px-5 py-2.5 rounded-full shadow-xl z-30 flex items-center gap-4 animate-in fade-in slide-in-from-top-4">
                     <div className="flex items-center gap-1.5"><Clock size={16} /><span className="font-bold text-sm">{routeInfo.duration} min</span></div>
@@ -358,7 +349,6 @@ const MapPage = () => {
                         />
                         {searchText && <button onClick={() => setSearchText('')}><X size={16} className="text-gray-400" /></button>}
                     </div>
-                    {/* RESULTADOS */}
                     {searchText && (
                         <div className="max-h-60 overflow-y-auto border-t border-gray-100 dark:border-slate-800">
                             {isSearching ? (
@@ -392,12 +382,11 @@ const MapPage = () => {
                 </div>
             </div>
 
-            {/* BOTÓN GPS (REUBICADO: Esquina Inferior Derecha) */}
-            {/* Se oculta si hay un edificio activo en móvil para no estorbar el panel */}
+            {/* BOTÓN GPS: Levantado (bottom-12) para que no lo tape la barra de Edge */}
             {!activeBuilding && (
                 <button
                     onClick={handleRealGPS}
-                    className="absolute bottom-6 right-4 md:bottom-8 md:right-8 bg-white dark:bg-slate-800 p-3 rounded-xl shadow-xl border border-gray-100 dark:border-slate-700 text-blue-500 z-10 hover:bg-gray-50 active:scale-95 transition"
+                    className="absolute bottom-12 right-4 md:bottom-8 md:right-8 bg-white dark:bg-slate-800 p-3 rounded-xl shadow-xl border border-gray-100 dark:border-slate-700 text-blue-500 z-10 hover:bg-gray-50 active:scale-95 transition"
                     title="Mi Ubicación"
                 >
                     <Crosshair size={24} className={isLocating ? "animate-spin text-guinda-600" : (userLocation ? "text-blue-600 fill-current" : "")} />
@@ -444,10 +433,10 @@ const MapPage = () => {
                 </div>
             )}
 
-            {/* LEYENDA (SIMBOLOGÍA) - RESPONSIVE */}
+            {/* LEYENDA: También levantada para alinearse con el GPS y evitar la barra */}
             {!activeBuilding && (
                 <div className={`absolute z-10 transition-all duration-300
-                    ${isLegendOpen ? 'bottom-20 left-4 right-4' : 'bottom-6 left-4'}
+                    ${isLegendOpen ? 'bottom-24 left-4 right-4' : 'bottom-12 left-4'}
                     md:bottom-8 md:left-8 md:right-auto
                 `}>
                     <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur rounded-xl shadow-xl border border-gray-200 dark:border-slate-800 overflow-hidden">
