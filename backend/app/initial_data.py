@@ -190,82 +190,30 @@ def seed_scholarships(session: Session):
 
 
 # ==========================================
-# 5. DATOS DEL MAPA (PonyMap) - ¡NUEVO!
+# 5. DATOS DEL MAPA (PonyMap) - ACTUALIZADO
 # ==========================================
 def seed_map(session: Session):
     logger.info("🗺️  Verificando datos del Mapa (PonyMap)...")
 
-    # Si ya hay edificios, asumimos que ya se corrió
+    # Si ya existen edificios, asumimos que está poblado
     if session.exec(select(Building)).first():
         logger.info("📍 Los datos del mapa ya existen. Saltando.")
         return
 
+    # --- EDIFICIOS REALES ---
     buildings_data = [
-        {
-            "name": "Edificio K",
-            "code": "K",
-            "category": "AULAS",
-            "description": "Ingeniería en Sistemas Computacionales. Aulas de especialidad y centros de cómputo.",
-            "coordinates": {"lat": 19.7235, "lng": -101.1848},
-            "tags": "sistemas, computo, redes, isc, k",
-            "rooms": [
-                {"name": "Centro de Cómputo", "type": "PC", "floor": "PB"},
-                {"name": "Sala Audiovisual", "type": "AUDITORIUM", "floor": "PB"},
-                {"name": "K1", "type": "CLASSROOM", "floor": "1"},
-                {"name": "K2", "type": "CLASSROOM", "floor": "1"},
-                {"name": "Lab. Redes", "type": "LAB", "floor": "2"},
-            ]
-        },
         {
             "name": "Edificio A",
             "code": "A",
             "category": "AULAS",
             "description": "Ciencias Básicas. Aulas de tronco común y laboratorios de química.",
-            "coordinates": {"lat": 19.7224, "lng": -101.1865},
+            "coordinates": {"lat": 19.723023321057774, "lng": -101.1858332103096},
             "tags": "basicas, quimica, tronco comun, a",
             "rooms": [
-                {"name": "A1", "type": "CLASSROOM", "floor": "PB"},
-                {"name": "A2", "type": "CLASSROOM", "floor": "PB"},
-                {"name": "Lab. Química", "type": "LAB", "floor": "1"},
-                {"name": "A4", "type": "CLASSROOM", "floor": "1"},
-            ]
-        },
-        {
-            "name": "Edificio B",
-            "code": "B",
-            "category": "AULAS",
-            "description": "Ingeniería Industrial y Gestión Empresarial.",
-            "coordinates": {"lat": 19.7216, "lng": -101.1865},
-            "tags": "industrial, gestion, b",
-            "rooms": [
-                {"name": "B1", "type": "CLASSROOM", "floor": "PB"},
-                {"name": "Taller Métodos", "type": "LAB", "floor": "PB"},
-                {"name": "Ergonomía", "type": "LAB", "floor": "1"},
-            ]
-        },
-        {
-            "name": "Administrativo",
-            "code": "AD",
-            "category": "ADMINISTRATIVO",
-            "description": "Oficinas principales, Servicios Escolares y Dirección.",
-            "coordinates": {"lat": 19.7212, "lng": -101.1852},
-            "tags": "escolares, director, cajas, pagos, ad",
-            "rooms": [
-                {"name": "Serv. Escolares", "type": "OFFICE", "floor": "PB"},
-                {"name": "Cajas", "type": "OFFICE", "floor": "PB"},
-                {"name": "Dirección", "type": "OFFICE", "floor": "1"},
-            ]
-        },
-        {
-            "name": "Cafetería",
-            "code": "C",
-            "category": "ALIMENTOS",
-            "description": "Zona de alimentos y recreación para estudiantes.",
-            "coordinates": {"lat": 19.7230, "lng": -101.1840},
-            "tags": "comida, cafe, almuerzo, c",
-            "rooms": [
-                {"name": "Comedor Principal", "type": "FOOD", "floor": "PB"},
-                {"name": "Zona Techada", "type": "FOOD", "floor": "PB"},
+                {"name": "A1", "floor": "PB", "type": "CLASSROOM"},
+                {"name": "A2", "floor": "PB", "type": "CLASSROOM"},
+                {"name": "Lab. Química", "floor": "1", "type": "LAB"},
+                {"name": "A4", "floor": "1", "type": "CLASSROOM"},
             ]
         },
         {
@@ -273,11 +221,121 @@ def seed_map(session: Session):
             "code": "BIB",
             "category": "SERVICIOS",
             "description": "Centro de Información 'Reyes Heroles'.",
-            "coordinates": {"lat": 19.7220, "lng": -101.1845},
+            "coordinates": {"lat": 19.7210390161279, "lng": -101.18386184655269},
             "tags": "libros, estudio, internet, bib",
             "rooms": [
-                {"name": "Sala General", "type": "CLASSROOM", "floor": "PB"},
-                {"name": "Ciberteca", "type": "PC", "floor": "1"},
+                {"name": "Sala General", "floor": "PB", "type": "CLASSROOM"},
+                {"name": "Ciberteca", "floor": "1", "type": "PC"},
+                {"name": "Pony Papeleria", "floor": "PB", "type": "OFFICE"}, # (Store)
+                {"name": "Cubículos 10-20", "floor": "PB", "type": "OFFICE"},
+                {"name": "Cubículos 1-10", "floor": "1", "type": "OFFICE"},
+            ]
+        },
+        {
+            "name": "Edificio AE",
+            "code": "AE",
+            "category": "AULAS",
+            "description": "",
+            "coordinates": {"lat": 19.72112977610549, "lng": -101.18422121178249},
+            "tags": "",
+            "rooms": []
+        },
+        {
+            "name": "Edificio Y",
+            "code": "Y",
+            "category": "AULAS",
+            "description": "Edificio de electrónica con laboratorios de uso común en las ingenierías",
+            "coordinates": {"lat": 19.721138469776836, "lng": -101.18454773335725},
+            "tags": "laboratorios, electronica, baños",
+            "rooms": []
+        },
+        {
+            "name": "Edificio AG",
+            "code": "AG",
+            "category": "AULAS",
+            "description": "Aulas de mecatrónica con laboratorios de cómputo para uso común de diferentes ingenierías",
+            "coordinates": {"lat": 19.723177991744798, "lng": -101.18417754618817},
+            "tags": "isc, computo, mecatrónica, baños, biomédica",
+            "rooms": []
+        },
+        {
+            "name": "Edificio CH",
+            "code": "CH",
+            "category": "AULAS",
+            "description": "Edificio de la carrera de Ingenieria Industrial, con algunas aulas de uso común",
+            "coordinates": {"lat": 19.723500611528852, "lng": -101.18509148344852},
+            "tags": "industrial, baños",
+            "rooms": [
+                # Salones asignados por lógica (Contexto Industrial)
+                {"name": "B1", "floor": "PB", "type": "CLASSROOM"},
+                {"name": "Taller Métodos", "floor": "PB", "type": "LAB"},
+                {"name": "Ergonomía", "floor": "1", "type": "LAB"},
+            ]
+        },
+        {
+            "name": "Oficinas CLE",
+            "code": "CLE",
+            "category": "ADMINISTRATIVO",
+            "description": "Oficinas de la coordinación de lenguas extranjeras",
+            "coordinates": {"lat": 19.723220400458825, "lng": -101.1848914107995},
+            "tags": "cle, inglés, idiomas, francés, alemán",
+            "rooms": []
+        },
+        {
+            "name": "Pony Cafeteria",
+            "code": "PC",
+            "category": "ALIMENTOS",
+            "description": "Cafetería principal del ITM",
+            "coordinates": {"lat": 19.721500210923022, "lng": -101.18563347406631},
+            "tags": "cafeteria, comida, alimentos",
+            "rooms": [
+                # Asignados a la cafetería
+                {"name": "Comedor Principal", "floor": "PB", "type": "FOOD"},
+                {"name": "Zona Techada", "floor": "PB", "type": "FOOD"},
+            ]
+        },
+        {
+            "name": "Edificio S1 (CEITM)",
+            "code": "CEITM",
+            "category": "ADMINISTRATIVO",
+            "description": "Oficinas del consejo estudiantil del ITM",
+            "coordinates": {"lat": 19.721421968157234, "lng": -101.18695225413808},
+            "tags": "ceitm, estudiantes, ayuda",
+            "rooms": []
+        },
+        {
+            "name": "Auditorio 'Heber Soto Fierro'",
+            "code": "AUD",
+            "category": "SERVICIOS",
+            "description": "Auditorio para eventos y bienvenidas",
+            "coordinates": {"lat": 19.721196679945653, "lng": -101.18614255842411},
+            "tags": "gym, deportes, cultura, bienvenida",
+            "rooms": []
+        },
+        {
+            "name": "Edificio K",
+            "code": "K",
+            "category": "AULAS",
+            "description": "Ingeniería en Sistemas Computacionales. Aulas de especialidad y centros de cómputo.",
+            "coordinates": {"lat": 19.72205538251936, "lng": -101.18574221404555},
+            "tags": "sistemas, computo, redes, isc, k",
+            "rooms": [
+                {"name": "Centro de Cómputo", "floor": "PB", "type": "PC"},
+                {"name": "Sala Audiovisual", "floor": "PB", "type": "AUDITORIUM"},
+                {"name": "K1", "floor": "1", "type": "CLASSROOM"},
+                {"name": "K2", "floor": "1", "type": "CLASSROOM"},
+                {"name": "Lab. Redes", "floor": "2", "type": "LAB"},
+            ]
+        },
+        {
+            "name": "Edificio I",
+            "code": "I",
+            "category": "ADMINISTRATIVO",
+            "description": "Edificio administrativo de sistemas y laboratorios de redes.",
+            "coordinates": {"lat": 19.722287740673877, "lng": -101.18539284384457},
+            "tags": "isc, redes, admin, jefe, claudio",
+            "rooms": [
+                {"name": "Jefatura de ISC", "floor": "PB", "type": "OFFICE"},
             ]
         }
     ]
@@ -294,7 +352,7 @@ def seed_map(session: Session):
             session.add(room)
 
     session.commit()
-    logger.info("✅ Datos del Mapa agregados exitosamente.")
+    logger.info("✅ Datos del Mapa (REALES) agregados exitosamente.")
 
 
 # ==========================================
@@ -358,7 +416,7 @@ if __name__ == "__main__":
         seed_news(session)
         seed_convenios(session)
         seed_scholarships(session)
-        seed_map(session)  # 👈 AHORA SÍ LLAMAMOS AL MAPA
+        seed_map(session)
         seed_complaints(session)
 
     logger.info("✨ Base de datos poblada exitosamente ✨")

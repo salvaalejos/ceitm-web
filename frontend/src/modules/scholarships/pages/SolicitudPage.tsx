@@ -456,7 +456,7 @@ export const SolicitudPage = () => {
                                     const labels: Record<string, string> = {
                                         'doc_ine': 'INE / Credencial Escolar',
                                         'doc_kardex': 'Kardex o Constancia',
-                                        'doc_income': 'Comprobante de Ingresos (Máx 3 meses)',
+                                        'doc_income': 'Comprobante de Ingresos (o carta protesta donde se diga la verdad)',
                                         'doc_address': 'Comprobante de Domicilio',
                                         'doc_extra': 'Documento Extra (Opcional)'
                                     };
