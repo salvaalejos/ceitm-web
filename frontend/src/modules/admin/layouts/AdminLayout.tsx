@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     Menu, X, Sun, Moon, LogOut,
-    LayoutDashboard, Newspaper, Store, Users, FolderOpen, GraduationCap, Inbox, Activity, BookOpen // <--- IMPORTAMOS BookOpen
+    LayoutDashboard, Newspaper, Store, Users, FolderOpen, GraduationCap, Inbox, Activity, BookOpen, MapPin // <--- IMPORTAMOS MapPin
 } from 'lucide-react';
 import { useAuthStore } from '../../../shared/store/authStore';
 import { usePermissions } from '../../../shared/hooks/usePermissions';
@@ -17,12 +17,13 @@ export const AdminLayout = () => {
   const logout = useAuthStore((state) => state.logout);
   const user = useAuthStore((state) => state.user);
 
-  // 👇 Permisos
+  // 👇 Usamos el hook para TODOS los permisos (incluido el mapa)
   const {
     canManageUsers,
     canManageNoticias,
     canManageConvenios,
-    canReviewBecas
+    canReviewBecas,
+    canManageMap // <--- Ahora viene del hook
   } = usePermissions();
 
   // Sincronizar tema al cargar
@@ -138,6 +139,14 @@ export const AdminLayout = () => {
                     <Link to="/admin/becas" className={getLinkClass('/admin/becas')}>
                         <GraduationCap size={20} />
                         Gestión Becas
+                    </Link>
+                )}
+
+                {/* MAPA (Controlado por Hook) */}
+                {canManageMap && (
+                    <Link to="/admin/mapa" className={getLinkClass('/admin/mapa')}>
+                        <MapPin size={20} />
+                        Gestión Mapa
                     </Link>
                 )}
 

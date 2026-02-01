@@ -9,6 +9,7 @@ import type {
   ScholarshipCreate,
   Complaint,
   ComplaintStatus,
+  Building
 } from "../types";
 
 // 👇 Usamos la URL dinámica
@@ -307,5 +308,54 @@ export const initQuotas = async (scholarshipId: number) => {
 
 export const updateQuota = async (quotaId: number, totalSlots: number) => {
     const response = await api.patch(`/becas/quotas/${quotaId}`, { total_slots: totalSlots });
+    return response.data;
+};
+
+// --- MAPA (PONYMAP) ---
+
+// --- MAPA (PONYMAP) ---
+export const getBuildings = async () => {
+  const response = await api.get('/map/buildings');
+  return response.data;
+};
+
+export const searchMap = async (query: string) => {
+  const response = await api.get('/map/buildings/search', { params: { q: query } });
+  return response.data;
+};
+
+export const getBuildingById = async (id: number) => {
+  const response = await api.get(`/map/buildings/${id}`);
+  return response.data;
+};
+
+// NUEVAS FUNCIONES ADMIN
+export const createBuilding = async (data: any) => {
+    const response = await api.post('/map/buildings', data);
+    return response.data;
+};
+
+export const updateBuilding = async (id: number, data: any) => {
+    const response = await api.put(`/map/buildings/${id}`, data);
+    return response.data;
+};
+
+export const deleteBuilding = async (id: number) => {
+    const response = await api.delete(`/map/buildings/${id}`);
+    return response.data;
+};
+
+export const createRoom = async (data: any) => {
+    const response = await api.post('/map/rooms', data);
+    return response.data;
+};
+
+export const updateRoom = async (id: number, data: any) => {
+    const response = await api.put(`/map/rooms/${id}`, data);
+    return response.data;
+};
+
+export const deleteRoom = async (id: number) => {
+    const response = await api.delete(`/map/rooms/${id}`);
     return response.data;
 };

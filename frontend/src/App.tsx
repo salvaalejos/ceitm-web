@@ -29,6 +29,7 @@ import AdminBecas from './modules/admin/pages/AdminBecas';
 import { AdminLogs } from "./modules/admin/pages/AdminLogs.tsx";
 import { AdminProfile } from './modules/admin/pages/AdminProfile';
 import { AdminCarreras } from './modules/admin/pages/AdminCarreras';
+import AdminMap from './modules/admin/pages/AdminMap';
 
 import { ProtectedRoute } from './modules/auth/components/ProtectedRoute';
 import RouteTracker from './shared/components/RouteTracker';
@@ -79,6 +80,7 @@ function App() {
             <Route path="becas" element={<AdminBecas />} />
             <Route path="auditoria" element={<AdminLogs />} />
             <Route path="carreras" element={<AdminCarreras />} />
+            <Route path="mapa" element={<AdminMap />} />
         </Route>
 
         <Route path="*" element={<div className="p-10 text-center">404 - Página no encontrada</div>} />

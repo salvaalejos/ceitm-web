@@ -1,7 +1,6 @@
 import { useAuthStore } from '../store/authStore';
 
 // --- CONSTANTES (Espejo de tu backend/models/user_model.py) ---
-// Usamos esto para evitar errores de dedo al escribir "admin_sys" o "Becas y Apoyos"
 export const ROLES = {
   ADMIN_SYS: 'admin_sys',
   ESTRUCTURA: 'estructura',
@@ -35,6 +34,7 @@ export const usePermissions = () => {
       canManageConvenios: false,
       canManageNoticias: false,
       canManageQuejas: false,
+      canManageMap: false, // Agregado para seguridad en logout
       user: null
     };
   }
@@ -54,7 +54,6 @@ export const usePermissions = () => {
 
   // A. USUARIOS
   // Solo Admin y Estructura pueden ver/crear usuarios.
-  // Los coordinadores NO deberían poder crear otros usuarios.
   const canManageUsers = isPowerUser;
 
   // B. BECAS
@@ -63,7 +62,6 @@ export const usePermissions = () => {
   const canManageBecas = isPowerUser || isBecasTeam;
 
   // - Revisión (Entrar al módulo): Los de arriba + Concejales (para revisar a sus alumnos)
-  // El concejal NO gestiona (no crea convocatorias), pero SÍ revisa.
   const canReviewBecas = canManageBecas || isConcejal;
 
   // C. CONVENIOS
@@ -78,8 +76,13 @@ export const usePermissions = () => {
 
   // E. QUEJAS / BUZÓN
   // Power Users O Contraloría O Concejales (suelen ser primer contacto)
-  const isContraloria = area === AREAS.CONTRALORIA;
+  // Nota: Dejamos !!user como pediste (cualquier logueado puede gestionar sus propias quejas o ver dashboard si es admin)
   const canManageQuejas = !!user;
+
+  // F. MAPA (PonyMap)
+  // Agregamos esto para mantener la integración del paso anterior.
+  // Hereda permisos de Power User (Admin + Estructura)
+  const canManageMap = isPowerUser;
 
   return {
     user,
@@ -90,10 +93,11 @@ export const usePermissions = () => {
     isConcejal,
     // Capabilities (Flags de permisos)
     canManageUsers,
-    canManageBecas,     // Crear/Editar convocatorias
-    canReviewBecas,     // Entrar al módulo (incluye concejales)
+    canManageBecas,
+    canReviewBecas,
     canManageConvenios,
     canManageNoticias,
-    canManageQuejas
+    canManageQuejas,
+    canManageMap
   };
 };

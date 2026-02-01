@@ -9,9 +9,10 @@ from app.models.user_model import User, UserRole, UserArea
 from app.models.career_model import Career
 from app.models.news_model import News
 from app.models.convenio_model import Convenio
-# AGREGAMOS ScholarshipQuota AQUÍ
 from app.models.scholarship_model import Scholarship, ScholarshipType, ScholarshipQuota
 from app.models.complaint_model import Complaint, ComplaintType, ComplaintStatus
+# 👇 NUEVO: Importamos los modelos del Mapa
+from app.models.map_model import Building, Room
 
 # Configuración básica de logs
 logging.basicConfig(level=logging.INFO)
@@ -125,7 +126,7 @@ def seed_convenios(session: Session):
 
 
 # ==========================================
-# 4. DATOS DE BECAS Y CUPOS (LÓGICA CORREGIDA)
+# 4. DATOS DE BECAS Y CUPOS
 # ==========================================
 def seed_scholarships(session: Session):
     logger.info("⏳ Sembrando becas...")
@@ -164,12 +165,11 @@ def seed_scholarships(session: Session):
         session.add(beca_old)
         session.commit()
 
-    # --- INICIALIZAR CUPOS (CRÍTICO: NO SALTAR ESTO) ---
+    # --- INICIALIZAR CUPOS ---
     logger.info("📊 Verificando Cupos (Quotas) para beca activa...")
     active_careers = session.exec(select(Career).where(Career.is_active == True)).all()
 
     for career in active_careers:
-        # Verificar si ya existe cupo para esta combinación
         existing_quota = session.exec(
             select(ScholarshipQuota)
             .where(ScholarshipQuota.scholarship_id == beca_active.id)
@@ -180,7 +180,7 @@ def seed_scholarships(session: Session):
             new_quota = ScholarshipQuota(
                 scholarship_id=beca_active.id,
                 career_name=career.name,
-                total_slots=10,  # 10 lugares por defecto para pruebas
+                total_slots=10,
                 used_slots=0
             )
             session.add(new_quota)
@@ -188,8 +188,117 @@ def seed_scholarships(session: Session):
     session.commit()
     logger.info("✅ Cupos validados/creados.")
 
+
 # ==========================================
-# 5. DATOS DE QUEJAS (Test Dashboard)
+# 5. DATOS DEL MAPA (PonyMap) - ¡NUEVO!
+# ==========================================
+def seed_map(session: Session):
+    logger.info("🗺️  Verificando datos del Mapa (PonyMap)...")
+
+    # Si ya hay edificios, asumimos que ya se corrió
+    if session.exec(select(Building)).first():
+        logger.info("📍 Los datos del mapa ya existen. Saltando.")
+        return
+
+    buildings_data = [
+        {
+            "name": "Edificio K",
+            "code": "K",
+            "category": "AULAS",
+            "description": "Ingeniería en Sistemas Computacionales. Aulas de especialidad y centros de cómputo.",
+            "coordinates": {"lat": 19.7235, "lng": -101.1848},
+            "tags": "sistemas, computo, redes, isc, k",
+            "rooms": [
+                {"name": "Centro de Cómputo", "type": "PC", "floor": "PB"},
+                {"name": "Sala Audiovisual", "type": "AUDITORIUM", "floor": "PB"},
+                {"name": "K1", "type": "CLASSROOM", "floor": "1"},
+                {"name": "K2", "type": "CLASSROOM", "floor": "1"},
+                {"name": "Lab. Redes", "type": "LAB", "floor": "2"},
+            ]
+        },
+        {
+            "name": "Edificio A",
+            "code": "A",
+            "category": "AULAS",
+            "description": "Ciencias Básicas. Aulas de tronco común y laboratorios de química.",
+            "coordinates": {"lat": 19.7224, "lng": -101.1865},
+            "tags": "basicas, quimica, tronco comun, a",
+            "rooms": [
+                {"name": "A1", "type": "CLASSROOM", "floor": "PB"},
+                {"name": "A2", "type": "CLASSROOM", "floor": "PB"},
+                {"name": "Lab. Química", "type": "LAB", "floor": "1"},
+                {"name": "A4", "type": "CLASSROOM", "floor": "1"},
+            ]
+        },
+        {
+            "name": "Edificio B",
+            "code": "B",
+            "category": "AULAS",
+            "description": "Ingeniería Industrial y Gestión Empresarial.",
+            "coordinates": {"lat": 19.7216, "lng": -101.1865},
+            "tags": "industrial, gestion, b",
+            "rooms": [
+                {"name": "B1", "type": "CLASSROOM", "floor": "PB"},
+                {"name": "Taller Métodos", "type": "LAB", "floor": "PB"},
+                {"name": "Ergonomía", "type": "LAB", "floor": "1"},
+            ]
+        },
+        {
+            "name": "Administrativo",
+            "code": "AD",
+            "category": "ADMINISTRATIVO",
+            "description": "Oficinas principales, Servicios Escolares y Dirección.",
+            "coordinates": {"lat": 19.7212, "lng": -101.1852},
+            "tags": "escolares, director, cajas, pagos, ad",
+            "rooms": [
+                {"name": "Serv. Escolares", "type": "OFFICE", "floor": "PB"},
+                {"name": "Cajas", "type": "OFFICE", "floor": "PB"},
+                {"name": "Dirección", "type": "OFFICE", "floor": "1"},
+            ]
+        },
+        {
+            "name": "Cafetería",
+            "code": "C",
+            "category": "ALIMENTOS",
+            "description": "Zona de alimentos y recreación para estudiantes.",
+            "coordinates": {"lat": 19.7230, "lng": -101.1840},
+            "tags": "comida, cafe, almuerzo, c",
+            "rooms": [
+                {"name": "Comedor Principal", "type": "FOOD", "floor": "PB"},
+                {"name": "Zona Techada", "type": "FOOD", "floor": "PB"},
+            ]
+        },
+        {
+            "name": "Biblioteca",
+            "code": "BIB",
+            "category": "SERVICIOS",
+            "description": "Centro de Información 'Reyes Heroles'.",
+            "coordinates": {"lat": 19.7220, "lng": -101.1845},
+            "tags": "libros, estudio, internet, bib",
+            "rooms": [
+                {"name": "Sala General", "type": "CLASSROOM", "floor": "PB"},
+                {"name": "Ciberteca", "type": "PC", "floor": "1"},
+            ]
+        }
+    ]
+
+    for b_data in buildings_data:
+        rooms_data = b_data.pop("rooms")
+        building = Building(**b_data)
+        session.add(building)
+        session.commit()
+        session.refresh(building)
+
+        for r_data in rooms_data:
+            room = Room(**r_data, building_id=building.id)
+            session.add(room)
+
+    session.commit()
+    logger.info("✅ Datos del Mapa agregados exitosamente.")
+
+
+# ==========================================
+# 6. DATOS DE QUEJAS
 # ==========================================
 def seed_complaints(session: Session):
     logger.info("⏳ Sembrando queja de prueba...")
@@ -200,7 +309,7 @@ def seed_complaints(session: Session):
         full_name="Juan Pérez (Alumno Test)",
         control_number="21120000",
         phone_number="4431234567",
-        email="juan.test@itm.mx",  # Agregado campo email
+        email="juan.test@itm.mx",
         career="Ingeniería en Sistemas Computacionales",
         semester="5to Semestre",
         type=ComplaintType.QUEJA,
@@ -215,7 +324,7 @@ def seed_complaints(session: Session):
 
 
 # ==========================================
-# 6. USUARIO ADMIN
+# 7. USUARIO ADMIN
 # ==========================================
 def create_superuser(session: Session):
     if session.exec(select(User).where(User.email == "admin@ceitm.mx")).first():
@@ -249,6 +358,7 @@ if __name__ == "__main__":
         seed_news(session)
         seed_convenios(session)
         seed_scholarships(session)
+        seed_map(session)  # 👈 AHORA SÍ LLAMAMOS AL MAPA
         seed_complaints(session)
 
     logger.info("✨ Base de datos poblada exitosamente ✨")

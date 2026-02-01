@@ -209,4 +209,48 @@ export interface Complaint {
   resolved_at?: string;
 
   created_at: string;
+
+
+}
+
+// --- MAPA (PONYMAP) ---
+
+export interface Room {
+  id: number;
+  name: string;
+  floor: string; // Ej: "PB", "1", "2"
+  type: string;  // Ej: "CLASSROOM", "LAB", "OFFICE", "WC"
+  building_id: number;
+}
+
+export interface Building {
+  id: number;
+  name: string;
+  code: string; // Ej: "K", "A"
+  description?: string;
+  category: string; // Ej: "AULAS", "ADMINISTRATIVO", "LABS"
+  image_url?: string;
+  tags?: string;
+
+  // El backend envía un JSON en 'coordinates'.
+  // Definimos la estructura esperada pero permitimos flexibilidad.
+  coordinates: {
+    lat?: number;
+    lng?: number;
+    [key: string]: any;
+  };
+
+  // Es opcional porque al pedir TODOS los edificios, a veces no traemos los rooms
+  // hasta que hacemos click en uno específico.
+  rooms?: Room[];
+}
+
+export interface MapSearchResult {
+  id: number;
+  type: 'BUILDING' | 'ROOM';
+  name: string;
+  detail: string;
+  building_id: number;
+  coordinates: { lat?: number; lng?: number };
+  category: string;
 }
