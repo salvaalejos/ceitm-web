@@ -19,6 +19,7 @@ class Settings(BaseSettings):
 
     # Valor por defecto: localhost (para desarrollo)
     # En producción lo sobreescribiremos en el archivo .env
+    #ENVIRONMENT: str = "development"
     ENVIRONMENT: str = "production"
     DOMAIN: str = "https://ceitm.ddnsking.com"
     #DOMAIN: str = "http://localhost:8000"
