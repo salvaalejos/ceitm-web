@@ -19,9 +19,9 @@ class Settings(BaseSettings):
 
     # Valor por defecto: localhost (para desarrollo)
     # En producción lo sobreescribiremos en el archivo .env
-    ENVIRONMENT: str = "development"
-    #DOMAIN: str = "https://ceitm.ddnsking.com"
-    DOMAIN: str = "http://localhost:8000"
+    ENVIRONMENT: str = "production"
+    DOMAIN: str = "https://ceitm.ddnsking.com"
+    #DOMAIN: str = "http://localhost:8000"
 
     # EMAIL CONFIG (SMTP)
     # Estas variables DEBEN estar en tu archivo .env para que funcione
