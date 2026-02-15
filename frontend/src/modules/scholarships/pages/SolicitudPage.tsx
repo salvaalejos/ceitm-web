@@ -7,6 +7,9 @@ import {
 import { getScholarships, submitScholarshipApplication, uploadFile } from '../../../shared/services/api';
 import type { Scholarship, ScholarshipApplication } from '../../../shared/types';
 import { CARRERAS } from '../../../shared/constants/carreras';
+// Importamos los recursos nuevos
+import { SuccessScholarshipModal } from '../components/SuccessScholarshipModal';
+import { WHATSAPP_LINKS } from '../../../shared/constants/grupos';
 
 const STEPS = [
     { id: 1, title: 'Datos Personales', icon: User },
@@ -29,12 +32,19 @@ export const SolicitudPage = () => {
     const [validationError, setValidationError] = useState('');
     const [success, setSuccess] = useState(false);
 
+    // Control del Modal de Éxito
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [isRegular, setIsRegular] = useState(true);
+
     // Archivos y Lógica Condicional
     const [selectedFiles, setSelectedFiles] = useState<Record<string, File>>({});
     const [isForeign, setIsForeign] = useState(false);
     const [otherScholarshipName, setOtherScholarshipName] = useState('');
 
-    // Estado del Formulario (Inicializado según tipos)
+    // Control de flujo para liberación (Local para la página)
+    const [hasReleased, setHasReleased] = useState<'si' | 'no'>('no');
+
+    // Estado del Formulario
     const [formData, setFormData] = useState<Partial<ScholarshipApplication>>({
         full_name: '', email: '', control_number: '', phone_number: '',
         career: '', semester: '',
@@ -45,7 +55,6 @@ export const SolicitudPage = () => {
         family_income: 0, income_per_capita: 0,
         previous_scholarship: 'No', release_folio: '',
         activities: '', motivos: '',
-        // student_photo se llena al subir
         doc_address: '', doc_income: '',
         doc_ine: '', doc_kardex: '', doc_extra: ''
     });
@@ -79,11 +88,10 @@ export const SolicitudPage = () => {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
 
-        // Validación de Rangos Numéricos (0-100)
         if (type === 'number') {
             const numVal = parseFloat(value);
             if (name.includes('average')) {
-                if (numVal > 100) return; // Bloqueo estricto
+                if (numVal > 100) return;
                 if (numVal < 0) return;
             }
         }
@@ -95,7 +103,6 @@ export const SolicitudPage = () => {
     const validateCurrentStep = (): boolean => {
         setValidationError('');
 
-        // PASO 1: PERSONALES
         if (currentStep === 1) {
             if (!formData.full_name?.trim()) { setValidationError('El nombre completo es obligatorio.'); return false; }
             if (!formData.control_number?.trim()) { setValidationError('El número de control es obligatorio.'); return false; }
@@ -120,7 +127,6 @@ export const SolicitudPage = () => {
             }
         }
 
-        // PASO 2: SOCIOECONÓMICO
         if (currentStep === 2) {
             if (!formData.address?.trim()) { setValidationError('El domicilio actual es obligatorio.'); return false; }
             if (isForeign && !formData.origin_address?.trim()) { setValidationError('El domicilio de origen es obligatorio para foráneos.'); return false; }
@@ -128,13 +134,22 @@ export const SolicitudPage = () => {
             if (!formData.family_income || Number(formData.family_income) <= 0) { setValidationError('El ingreso familiar debe ser mayor a 0.'); return false; }
         }
 
-        // PASO 3: MOTIVOS
         if (currentStep === 3) {
             if (formData.previous_scholarship !== 'No') {
-                if (!formData.release_folio?.trim()) { setValidationError('El Folio de Liberación es obligatorio si tuviste beca.'); return false; }
-                if (formData.previous_scholarship === 'Otro' && !otherScholarshipName.trim()) { setValidationError('Debes especificar qué otra beca tuviste.'); return false; }
+                // Validación para detección de Rezagados
+                if (hasReleased === 'si' && !formData.release_folio?.trim()) {
+                    setValidationError('El Folio de Liberación es obligatorio si ya liberaste tu beca.');
+                    return false;
+                }
+                if (formData.previous_scholarship === 'Otro' && !otherScholarshipName.trim()) {
+                    setValidationError('Debes especificar qué otra beca tuviste.');
+                    return false;
+                }
             }
-            if (!formData.motivos?.trim() || formData.motivos.length < 50) { setValidationError('Tu carta de motivos es muy breve. Detalla más tu situación (mínimo 50 caracteres).'); return false; }
+            if (!formData.motivos?.trim() || formData.motivos.length < 50) {
+                setValidationError('Tu carta de motivos es muy breve (mínimo 50 caracteres).');
+                return false;
+            }
         }
 
         return true;
@@ -147,10 +162,8 @@ export const SolicitudPage = () => {
         }
     };
 
-    // --- MANEJO DE ARCHIVOS ---
     const validateFile = (file: File, isPhoto = false): string | null => {
         if (file.size > 10 * 1024 * 1024) return "El archivo excede el límite de 10MB.";
-
         if (isPhoto) {
             if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) return "La foto debe ser imagen (JPG/PNG).";
         } else {
@@ -168,7 +181,7 @@ export const SolicitudPage = () => {
 
         if (msg) {
             alert(msg);
-            e.target.value = ''; // Reset input
+            e.target.value = '';
             return;
         }
         setSelectedFiles(prev => ({ ...prev, [fieldName]: file }));
@@ -180,46 +193,37 @@ export const SolicitudPage = () => {
         setSelectedFiles(newFiles);
     };
 
-    // --- ENVÍO FINAL ---
     const handleSubmit = async () => {
         setValidationError('');
-
-        // 1. Validar Documentos Obligatorios
         const requiredDocs = ['student_photo', 'doc_ine', 'doc_kardex', 'doc_income', 'doc_address'];
         const missing = requiredDocs.filter(k => !selectedFiles[k]);
 
-        if (missing.length > 0) return setValidationError(`Faltan documentos obligatorios. Revisa que hayas subido tu FOTO y todas las evidencias.`);
+        if (missing.length > 0) return setValidationError(`Faltan documentos obligatorios.`);
 
         setSubmitting(true);
         setUploadingInfo('Subiendo evidencias...');
 
         try {
-            // Clonamos data
             let finalData: any = { ...formData };
-
-            // Concatenar "Otro" si aplica
             if (finalData.previous_scholarship === 'Otro') {
                 finalData.previous_scholarship = `Otro: ${otherScholarshipName}`;
             }
 
-            // 2. Subir Archivos a Cloudinary (Secuencial)
             for (const key of Object.keys(selectedFiles)) {
                 setUploadingInfo(`Subiendo ${key === 'student_photo' ? 'FOTO' : key.replace('doc_', '').toUpperCase()}...`);
                 const url = await uploadFile(selectedFiles[key]);
-                finalData[key] = url; // Asignamos la URL retornada al campo correspondiente
+                finalData[key] = url;
             }
-
-            // 3. Limpiar campos generados (Backend los ignora o recibe null)
-            finalData['doc_request'] = null;
-            finalData['doc_motivos'] = null;
 
             setUploadingInfo('Registrando expediente...');
 
-            // 4. Enviar Payload al Backend
+            // Determinamos si es regular para el link de WhatsApp
+            const studentIsRegular = finalData.previous_scholarship === 'No' || hasReleased === 'si';
+            setIsRegular(studentIsRegular);
+
             await submitScholarshipApplication({
                 ...finalData,
                 scholarship_id: Number(id),
-                // Conversión explícita a números para evitar error 422
                 arithmetic_average: Number(finalData.arithmetic_average),
                 certified_average: Number(finalData.certified_average),
                 dependents_count: Number(finalData.dependents_count),
@@ -229,28 +233,22 @@ export const SolicitudPage = () => {
             } as ScholarshipApplication);
 
             setSuccess(true);
+            setShowSuccessModal(true);
             window.scrollTo(0,0);
 
         } catch (err: any) {
-            console.error(err);
-            const msg = err.response?.data?.detail
-                ? (typeof err.response.data.detail === 'object' ? JSON.stringify(err.response.data.detail) : err.response.data.detail)
-                : err.message;
-            setError(msg || "Error al enviar la solicitud.");
+            setError(err.message || "Error al enviar la solicitud.");
             setSubmitting(false);
         }
     };
 
-    if (success) return (
+    if (success && !showSuccessModal) return (
         <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex items-center justify-center p-6 animate-fade-in">
             <div className="card-base max-w-lg w-full p-10 text-center">
                 <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
                     <CheckCircle size={40} />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">¡Expediente Generado!</h2>
-                <p className="text-gray-600 dark:text-gray-300 mb-8">
-                    Tu información ha sido recibida exitosamente. El sistema generará tu solicitud oficial y serás notificado cuando inicie el proceso de revisión.
-                </p>
                 <button onClick={() => navigate('/becas')} className="btn-primary w-full">Volver a Becas</button>
             </div>
         </div>
@@ -262,7 +260,6 @@ export const SolicitudPage = () => {
         <div className="min-h-screen bg-gray-50 dark:bg-slate-950 pb-20 pt-10 px-4 transition-colors duration-300">
             <div className="container mx-auto max-w-4xl">
 
-                {/* HEADER */}
                 <button onClick={() => navigate('/becas')} className="mb-4 flex items-center gap-2 text-gray-500 hover:text-guinda-600 dark:text-gray-400 transition-colors">
                     <ArrowLeft size={18} /> Cancelar trámite
                 </button>
@@ -377,16 +374,16 @@ export const SolicitudPage = () => {
                         </div>
                     )}
 
-                    {/* --- PASO 3: ANTECEDENTES --- */}
+                    {/* --- PASO 3: ANTECEDENTES (ACTUALIZADO) --- */}
                     {currentStep === 3 && (
                         <div className="space-y-6 animate-fade-in">
                             <h3 className="text-xl font-bold text-gray-900 dark:text-white border-b pb-2 dark:border-slate-800">Antecedentes</h3>
 
                             <div className="p-5 bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-900/50 rounded-xl space-y-4">
                                 <div>
-                                    <label className="form-label text-orange-800 dark:text-orange-400">¿Contaste con beca el semestre anterior?</label>
+                                    <label className="form-label text-orange-800 dark:text-orange-400 font-bold tracking-tight">¿Contaste con beca el semestre anterior?</label>
                                     <select name="previous_scholarship" value={formData.previous_scholarship} onChange={handleChange} className="form-input">
-                                        <option value="No">No</option>
+                                        <option value="No">No, es mi primera vez</option>
                                         <option value="Alimenticia">Sí, Alimenticia</option>
                                         <option value="Reinscripción">Sí, Reinscripción</option>
                                         <option value="CLE">Sí, CLE</option>
@@ -395,19 +392,35 @@ export const SolicitudPage = () => {
                                 </div>
 
                                 {formData.previous_scholarship !== 'No' && (
-                                    <div className="animate-fade-in-down space-y-4">
+                                    <div className="animate-fade-in-down space-y-4 border-t border-orange-200 dark:border-orange-800 pt-4">
                                         {formData.previous_scholarship === 'Otro' && (
                                             <div>
                                                 <label className="form-label text-guinda-600 dark:text-guinda-400">Especifique cuál beca:</label>
                                                 <input value={otherScholarshipName} onChange={(e) => setOtherScholarshipName(e.target.value)} className="form-input" placeholder="Ej: Beca de Transporte" />
                                             </div>
                                         )}
+
+                                        {/* NUEVA LÓGICA DE LIBERACIÓN */}
                                         <div>
-                                            <label className="form-label text-guinda-600 dark:text-guinda-400 font-bold flex items-center gap-2">
-                                                <AlertCircle size={16}/> Folio de Liberación (OBLIGATORIO)
-                                            </label>
-                                            <input name="release_folio" value={formData.release_folio} onChange={handleChange} className="form-input border-2 border-guinda-500 dark:border-guinda-600" placeholder="Ingresa el folio de tu servicio becario" />
+                                            <label className="form-label text-orange-800 dark:text-orange-400 font-bold tracking-tight">¿Ya liberaste tu servicio anterior?</label>
+                                            <select
+                                                value={hasReleased}
+                                                onChange={(e) => setHasReleased(e.target.value as 'si' | 'no')}
+                                                className="form-input border-guinda-200 dark:border-guinda-900"
+                                            >
+                                                <option value="no">No, aún la debo (Rezagado)</option>
+                                                <option value="si">Sí, ya cuento con mi folio de liberación</option>
+                                            </select>
                                         </div>
+
+                                        {hasReleased === 'si' && (
+                                            <div className="animate-fade-in">
+                                                <label className="form-label text-guinda-600 dark:text-guinda-400 font-bold flex items-center gap-2">
+                                                    <AlertCircle size={16}/> Folio de Liberación (OBLIGATORIO)
+                                                </label>
+                                                <input name="release_folio" value={formData.release_folio} onChange={handleChange} className="form-input border-2 border-guinda-500 dark:border-guinda-600 uppercase font-mono" placeholder="DONXXXXXXXXXX" />
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -419,7 +432,7 @@ export const SolicitudPage = () => {
                         </div>
                     )}
 
-                    {/* --- PASO 4: DOCUMENTOS (FOTO + EVIDENCIAS) --- */}
+                    {/* --- PASO 4: DOCUMENTOS --- */}
                     {currentStep === 4 && (
                         <div className="space-y-6 animate-fade-in">
                             <h3 className="text-xl font-bold text-gray-900 dark:text-white border-b pb-2 dark:border-slate-800">Documentación</h3>
@@ -431,7 +444,6 @@ export const SolicitudPage = () => {
                             </div>
 
                             <div className="grid gap-4 mt-2">
-                                {/* FOTO DEL ALUMNO - PRIMER LUGAR */}
                                 <div className={`flex flex-col md:flex-row justify-between items-center p-4 border-2 border-dashed rounded-xl transition-colors ${selectedFiles['student_photo'] ? 'border-green-400 bg-green-50 dark:bg-green-900/10' : 'border-guinda-200 dark:border-guinda-900 bg-guinda-50 dark:bg-guinda-900/10'}`}>
                                     <div className="flex items-center gap-4 mb-3 md:mb-0">
                                         <div className={`p-3 rounded-full ${selectedFiles['student_photo'] ? 'bg-green-100 text-green-600' : 'bg-white text-guinda-600 shadow-sm'}`}>
@@ -439,24 +451,19 @@ export const SolicitudPage = () => {
                                         </div>
                                         <div>
                                             <p className="font-bold text-gray-900 dark:text-white text-lg">Fotografía Infantil Digital *</p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">Rostro despejado, fondo blanco. (Solo JPG/PNG)</p>
-                                            {selectedFiles['student_photo'] && <span className="text-xs text-green-600 dark:text-green-400 font-bold block mt-1">Archivo listo: {selectedFiles['student_photo'].name}</span>}
+                                            {selectedFiles['student_photo'] && <span className="text-xs text-green-600 font-bold block mt-1">Archivo listo: {selectedFiles['student_photo'].name}</span>}
                                         </div>
                                     </div>
-                                    {selectedFiles['student_photo'] ?
-                                        <button onClick={() => handleRemoveFile('student_photo')} className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded transition-colors"><Trash2 size={24}/></button> :
-                                        <label className="btn-primary text-sm px-6 py-2 cursor-pointer shadow-none">
-                                            Seleccionar Foto <input type="file" className="hidden" accept="image/jpeg,image/png,image/jpg" onChange={(e) => handleFileSelect(e, 'student_photo')} />
-                                        </label>
-                                    }
+                                    <label className="btn-primary text-sm px-6 py-2 cursor-pointer shadow-none">
+                                        Seleccionar Foto <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileSelect(e, 'student_photo')} />
+                                    </label>
                                 </div>
 
-                                {/* RESTO DE DOCUMENTOS */}
                                 {['doc_ine', 'doc_kardex', 'doc_income', 'doc_address', 'doc_extra'].map((key) => {
                                     const labels: Record<string, string> = {
                                         'doc_ine': 'INE / Credencial Escolar',
                                         'doc_kardex': 'Kardex o Constancia',
-                                        'doc_income': 'Comprobante de Ingresos (o carta protesta donde se diga la verdad)',
+                                        'doc_income': 'Comprobante de Ingresos',
                                         'doc_address': 'Comprobante de Domicilio',
                                         'doc_extra': 'Documento Extra (Opcional)'
                                     };
@@ -466,16 +473,16 @@ export const SolicitudPage = () => {
                                     return (
                                         <div key={key} className="flex justify-between items-center p-3 border rounded-lg border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
                                             <div className="flex items-center gap-3">
-                                                <div className={`p-2 rounded-full ${file ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 dark:bg-slate-700 text-gray-400'}`}>
+                                                <div className={`p-2 rounded-full ${file ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
                                                     {file ? <FileCheck size={20} /> : <FileText size={20} />}
                                                 </div>
                                                 <div>
                                                     <p className="font-medium text-sm text-gray-900 dark:text-gray-200">{labels[key]} {required && <span className="text-red-500">*</span>}</p>
-                                                    {file ? <span className="text-xs text-green-600 dark:text-green-400 font-bold">{file.name}</span> : <span className="text-xs text-gray-400 dark:text-gray-500">Pendiente</span>}
+                                                    {file && <span className="text-xs text-green-600 font-bold">{file.name}</span>}
                                                 </div>
                                             </div>
                                             {file ?
-                                                <button onClick={() => handleRemoveFile(key)} className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded transition-colors"><Trash2 size={18}/></button> :
+                                                <button onClick={() => handleRemoveFile(key)} className="text-red-500 hover:bg-red-50 p-2 rounded-full"><Trash2 size={18}/></button> :
                                                 <label className="btn-secondary text-xs px-3 py-2 cursor-pointer">
                                                     Subir <input type="file" className="hidden" accept=".pdf,image/*" onChange={(e) => handleFileSelect(e, key)} />
                                                 </label>
@@ -496,7 +503,7 @@ export const SolicitudPage = () => {
                                 Siguiente <ArrowRight size={18} />
                             </button>
                         ) : (
-                            <button onClick={handleSubmit} disabled={submitting} className="btn-primary bg-green-600 hover:bg-green-700 border-green-600">
+                            <button onClick={handleSubmit} disabled={submitting} className="btn-primary bg-green-600 hover:bg-green-700 border-green-600 transition-all">
                                 {submitting ? <><Loader2 className="animate-spin inline mr-2"/> {uploadingInfo}</> : 'Finalizar y Enviar'}
                             </button>
                         )}
@@ -504,6 +511,13 @@ export const SolicitudPage = () => {
 
                 </div>
             </div>
+
+            {/* Modal de Éxito con Links Globales */}
+            <SuccessScholarshipModal
+                isOpen={showSuccessModal}
+                onClose={() => navigate('/becas')}
+                whatsappLink={isRegular ? WHATSAPP_LINKS.REGULAR : WHATSAPP_LINKS.REZAGADO}
+            />
         </div>
     );
 };

@@ -1,6 +1,7 @@
 import { HeroSection } from '../components/HeroSection';
 import { IdentitySection } from '../components/IdentitySection';
 import { CoordinationsGrid } from '../components/CoordinationsGrid';
+import {Link} from "react-router-dom";
 
 export const HomePage = () => {
   return (
@@ -23,11 +24,14 @@ export const HomePage = () => {
           <div className="relative z-10 container mx-auto px-6">
             <h2 className="text-3xl font-bold mb-6">¿Quieres formar parte del cambio?</h2>
             <p className="mb-8 text-guinda-100 max-w-2xl mx-auto text-lg">
-                Acércate a tu concejal de carrera o visita nuestras oficinas para conocer más sobre cómo puedes participar.
+                Acércate a tu concejal de carrera o visita nuestras oficinas para conocer más sobre cómo puedes participar, además estate atento a las convocatorias para futuras elecciones.
             </p>
-            <button className="px-8 py-3 bg-white text-guinda-900 font-bold rounded-full hover:bg-gray-100 hover:scale-105 transition-all shadow-lg">
-                Contáctanos
-            </button>
+            <Link
+                    to="/concejales"
+                    className="px-8 py-3 bg-white text-guinda-900 font-bold rounded-full hover:bg-gray-100 hover:scale-105 transition-all shadow-lg"
+            >
+                    Contactanos
+            </Link>
           </div>
       </div>
 

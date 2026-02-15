@@ -1,13 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
-import { Users, Search, MessageCircle, Instagram, Mail, ChevronDown, Check, ExternalLink } from 'lucide-react'; // <--- ExternalLink agregado
-// 👇 Importamos getCareers y quitamos CARRERAS
-import { getConcejalesPublic, getCareers } from '../../../shared/services/api';
-import type {Career} from '../../../shared/types'; // Importar la interfaz si la agregaste
-// Importar la interfaz si la agregaste
+import { Users, Search, MessageCircle, Instagram, Mail, ChevronDown, Check, ExternalLink, Clock } from 'lucide-react';
+import { getConcejalesPublic, getCareers, getShifts } from '../../../shared/services/api';
+import type { Career, Shift, User } from '../../../shared/types';
+import { ScheduleModal } from '../components/ScheduleModal'; // <--- Importamos el modal
 
 export const ConcejalesPage = () => {
   const [users, setUsers] = useState<any[]>([]);
-  const [careers, setCareers] = useState<Career[]>([]); // <--- Estado para carreras
+  const [careers, setCareers] = useState<Career[]>([]);
+  const [allShifts, setAllShifts] = useState<Shift[]>([]); // <--- Estado para los horarios
   const [loading, setLoading] = useState(true);
 
   // Estados de Filtros
@@ -16,6 +16,7 @@ export const ConcejalesPage = () => {
 
   // Estados UI
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [selectedConcejal, setSelectedConcejal] = useState<User | null>(null); // <--- Control del modal
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Cerrar dropdown al clic fuera
@@ -29,22 +30,20 @@ export const ConcejalesPage = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Carga de Datos (Usuarios + Carreras)
+  // Carga de Datos (Usuarios + Carreras + Horarios)
   useEffect(() => {
     const loadData = async () => {
         try {
-            // Hacemos las dos peticiones en paralelo
-            const [usersData, careersData] = await Promise.all([
+            const [usersData, careersData, shiftsData] = await Promise.all([
                 getConcejalesPublic(),
-                getCareers()
+                getCareers(),
+                getShifts() // <--- Cargamos los shifts de la BD
             ]);
 
-            // Filtramos admin
             const visibleUsers = usersData.filter((u: any) => u.role !== 'admin_sys');
             setUsers(visibleUsers);
-
-            // Guardamos carreras
             setCareers(careersData);
+            setAllShifts(shiftsData);
 
         } catch (error) {
             console.error("Error cargando datos", error);
@@ -54,6 +53,22 @@ export const ConcejalesPage = () => {
     };
     loadData();
   }, []);
+
+  // Lógica para procesar el horario del concejal seleccionado para el modal
+  const getUserSchedule = (userId: number): [string, number[]][] => {
+    const userShifts = allShifts.filter(s => s.user_id === userId);
+    const schedule: Record<string, number[]> = {};
+
+    userShifts.forEach(s => {
+        if (!schedule[s.day]) schedule[s.day] = [];
+        schedule[s.day].push(s.hour);
+    });
+
+    return Object.entries(schedule).sort((a, b) => {
+        const order = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+        return order.indexOf(a[0]) - order.indexOf(b[0]);
+    }) as [string, number[]][];
+  };
 
   // Lógica de filtrado
   const filteredUsers = users.filter(u => {
@@ -76,7 +91,6 @@ export const ConcejalesPage = () => {
       setIsDropdownOpen(false);
   };
 
-  // Buscar el objeto de la carrera seleccionada para sacar el link
   const activeCareerObj = careers.find(c => c.name === selectedCareer);
 
   return (
@@ -136,7 +150,6 @@ export const ConcejalesPage = () => {
                     />
                 </button>
 
-                {/* Dropdown Menu */}
                 {isDropdownOpen && (
                     <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                         <div className="max-h-[300px] overflow-y-auto custom-scrollbar p-1">
@@ -182,7 +195,7 @@ export const ConcejalesPage = () => {
             )}
         </div>
 
-        {/* Banner de WhatsApp (Solo si hay carrera seleccionada y tiene link) */}
+        {/* Banner de WhatsApp */}
         {selectedCareer && activeCareerObj?.whatsapp_url && (
             <div className="max-w-4xl mx-auto mb-10 animate-fade-in-up">
                 <a
@@ -225,7 +238,6 @@ export const ConcejalesPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-10 animate-fade-in">
                 {filteredUsers.map(user => (
                     <div key={user.id} className="card-base group hover:-translate-y-2 transition-all duration-300 overflow-visible">
-                         {/* ... Mismo contenido de tarjeta de usuario que ya tenías ... */}
                          <div className="h-24 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-slate-800 dark:to-slate-800/50 rounded-t-2xl relative mb-12">
                             <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
                                 <div className="p-1 bg-white dark:bg-slate-900 rounded-full shadow-lg">
@@ -254,7 +266,15 @@ export const ConcejalesPage = () => {
                                 )}
                             </div>
 
-                            <div className="flex justify-center gap-3 mt-6 pt-6 border-t border-gray-100 dark:border-slate-800">
+                            {/* Botón "¿Cómo encontrarlo?" para abrir el modal */}
+                            <button
+                                onClick={() => setSelectedConcejal(user)}
+                                className="mb-4 w-full py-2 px-4 rounded-xl bg-gray-50 dark:bg-slate-800/50 text-gray-600 dark:text-gray-300 text-xs font-bold flex items-center justify-center gap-2 hover:bg-guinda-50 dark:hover:bg-guinda-900/20 hover:text-guinda-600 transition-all border border-transparent hover:border-guinda-100"
+                            >
+                                <Clock size={14} /> ¿Cuándo encontrarlo?
+                            </button>
+
+                            <div className="flex justify-center gap-3 mt-4 pt-6 border-t border-gray-100 dark:border-slate-800">
                                 {user.phone_number && (
                                     <a
                                         href={`https://wa.me/52${user.phone_number.replace(/\D/g, '')}`}
@@ -289,6 +309,16 @@ export const ConcejalesPage = () => {
             </div>
         )}
       </div>
+
+      {/* Modal de Horario */}
+      {selectedConcejal && (
+        <ScheduleModal
+            isOpen={!!selectedConcejal}
+            onClose={() => setSelectedConcejal(null)}
+            concejalName={selectedConcejal.full_name}
+            schedule={getUserSchedule(selectedConcejal.id)}
+        />
+      )}
     </div>
   );
 };

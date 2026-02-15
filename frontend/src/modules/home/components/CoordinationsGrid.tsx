@@ -25,8 +25,6 @@ export const CoordinationsGrid = () => {
                 {directiva.map((item) => (
                     <div
                         key={item.id}
-                        // 👇 CLICK: Abrir Modal
-                        onClick={() => setSelectedCoordination(item)}
                         className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all group flex flex-col cursor-pointer hover:-translate-y-1"
                     >
                          {/* ... contenido de la tarjeta igual ... */}
