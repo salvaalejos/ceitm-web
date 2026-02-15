@@ -2,7 +2,7 @@ from sqlmodel import SQLModel, Field
 from typing import Optional, List
 from datetime import datetime
 from pydantic import field_validator, model_validator
-from app.models.scholarship_model import ScholarshipType, ApplicationStatus
+from app.models.scholarship_model import ScholarshipType, ApplicationStatus, ScholarshipPeriod
 
 
 # --- 1. SCHEMAS PARA CUPOS (QUOTAS) ---
@@ -25,14 +25,11 @@ class ScholarshipQuotaRead(ScholarshipQuotaBase):
     used_slots: int
     available_slots: int
 
-    # Calculamos disponible al vuelo si viene del ORM o usamos el valor si ya existe
     @field_validator('available_slots', mode='before', check_fields=False)
     @classmethod
     def calculate_available(cls, v, values):
-        # Si 'v' ya tiene valor (por la propiedad del modelo), lo usamos.
         if v is not None:
             return v
-        # Fallback de seguridad
         data = values.data
         return data.get('total_slots', 0) - data.get('used_slots', 0)
 
@@ -45,7 +42,12 @@ class ScholarshipBase(SQLModel):
     start_date: datetime
     end_date: datetime
     results_date: datetime
-    cycle: str
+
+    # Configuración de Folios
+    year: int
+    period: ScholarshipPeriod
+    folio_identifier: str = Field(max_length=50)
+
     is_active: bool = True
 
 
@@ -55,7 +57,6 @@ class ScholarshipCreate(ScholarshipBase):
 
 class ScholarshipRead(ScholarshipBase):
     id: int
-    # Incluimos los cupos al leer la convocatoria completa
     quotas: List[ScholarshipQuotaRead] = []
 
 
@@ -66,7 +67,11 @@ class ScholarshipUpdate(SQLModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     results_date: Optional[datetime] = None
-    cycle: Optional[str] = None
+
+    year: Optional[int] = None
+    period: Optional[ScholarshipPeriod] = None
+    folio_identifier: Optional[str] = None
+
     is_active: Optional[bool] = None
 
 
@@ -80,7 +85,7 @@ class ApplicationBase(SQLModel):
     career: str
     semester: str
 
-    # FOTO OBLIGATORIA (La sube el alumno)
+    # FOTO OBLIGATORIA
     student_photo: str
 
     # Específicos
@@ -101,12 +106,14 @@ class ApplicationBase(SQLModel):
 
     # Motivos e Historial
     previous_scholarship: str = "No"
+
+    # AHORA ES TOTALMENTE OPCIONAL (Para lógica de Rezagados)
     release_folio: Optional[str] = None
+
     activities: Optional[str] = None
     motivos: str
 
     # Documentos
-    # NOTA: Ya no pedimos doc_request ni doc_motivos aquí porque se generan después
     doc_address: str
     doc_income: str
     doc_ine: str
@@ -114,7 +121,6 @@ class ApplicationBase(SQLModel):
     doc_extra: Optional[str] = None
 
     # --- VALIDACIONES DE NEGOCIO ---
-
     @field_validator('arithmetic_average', 'certified_average')
     @classmethod
     def validate_averages(cls, v):
@@ -122,24 +128,11 @@ class ApplicationBase(SQLModel):
             raise ValueError('El promedio debe estar entre 0 y 100.')
         return v
 
-    @model_validator(mode='after')
-    def check_release_folio(self):
-        prev = self.previous_scholarship
-        folio = self.release_folio
-
-        # Detectar si la respuesta implica haber tenido beca
-        keywords = ["Alimenticia", "Reinscripción", "CLE", "Otro:", "Sí"]
-        has_keyword = any(k in prev for k in keywords) if prev else False
-
-        if has_keyword and (not folio or len(folio.strip()) == 0):
-            raise ValueError(f'Debes ingresar tu Folio de Liberación si tuviste beca ({prev}) anteriormente.')
-
-        return self
+    # NOTA: Se eliminó check_release_folio para permitir flujos de regularización
 
 
 class ApplicationCreate(ApplicationBase):
     scholarship_id: int
-    # Permitimos que sean nulos al crear la solicitud
     doc_request: Optional[str] = None
     doc_motivos: Optional[str] = None
 
@@ -150,8 +143,6 @@ class ApplicationRead(ApplicationBase):
     admin_comments: Optional[str] = None
     created_at: datetime
     scholarship_name: Optional[str] = None
-
-    # Al leer, pueden venir nulos si aún no se generan
     doc_request: Optional[str] = None
     doc_motivos: Optional[str] = None
 
@@ -159,7 +150,6 @@ class ApplicationRead(ApplicationBase):
 class ApplicationUpdate(SQLModel):
     status: Optional[ApplicationStatus] = None
     admin_comments: Optional[str] = None
-    # Permitimos actualizar estos campos (cuando el sistema genere el PDF)
     doc_request: Optional[str] = None
     doc_motivos: Optional[str] = None
 

@@ -11,7 +11,7 @@ import { ScholarshipModal } from '../components/ScholarshipModal';
 import { QuotaManager } from '../components/QuotaManager';
 import {
   CheckCircle, XCircle, Clock, Search, Filter, FileText,
-  AlertTriangle, Edit, PlusCircle, BarChart3
+  AlertTriangle, Edit, PlusCircle, BarChart3, ShieldAlert
 } from 'lucide-react';
 import { usePermissions } from '../../../shared/hooks/usePermissions';
 
@@ -109,7 +109,6 @@ export default function AdminBecas() {
             </p>
         </div>
 
-        {/* Solo mostrar botón de crear si estás en la pestaña de convocatorias y eres admin */}
         {activeTab === 'convocatorias' && canManageBecas && (
           <button
             onClick={handleCreateScholarship}
@@ -123,7 +122,6 @@ export default function AdminBecas() {
       {/* TABS DE NAVEGACIÓN */}
       <div className="border-b border-gray-200 dark:border-slate-700">
         <nav className="-mb-px flex space-x-8">
-
           <button
             onClick={() => setActiveTab('convocatorias')}
             className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${
@@ -146,7 +144,6 @@ export default function AdminBecas() {
             Revisión de Solicitudes
           </button>
 
-          {/* Pestaña Cupos (Solo Admin/Estructura) */}
           {canManageBecas && (
             <button
                 onClick={() => setActiveTab('cupos')}
@@ -270,8 +267,16 @@ export default function AdminBecas() {
                             <td className="px-6 py-4 font-mono text-sm text-gray-900 dark:text-gray-200 font-semibold">{app.control_number}</td>
 
                             <td className="px-6 py-4">
-                                <div className="text-sm font-medium text-gray-900 dark:text-white">{app.full_name}</div>
-                                <div className="text-xs text-gray-500 dark:text-slate-400">{app.email}</div>
+                                <div className="flex flex-col">
+                                    <div className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                                        {app.full_name}
+                                        {/* 👇 ALERTA DE BLACKLIST (Única modificación solicitada) */}
+                                        {app.student?.is_blacklisted && (
+                                            <ShieldAlert size={14} className="text-red-500" title="Alumno en Blacklist" />
+                                        )}
+                                    </div>
+                                    <div className="text-xs text-gray-500 dark:text-slate-400">{app.email}</div>
+                                </div>
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500 dark:text-slate-300">{app.career}</td>
                             <td className="px-6 py-4 text-center">
@@ -306,7 +311,7 @@ export default function AdminBecas() {
         </div>
       )}
 
-      {/* VISTA 3: CUPOS (NUEVA) */}
+      {/* VISTA 3: CUPOS */}
       {activeTab === 'cupos' && canManageBecas && (
         <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700">
             <div className="mb-6 border-b border-gray-100 dark:border-slate-700 pb-4">

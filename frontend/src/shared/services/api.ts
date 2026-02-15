@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
-// 👇 Importamos las constantes
 import { API_BASE_URL, ENDPOINTS } from '../config/constants';
 
 import type {
@@ -8,11 +7,12 @@ import type {
   ScholarshipApplication,
   ScholarshipCreate,
   Complaint,
-  ComplaintStatus,
-  Building
+  Sanction,
+  Shift,
+  DayOfWeek,
+  SanctionSeverity
 } from "../types";
 
-// 👇 Usamos la URL dinámica
 export const api = axios.create({
   baseURL: API_BASE_URL,
 });
@@ -65,7 +65,6 @@ export const deleteUser = async (id: number) => {
 };
 
 export const getCareers = async () => {
-  // Usamos la ruta directa para no obligarte a editar constants.ts ahorita
   const response = await api.get('/carreras/');
   return response.data;
 };
@@ -79,7 +78,6 @@ export const getPublicConcejales = async () => {
   const response = await api.get(ENDPOINTS.USERS.CONCEJALES);
   return response.data;
 };
-// Alias para mantener compatibilidad si lo usas con otro nombre
 export const getConcejalesPublic = getPublicConcejales;
 
 
@@ -107,12 +105,10 @@ export const deleteConvenio = async (id: number) => {
 
 // --- NOTICIAS ---
 export const getNews = async (category?: string) => {
-  // Construimos la URL con el parámetro si existe
   let url = ENDPOINTS.NEWS.BASE;
-  if (category && category !== 'TODAS') { // 'TODAS' es un valor de control del frontend
+  if (category && category !== 'TODAS') {
       url += `?category=${category}`;
   }
-
   const response = await api.get(url);
   return response.data;
 };
@@ -164,7 +160,6 @@ export const deleteDocument = async (id: number) => {
 
 // --- QUEJAS (BUZÓN) ---
 export const createComplaint = async (data: FormData) => {
-  // Al pasar FormData, el Content-Type se ajusta solo a multipart/form-data
   const response = await api.post(ENDPOINTS.COMPLAINTS.BASE, data);
   return response.data;
 };
@@ -174,33 +169,26 @@ export const getComplaints = async () => {
   return response.data;
 };
 
-// NUEVO: Rastreo público por folio
 export const trackComplaint = async (folio: string) => {
-  // NOTA: Asegúrate de que ENDPOINTS.COMPLAINTS.BASE sea '/quejas'
-  // O ajusta aquí directamente: `/quejas/track/${folio}`
   const response = await api.get<Complaint>(`/quejas/track/${folio}`);
   return response.data;
 };
-// Alias para mantener compatibilidad con el código que te pasé antes
 export const getComplaintByFolio = trackComplaint;
 
-// NUEVO: Resolver Ticket (Admin)
 export const resolveComplaint = async (id: number, data: FormData) => {
-  // Axios detectará automáticamente que es FormData y pondrá los headers correctos
   const response = await api.put(`/quejas/${id}/resolve`, data);
   return response.data;
 };
 
-// Deprecado pero mantenido por compatibilidad (usa resolveComplaint preferiblemente)
 export const updateComplaintStatus = async (id: number, status: string) => {
   const response = await api.patch(ENDPOINTS.COMPLAINTS.BY_ID(id), { status });
   return response.data;
 };
 
-// NUEVO: Eliminar Queja
 export const deleteComplaint = async (id: number) => {
   await api.delete(`/quejas/${id}`);
 };
+
 
 // --- BECAS ---
 export const getScholarships = async (activeOnly: boolean = true) => {
@@ -240,53 +228,18 @@ export const checkMyStatus = async (controlNumber: string) => {
   return response.data;
 };
 
-
-// --- UTILIDADES (ARCHIVOS) ---
-export const uploadImage = async (file: File) => {
-  const formData = new FormData();
-  formData.append('file', file);
-  const response = await api.post(ENDPOINTS.UTILS.UPLOAD_IMAGE, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return response.data.url;
-};
-
-export const uploadFile = async (file: File) => {
-  const formData = new FormData();
-  formData.append('file', file);
-  const response = await api.post(ENDPOINTS.UTILS.UPLOAD_FILE, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return response.data;
-};
-
-
-// --- AUDITORÍA ---
-export const getAuditLogs = async (module?: string) => {
-  const params = module ? { module } : {};
-  const response = await api.get(ENDPOINTS.AUDIT.BASE, { params });
-  return response.data;
-};
-
 export const downloadExpediente = async (applicationId: number, controlNumber: string) => {
     try {
         const response = await api.get(`/becas/applications/${applicationId}/download`, {
-            responseType: 'blob' // Importante: Le dice a Axios que esperamos un archivo
+            responseType: 'blob'
         });
 
-        // Crear una URL temporal para el archivo descargado
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
-
-        // Nombre del archivo que se guardará
         link.setAttribute('download', `Expediente_${controlNumber}.pdf`);
-
-        // Click automático
         document.body.appendChild(link);
         link.click();
-
-        // Limpieza
         link.remove();
         window.URL.revokeObjectURL(url);
     } catch (error) {
@@ -311,9 +264,107 @@ export const updateQuota = async (quotaId: number, totalSlots: number) => {
     return response.data;
 };
 
-// --- MAPA (PONYMAP) ---
 
-// --- MAPA (PONYMAP) ---
+// ==========================================
+// 🚀 NUEVO: MÓDULO CONTRALORÍA (Fase 2)
+// ==========================================
+
+// --- GUARDIAS (SHIFTS) ---
+export const getShifts = async () => {
+  // Conectamos con el endpoint /api/v1/shifts/
+  const response = await api.get<Shift[]>('/shifts/');
+  return response.data;
+};
+
+export const createShift = async (data: { user_id: number; day: DayOfWeek; hour: number }) => {
+  const response = await api.post<Shift>('/shifts/', data);
+  return response.data;
+};
+
+export const deleteShift = async (id: number) => {
+  const response = await api.delete(`/shifts/${id}`);
+  return response.data;
+};
+
+// --- SANCIONES ---
+export const getSanctions = async () => {
+  // Conectamos con el endpoint /api/v1/sanctions/
+  const response = await api.get<Sanction[]>('/sanctions/');
+  return response.data;
+};
+
+export const createSanction = async (data: {
+  user_id: number;
+  severity: SanctionSeverity;
+  reason: string;
+  penalty_description: string
+}) => {
+  const response = await api.post<Sanction>('/sanctions/', data);
+  return response.data;
+};
+
+export const updateSanction = async (id: number, data: Partial<Sanction>) => {
+  const response = await api.put<Sanction>(`/sanctions/${id}`, data);
+  return response.data;
+};
+
+export const deleteSanction = async (id: number) => {
+  const response = await api.delete(`/sanctions/${id}`);
+  return response.data;
+};
+
+
+// ==========================================
+// 🚀 NUEVO: MÓDULO AUDITORÍA (Base de Datos)
+// ==========================================
+export const getAuditLogs = async (module?: string) => {
+  const params = module ? { module } : {};
+  const response = await api.get(ENDPOINTS.AUDIT.BASE, { params });
+  return response.data;
+};
+
+export const downloadDbBackup = async () => {
+    try {
+        const response = await api.get('/audit/dump', { responseType: 'blob' });
+
+        // Generar nombre con fecha: backup_2025-02-14.sql
+        const dateStr = new Date().toISOString().split('T')[0];
+        const fileName = `backup_${dateStr}.sql`;
+
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error("Error descargando respaldo:", error);
+        throw error;
+    }
+};
+
+
+// --- MAPA & UTILIDADES ---
+export const uploadImage = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post(ENDPOINTS.UTILS.UPLOAD_IMAGE, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data.url;
+};
+
+export const uploadFile = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post(ENDPOINTS.UTILS.UPLOAD_FILE, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+};
+
 export const getBuildings = async () => {
   const response = await api.get('/map/buildings');
   return response.data;
@@ -329,7 +380,6 @@ export const getBuildingById = async (id: number) => {
   return response.data;
 };
 
-// NUEVAS FUNCIONES ADMIN
 export const createBuilding = async (data: any) => {
     const response = await api.post('/map/buildings', data);
     return response.data;
@@ -358,4 +408,14 @@ export const updateRoom = async (id: number, data: any) => {
 export const deleteRoom = async (id: number) => {
     const response = await api.delete(`/map/rooms/${id}`);
     return response.data;
+};
+
+export const getStudents = async () => {
+  const response = await api.get('/becas/students'); // Endpoint que maneja el modelo Student
+  return response.data;
+};
+
+export const updateStudentStatus = async (controlNumber: string, data: any) => {
+  const response = await api.patch(`/becas/students/${controlNumber}`, data);
+  return response.data;
 };

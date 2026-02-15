@@ -13,6 +13,7 @@ export const AREAS = {
   BECAS: 'Becas y Apoyos',
   COMUNICACION: 'Comunicación y Difusión',
   MARKETING: 'Marketing y Diseño',
+  PYL: 'Prevención y Logística',
   VINCULACION: 'Vinculación',
   CONTRALORIA: 'Contraloría',
   ACADEMICO: 'Académico',
@@ -84,6 +85,14 @@ export const usePermissions = () => {
   // Hereda permisos de Power User (Admin + Estructura)
   const canManageMap = isPowerUser;
 
+  // G. CONTRALORÍA
+  const isContraloria = area === AREAS.CONTRALORIA;
+  const canManageContraloria = isAdmin || isContraloria;
+
+  // H. PyL (Prevención y Logística)
+  const  isPyL = area === AREAS.PYL;
+  const canManageBecarios = isPowerUser|| isPyL || isBecasTeam;
+
   return {
     user,
     role,
@@ -98,6 +107,8 @@ export const usePermissions = () => {
     canManageConvenios,
     canManageNoticias,
     canManageQuejas,
+    canManageContraloria,
+    canManageBecarios,
     canManageMap
   };
 };

@@ -10,8 +10,13 @@ from slowapi.middleware import SlowAPIMiddleware
 
 from app.core.database import init_db, get_session
 from app.core.config import settings
-from app.core.limiter import limiter  # <--- Importamos el objeto limiter creado en el paso anterior
-from app.api.v1.endpoints import convenios, login, utils, users, news, documents, complaints, scholarships, audit, careers, map
+from app.core.limiter import limiter
+# --- ACTUALIZACIÓN: Agregamos 'shifts' y 'sanctions' a los imports ---
+from app.api.v1.endpoints import (
+    convenios, login, utils, users, news, documents,
+    complaints, scholarships, audit, careers, map,
+    shifts, sanctions
+)
 
 
 @asynccontextmanager
@@ -39,7 +44,6 @@ app = FastAPI(
 )
 
 # --- RATE LIMITER SETUP ---
-# Conectamos el limitador a la instancia de la app
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
@@ -49,9 +53,8 @@ app.add_middleware(SlowAPIMiddleware)
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "http://ceitm.ddnsking.com",   # 👈 Frontend Producción (HTTP)
-    "https://ceitm.ddnsking.com",  # 👈 Frontend Producción (HTTPS - Futuro)
-
+    "http://ceitm.ddnsking.com",
+    "https://ceitm.ddnsking.com",
 ]
 
 app.add_middleware(
@@ -64,11 +67,9 @@ app.add_middleware(
 
 
 # --- SERVIR ARCHIVOS ESTÁTICOS (IMÁGENES) ---
-# Esto hace que todo lo que esté en /backend/static sea accesible en /static
-# Ej: http://localhost:8000/static/images/flyer.jpg
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Registro de rutas
+# --- REGISTRO DE RUTAS (ROUTERS) ---
 app.include_router(convenios.router, prefix="/api/v1/convenios", tags=["Convenios"])
 app.include_router(login.router, prefix="/api/v1", tags=["Auth"])
 app.include_router(utils.router, prefix="/api/v1/utils", tags=["Utilidades"])
@@ -77,9 +78,14 @@ app.include_router(news.router, prefix="/api/v1/noticias", tags=["Noticias"])
 app.include_router(documents.router, prefix="/api/v1/documentos", tags=["Transparencia"])
 app.include_router(complaints.router, prefix="/api/v1/quejas", tags=["Buzón de Quejas"])
 app.include_router(scholarships.router, prefix="/api/v1/becas", tags=["Becas"])
-app.include_router(audit.router, prefix="/api/v1/audit", tags=["audit"])
+app.include_router(audit.router, prefix="/api/v1/audit", tags=["Audit"])
 app.include_router(careers.router, prefix="/api/v1/carreras", tags=["Carreras"])
 app.include_router(map.router, prefix="/api/v1/map", tags=["Mapa"])
+
+# --- NUEVOS MÓDULOS (CONTRALORÍA) ---
+app.include_router(shifts.router, prefix="/api/v1/shifts", tags=["Guardias"])
+app.include_router(sanctions.router, prefix="/api/v1/sanctions", tags=["Sanciones"])
+
 
 @app.get("/")
 def read_root():

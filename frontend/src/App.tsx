@@ -34,6 +34,8 @@ import AdminMap from './modules/admin/pages/AdminMap';
 import { ProtectedRoute } from './modules/auth/components/ProtectedRoute';
 import RouteTracker from './shared/components/RouteTracker';
 import {ReloadPrompt} from "./shared/components/ReloadPrompt.tsx";
+import AdminContraloria from "./modules/admin/pages/AdminContraloria.tsx";
+import AdminBecarios from "./modules/admin/pages/AdminBecarios.tsx";
 
 function App() {
   return (
@@ -74,6 +76,7 @@ function App() {
             <Route path="convenios" element={<AdminConvenios />} />
             <Route path="usuarios" element={<AdminUsuarios />} />
             <Route path="noticias" element={<AdminNoticias />} />
+            <Route path="contraloria" element={<AdminContraloria />} />
             <Route path="documentos" element={<AdminDocumentos />} />
             <Route path="perfil" element={<AdminProfile />} />
             <Route path="quejas" element={<AdminQuejas />} />
@@ -81,6 +84,7 @@ function App() {
             <Route path="auditoria" element={<AdminLogs />} />
             <Route path="carreras" element={<AdminCarreras />} />
             <Route path="mapa" element={<AdminMap />} />
+            <Route path="becarios" element={<AdminBecarios />} />
         </Route>
 
         <Route path="*" element={<div className="p-10 text-center">404 - Página no encontrada</div>} />

@@ -1,7 +1,12 @@
-from sqlmodel import SQLModel, Field
-from typing import Optional
+from sqlmodel import SQLModel, Field, Relationship
+from typing import Optional, List, TYPE_CHECKING
 from enum import Enum
 from datetime import datetime
+
+# Evitamos ciclos de importación
+if TYPE_CHECKING:
+    from app.models.sanction_model import Sanction
+    from app.models.shift_model import Shift
 
 
 # 1. JERARQUÍA (El "Nivel" o Rango)
@@ -45,7 +50,7 @@ class User(SQLModel, table=True):
     phone_number: Optional[str] = Field(default=None)  # Para WhatsApp
     instagram_url: Optional[str] = Field(default=None)  # Link al perfil
 
-    # --- NUEVA ESTRUCTURA ---
+    # --- ESTRUCTURA ---
     role: UserRole = Field(default=UserRole.VOCAL)  # Jerarquía
     area: UserArea = Field(default=UserArea.NINGUNA)  # Departamento
 
@@ -55,3 +60,11 @@ class User(SQLModel, table=True):
     imagen_url: Optional[str] = None
     is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # --- NUEVAS RELACIONES (Actualización Fase 1) ---
+
+    # 1. Historial de Sanciones del usuario
+    sanctions: List["Sanction"] = Relationship(back_populates="user")
+
+    # 2. Horarios de Guardia asignados
+    shifts: List["Shift"] = Relationship(back_populates="user")

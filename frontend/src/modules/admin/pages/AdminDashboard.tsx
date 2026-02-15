@@ -8,7 +8,8 @@ import {
   ArrowRight,
   TrendingUp,
   Activity,
-  FileText
+  FileText,
+  CalendarDays // Icono para el horario
 } from 'lucide-react';
 import { useAuthStore } from '../../../shared/store/authStore';
 import { usePermissions } from '../../../shared/hooks/usePermissions';
@@ -18,10 +19,12 @@ import {
   getNews,
   getComplaints
 } from '../../../shared/services/api';
-// 👇 1. IMPORTAR WIDGET DE ANALYTICS
-import { AnalyticsWidget } from '../components/AnalyticsWidget';
 
-// --- COMPONENTE: TARJETA DE ESTADÍSTICA ---
+// Componentes locales
+import { GoogleAnalyticsSection } from '../components/GoogleAnalyticsSection';
+import WeeklyScheduleGrid from '../components/WeeklyScheduleGrid';
+
+// --- COMPONENTE: TARJETA DE ESTADÍSTICA (Tu estándar) ---
 const StatCard = ({ title, value, icon: Icon, color, to, subtitle }: any) => (
   <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all group">
     <div className="flex justify-between items-start mb-4">
@@ -69,22 +72,18 @@ export const AdminDashboard = () => {
     setLoading(true);
     try {
       const promises = [];
-
       if (canManageUsers) {
         promises.push(getUsers().then(data => ({ key: 'users', val: data.length })));
       }
-
       if (canReviewBecas) {
         promises.push(getScholarships(false).then(data => {
             const active = data.filter((s: any) => s.is_active).length;
             return { key: 'scholarships', val: data.length, extra: active };
         }));
       }
-
       if (canManageNoticias) {
         promises.push(getNews().then(data => ({ key: 'news', val: data.length })));
       }
-
       promises.push(getComplaints().then(data => ({ key: 'complaints', val: data.length })));
 
       const results = await Promise.allSettled(promises);
@@ -96,7 +95,6 @@ export const AdminDashboard = () => {
         }
       });
       setStats(newStats);
-
     } catch (error) {
       console.error("Error cargando dashboard:", error);
     } finally {
@@ -119,26 +117,16 @@ export const AdminDashboard = () => {
                  `Gestión del área de ${user?.area || 'Operaciones'}.`}
             </p>
         </div>
-
         <div className="text-sm text-gray-400 bg-white dark:bg-slate-900 px-4 py-2 rounded-lg border border-gray-100 dark:border-slate-800 shadow-sm">
             📅 {new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </div>
       </div>
 
-      {/* --- SECCIÓN ANALYTICS (NUEVO) --- */}
-      {/* Solo mostramos esto a Admins/Estructura para no saturar a los Concejales */}
-      {canManageUsers && (
-          <section className="animate-fade-in">
-              <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-                  <Activity className="text-guinda-600" size={20} /> Métricas de Google Analytics
-              </h2>
-              <AnalyticsWidget />
-          </section>
-      )}
+      {/* --- SECCIÓN ANALYTICS (Componente separado) --- */}
+      <GoogleAnalyticsSection isVisible={canManageUsers} />
 
-      {/* --- STATS GRID (Dinámico) --- */}
+      {/* --- STATS GRID --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-
         {canManageUsers && (
             <StatCard
                 title="Usuarios Totales"
@@ -149,7 +137,6 @@ export const AdminDashboard = () => {
                 subtitle="Administradores y Staff"
             />
         )}
-
         {canReviewBecas && (
             <StatCard
                 title="Convocatorias"
@@ -160,7 +147,6 @@ export const AdminDashboard = () => {
                 subtitle={`${stats.activeScholarships} Activas actualmente`}
             />
         )}
-
         {canManageNoticias && (
             <StatCard
                 title="Noticias Publicadas"
@@ -171,7 +157,6 @@ export const AdminDashboard = () => {
                 subtitle="Visibles en la app"
             />
         )}
-
         <StatCard
             title="Quejas Recibidas"
             value={loading ? '...' : stats.complaints}
@@ -180,20 +165,28 @@ export const AdminDashboard = () => {
             to="/admin/quejas"
             subtitle="Buzón Estudiantil"
         />
-
       </div>
+
+      {/* --- SECCIÓN: HORARIO DE GUARDIAS (NUEVO) --- */}
+      <section className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-6">
+          <CalendarDays className="text-guinda-600" size={24} />
+          <div>
+            <h3 className="font-bold text-lg text-gray-900 dark:text-white">Horario de Guardias</h3>
+            <p className="text-xs text-gray-500">Consulta de turnos de atención presencial</p>
+          </div>
+        </div>
+        <WeeklyScheduleGrid />
+      </section>
 
       {/* --- SECCIONES ESPECÍFICAS POR ROL --- */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
         {/* PANEL IZQUIERDO: ACCIONES RÁPIDAS */}
         <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 p-6 shadow-sm">
             <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-6 flex items-center gap-2">
                 <TrendingUp size={20} className="text-guinda-600" /> Acciones Rápidas
             </h3>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
                 {canReviewBecas && (
                     <Link to="/admin/becas" className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-slate-800 hover:bg-guinda-50 dark:hover:bg-slate-700 transition-colors group border border-transparent hover:border-guinda-200">
                         <div className="bg-white dark:bg-slate-700 p-3 rounded-lg text-guinda-600 shadow-sm group-hover:scale-110 transition-transform">
@@ -205,7 +198,6 @@ export const AdminDashboard = () => {
                         </div>
                     </Link>
                 )}
-
                 {canManageNoticias && (
                     <Link to="/admin/noticias" className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors group border border-transparent hover:border-blue-200">
                         <div className="bg-white dark:bg-slate-700 p-3 rounded-lg text-blue-600 shadow-sm group-hover:scale-110 transition-transform">
@@ -217,7 +209,6 @@ export const AdminDashboard = () => {
                         </div>
                     </Link>
                 )}
-
                 <Link to="/admin/quejas" className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-slate-700 transition-colors group border border-transparent hover:border-orange-200">
                     <div className="bg-white dark:bg-slate-700 p-3 rounded-lg text-orange-600 shadow-sm group-hover:scale-110 transition-transform">
                         <MessageSquareWarning size={24} />
@@ -227,7 +218,6 @@ export const AdminDashboard = () => {
                         <p className="text-xs text-gray-500">Revisar reportes recientes</p>
                     </div>
                 </Link>
-
                 <Link to="/admin/documentos" className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-slate-800 hover:bg-green-50 dark:hover:bg-slate-700 transition-colors group border border-transparent hover:border-green-200">
                     <div className="bg-white dark:bg-slate-700 p-3 rounded-lg text-green-600 shadow-sm group-hover:scale-110 transition-transform">
                         <FileText size={24} />
@@ -237,16 +227,14 @@ export const AdminDashboard = () => {
                         <p className="text-xs text-gray-500">Formatos y reglamentos</p>
                     </div>
                 </Link>
-
             </div>
         </div>
 
-        {/* PANEL DERECHO: ACTIVIDAD RECIENTE */}
+        {/* PANEL DERECHO: ESTADO DEL SISTEMA */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 p-6 shadow-sm">
             <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-6 flex items-center gap-2">
                 <Activity size={20} className="text-blue-500" /> Estado del Sistema
             </h3>
-
             <div className="space-y-6">
                 <div className="flex items-start gap-4">
                     <div className="w-2 h-2 mt-2 rounded-full bg-green-500 shrink-0"></div>
@@ -255,7 +243,6 @@ export const AdminDashboard = () => {
                         <p className="text-xs text-gray-500">Todos los servicios funcionando</p>
                     </div>
                 </div>
-
                 <div className="flex items-start gap-4">
                     <div className="w-2 h-2 mt-2 rounded-full bg-guinda-500 shrink-0"></div>
                     <div>
@@ -263,7 +250,6 @@ export const AdminDashboard = () => {
                         <p className="text-xs text-gray-500">Enero - Junio 2025</p>
                     </div>
                 </div>
-
                 {isConcejal && (
                     <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-900/30">
                         <p className="text-xs font-bold text-blue-700 dark:text-blue-400 mb-1">RECORDATORIO</p>
@@ -274,7 +260,6 @@ export const AdminDashboard = () => {
                 )}
             </div>
         </div>
-
       </div>
     </div>
   );

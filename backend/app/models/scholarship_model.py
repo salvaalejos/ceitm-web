@@ -1,7 +1,11 @@
 from sqlmodel import SQLModel, Field, Relationship
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from enum import Enum
 from datetime import datetime
+
+# Evitamos importaciones circulares
+if TYPE_CHECKING:
+    from app.models.student_model import Student
 
 
 class ScholarshipType(str, Enum):
@@ -17,9 +21,17 @@ class ApplicationStatus(str, Enum):
     APROBADA = "Aprobada"
     RECHAZADA = "Rechazada"
     DOCUMENTACION_FALTANTE = "Documentación Faltante"
+    LIBERADA = "Liberada"
 
 
-# --- NUEVO: CUPOS POR CARRERA ---
+# --- NUEVO: Periodos Escolares Estandarizados ---
+class ScholarshipPeriod(str, Enum):
+    ENE_JUN = "Enero-Junio"
+    AGO_DIC = "Agosto-Diciembre"
+    VERANO = "Verano"
+
+
+# --- CUPOS POR CARRERA ---
 class ScholarshipQuota(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     scholarship_id: int = Field(foreign_key="scholarship.id", index=True)
@@ -29,13 +41,12 @@ class ScholarshipQuota(SQLModel, table=True):
 
     scholarship: "Scholarship" = Relationship(back_populates="quotas")
 
-    # Propiedad para facilitar cálculos en el backend
     @property
     def available_slots(self) -> int:
         return self.total_slots - self.used_slots
 
 
-# --- CONVOCATORIA ---
+# --- CONVOCATORIA (ADMIN) ---
 class Scholarship(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
@@ -44,18 +55,30 @@ class Scholarship(SQLModel, table=True):
     start_date: datetime
     end_date: datetime
     results_date: datetime
-    cycle: str
+
+    # --- CAMBIO: Configuración Manual del Folio ---
+    # En lugar de un string "cycle", usamos datos estructurados
+    year: int = Field(default_factory=lambda: datetime.now().year)
+    period: ScholarshipPeriod = Field(default=ScholarshipPeriod.ENE_JUN)
+
+    # Identificador de Actividad (ej. "Recolecta", "Donación", "Servicio")
+    # De aquí tomaremos las primeras 3 letras (REC, DON, SER)
+    folio_identifier: str = Field(max_length=50)
+
     is_active: bool = True
 
     # Relaciones
     applications: List["ScholarshipApplication"] = Relationship(back_populates="scholarship")
-    quotas: List["ScholarshipQuota"] = Relationship(back_populates="scholarship")  # <--- ESTA LÍNEA FALTABA
+    quotas: List["ScholarshipQuota"] = Relationship(back_populates="scholarship")
 
 
 # --- SOLICITUD ---
 class ScholarshipApplication(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     scholarship_id: int = Field(foreign_key="scholarship.id")
+
+    # Vinculación con Expediente de Alumno
+    student_id: Optional[str] = Field(default=None, foreign_key="student.control_number")
 
     # 1. DATOS PERSONALES
     full_name: str
@@ -65,7 +88,7 @@ class ScholarshipApplication(SQLModel, table=True):
     career: str
     semester: str
 
-    # NUEVO: Foto del Estudiante
+    # Foto del Estudiante
     student_photo: str
 
     # Específicos
@@ -86,16 +109,16 @@ class ScholarshipApplication(SQLModel, table=True):
 
     # 4. MOTIVOS E HISTORIAL
     previous_scholarship: str = Field(default="No")
-    release_folio: Optional[str] = Field(default=None, index=True)
+
+    # Folio Único de Liberación
+    release_folio: Optional[str] = Field(default=None, unique=True, index=True)
+
     activities: Optional[str] = None
     motivos: str = Field(max_length=2000)
 
     # 5. DOCUMENTOS
-    # Opcionales porque se generan automáticamente
     doc_request: Optional[str] = None
     doc_motivos: Optional[str] = None
-
-    # Obligatorios (Evidencias subidas)
     doc_address: str
     doc_income: str
     doc_ine: str
@@ -107,4 +130,6 @@ class ScholarshipApplication(SQLModel, table=True):
     admin_comments: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+    # Relaciones
     scholarship: Optional[Scholarship] = Relationship(back_populates="applications")
+    student: Optional["Student"] = Relationship(back_populates="applications")

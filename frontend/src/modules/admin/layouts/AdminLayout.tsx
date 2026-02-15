@@ -1,8 +1,23 @@
 import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-    Menu, X, Sun, Moon, LogOut,
-    LayoutDashboard, Newspaper, Store, Users, FolderOpen, GraduationCap, Inbox, Activity, BookOpen, MapPin // <--- IMPORTAMOS MapPin
+    Menu,
+    X,
+    Sun,
+    Moon,
+    LogOut,
+    LayoutDashboard,
+    Newspaper,
+    Store,
+    Users,
+    FolderOpen,
+    GraduationCap,
+    Inbox,
+    Activity,
+    BookOpen,
+    MapPin,
+    ShieldCheck,
+    Heart // <--- IMPORTAMOS MapPin
 } from 'lucide-react';
 import { useAuthStore } from '../../../shared/store/authStore';
 import { usePermissions } from '../../../shared/hooks/usePermissions';
@@ -23,7 +38,9 @@ export const AdminLayout = () => {
     canManageNoticias,
     canManageConvenios,
     canReviewBecas,
-    canManageMap // <--- Ahora viene del hook
+    canManageMap,
+    canManageContraloria,
+    canManageBecarios
   } = usePermissions();
 
   // Sincronizar tema al cargar
@@ -112,6 +129,20 @@ export const AdminLayout = () => {
                     <Link to="/admin/noticias" className={getLinkClass('/admin/noticias')}>
                         <Newspaper size={20} />
                         Noticias y Avisos
+                    </Link>
+                )}
+
+                {canManageContraloria && (
+                    <Link to="/admin/contraloria" className={getLinkClass('/admin/contraloria')}>
+                        <ShieldCheck size={20} />
+                        Contraloría
+                    </Link>
+                )}
+
+                {canManageBecarios && (
+                    <Link to="/admin/becarios" className={getLinkClass('/admin/becarios')}>
+                        <Heart  size={20} />
+                        Contraloría
                     </Link>
                 )}
 
