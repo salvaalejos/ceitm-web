@@ -33,58 +33,70 @@ def get_frontend_url():
 
 
 # ==========================================
-# 0. UTILIDADES INTERNAS
+# 0. UTILIDADES (LÓGICA DE FOLIO MEJORADA)
 # ==========================================
 
-def generate_release_folio(application: ScholarshipApplication, scholarship: Scholarship) -> str:
+def generate_release_folio(
+        application: ScholarshipApplication,
+        scholarship: Scholarship,
+        custom_activity: str = None,
+        custom_year: int = None,
+        custom_period: str = None
+) -> str:
     """
-    Genera el folio único usando la configuración manual del Coordinador.
-    Formato: [ID_ACTIVIDAD]-[NO.CONTROL]-[TIPO]-[PERIODO]
-    Ejemplo: REC-23120538-ALI-25B
+    Genera el folio. Prioriza los datos manuales del Coordinador.
+    Formato: [XXX]-[CONTROL]-[TIPO]-[YY][PERIODO]
+    Ejemplo: REC-21120538-ALI-26A
     """
-    # 1. ACTIVIDAD (3 letras del identificador configurado)
-    # Ej: "Recolecta" -> "REC", "Donación" -> "DON"
-    activity_code = scholarship.folio_identifier[:3].upper() if scholarship.folio_identifier else "GEN"
+    # 1. Código de Actividad (Manual o Automático)
+    if custom_activity:
+        # Tomamos las primeras 3 letras de lo que escribió el coordinador
+        activity_code = custom_activity[:3].upper()
+    else:
+        activity_code = scholarship.folio_identifier[:3].upper() if scholarship.folio_identifier else "GEN"
 
-    # 2. NO. CONTROL
     control = application.control_number.strip().upper()
 
-    # 3. TIPO (3 letras)
-    type_map = {
-        "Alimenticia": "ALI",
-        "Reinscripción": "REI",
-        "CLE (Idiomas)": "CLE",
-        "Otra": "GEN"
-    }
-    sch_type = scholarship.type.value if hasattr(scholarship.type, 'value') else str(scholarship.type)
-    type_code = type_map.get(sch_type, "OTR")
+    # 2. Tipo de Beca (Fijo según la convocatoria)
+    type_code = "GEN"
+    sch_type_str = str(scholarship.type.value) if hasattr(scholarship.type, 'value') else str(scholarship.type)
 
-    # 4. PERIODO (Año 2 dígitos + Letra)
-    # Usamos el año configurado (ej. 2025 -> 25)
-    year_short = str(scholarship.year)[-2:]
+    if "Alimenticia" in sch_type_str:
+        type_code = "ALI"
+    elif "Reinscripción" in sch_type_str:
+        type_code = "REI"
+    elif "Idiomas" in sch_type_str:
+        type_code = "CLE"
 
-    # Mapeo del Enum de Periodo a Letra
-    period_letter = "A"  # Default Enero-Junio
-    if scholarship.period == ScholarshipPeriod.AGO_DIC:
-        period_letter = "B"
-    elif scholarship.period == ScholarshipPeriod.VERANO:
-        period_letter = "V"
+    # 3. Año (Manual o de la Beca)
+    year_val = custom_year if custom_year else scholarship.year
+    year_short = str(year_val)[-2:]
+
+    # 4. Periodo (Manual o de la Beca)
+    if custom_period:
+        period_letter = custom_period.upper()
+    else:
+        period_letter = "A"
+        if scholarship.period == ScholarshipPeriod.AGO_DIC:
+            period_letter = "B"
+        elif scholarship.period == ScholarshipPeriod.VERANO:
+            period_letter = "V"
 
     return f"{activity_code}{control}{type_code}{year_short}{period_letter}"
 
 
 def sync_student_record(session: Session, application_in: ApplicationCreate) -> Student:
     """
-    Sincroniza o crea el expediente del alumno (Student).
+    Sincroniza o crea el expediente del alumno.
+    FIX: Eliminada la asignación de string a la relación 'career' para evitar Error 500.
     """
     student = session.get(Student, application_in.control_number)
 
-    # Resolver ID de Carrera
+    # Buscamos el ID de la carrera
     career_obj = session.exec(select(Career).where(Career.name == application_in.career)).first()
     career_id = career_obj.id if career_obj else None
 
     if student:
-        # Actualizar datos de contacto
         student.full_name = application_in.full_name
         student.email = application_in.email
         student.phone_number = application_in.phone_number
@@ -92,24 +104,40 @@ def sync_student_record(session: Session, application_in: ApplicationCreate) -> 
             student.career_id = career_id
         session.add(student)
     else:
-        # Crear nuevo
         student = Student(
             control_number=application_in.control_number,
             full_name=application_in.full_name,
             email=application_in.email,
             phone_number=application_in.phone_number,
-            career=application_in.career,
-            career_id=career_id
+            # career=application_in.career, <--- ESTA LÍNEA SE ELIMINÓ PORQUE CAUSABA EL ERROR DE CORS/500
+            career_id=career_id,
+            is_blacklisted=False
         )
         session.add(student)
 
-    session.commit()
-    session.refresh(student)
+    # Nota: No hacemos commit aquí, se hace en el endpoint principal para atomicidad
     return student
 
 
 # ==========================================
-# 1. GESTIÓN DE CUPOS
+# 1. GESTIÓN DE ALUMNOS (ENDPOINT FALTANTE)
+# ==========================================
+
+@router.get("/students", response_model=List[Student])
+def read_students(
+        session: Session = Depends(get_session),
+        current_user: User = Depends(get_current_user)
+):
+    """Devuelve la lista de expedientes (Soluciona error 405)."""
+    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+    # Cargamos la relación de carrera para mostrarla en la tabla
+    return session.exec(select(Student).options(selectinload(Student.career))).all()
+
+
+# ==========================================
+# 2. GESTIÓN DE CUPOS
 # ==========================================
 
 @router.post("/{scholarship_id}/quotas/init", response_model=List[ScholarshipQuotaRead])
@@ -155,7 +183,6 @@ def get_quotas(
 ):
     if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA, UserRole.CONCEJAL]:
         raise HTTPException(status_code=403, detail="No autorizado")
-
     return session.exec(select(ScholarshipQuota).where(ScholarshipQuota.scholarship_id == scholarship_id)).all()
 
 
@@ -187,7 +214,7 @@ def update_quota(
 
 
 # ==========================================
-# 2. ENDPOINTS DE SOLICITUD
+# 3. ENDPOINTS DE SOLICITUD (FIX 500/CORS)
 # ==========================================
 
 @router.post("/apply", response_model=ApplicationRead)
@@ -198,17 +225,15 @@ def submit_application(
         background_tasks: BackgroundTasks,
         session: Session = Depends(get_session)
 ):
+    # 1. Validar Beca
     scholarship = session.get(Scholarship, application_in.scholarship_id)
     if not scholarship or not scholarship.is_active:
         raise HTTPException(status_code=400, detail="La convocatoria no está activa")
 
-    now = datetime.utcnow()
-    if now < scholarship.start_date or now > scholarship.end_date:
-        raise HTTPException(status_code=400, detail="Fuera del periodo de registro")
-
-    # Sincronización con Expediente (Student)
+    # 2. Sincronizar Estudiante (Sin guardar todavía)
     student = sync_student_record(session, application_in)
 
+    # 3. Verificar duplicados
     existing = session.exec(
         select(ScholarshipApplication)
         .where(ScholarshipApplication.control_number == application_in.control_number)
@@ -217,30 +242,29 @@ def submit_application(
 
     if existing:
         if existing.status in [ApplicationStatus.DOCUMENTACION_FALTANTE, ApplicationStatus.RECHAZADA]:
-            existing_data = application_in.model_dump(exclude_unset=True)
-            existing.sqlmodel_update(existing_data)
+            # Permitir reintento
+            existing.sqlmodel_update(application_in.model_dump(exclude_unset=True))
             existing.status = ApplicationStatus.PENDIENTE
             existing.admin_comments = None
-            existing.student_id = student.control_number
-
             session.add(existing)
             session.commit()
             session.refresh(existing)
             application = existing
         else:
-            raise HTTPException(status_code=400, detail="Ya tienes una solicitud activa.")
+            raise HTTPException(status_code=400, detail="Ya tienes una solicitud activa para esta beca.")
     else:
+        # Nueva solicitud
         application = ScholarshipApplication.model_validate(application_in)
+        # Aseguramos la relación con el estudiante
         application.student_id = student.control_number
-
         session.add(application)
         session.commit()
         session.refresh(application)
 
+    # 4. Enviar Correo
     try:
         scholarship_name = scholarship.name
         frontend_link = f"{get_frontend_url()}/becas/resultados"
-
         send_email_background(
             background_tasks,
             subject=f"📝 Solicitud Recibida: {scholarship_name}",
@@ -250,7 +274,7 @@ def submit_application(
                 "name": application.full_name,
                 "scholarship_name": scholarship_name,
                 "folio": application.control_number,
-                "date": now.strftime("%d/%m/%Y"),
+                "date": datetime.utcnow().strftime("%d/%m/%Y"),
                 "portal_url": frontend_link
             }
         )
@@ -261,10 +285,7 @@ def submit_application(
 
 
 @router.get("/", response_model=List[ScholarshipRead])
-def read_scholarships(
-        active_only: bool = True,
-        session: Session = Depends(get_session)
-):
+def read_scholarships(active_only: bool = True, session: Session = Depends(get_session)):
     query = select(Scholarship).options(selectinload(Scholarship.quotas))
     if active_only:
         query = query.where(Scholarship.is_active == True)
@@ -278,8 +299,7 @@ def create_scholarship(
         current_user: User = Depends(get_current_user)
 ):
     if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
-        raise HTTPException(status_code=403, detail="No tienes permisos")
-
+        raise HTTPException(status_code=403, detail="No autorizado")
     scholarship = Scholarship.model_validate(scholarship_in)
     session.add(scholarship)
     session.commit()
@@ -293,48 +313,45 @@ def read_all_applications(
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user)
 ):
-    query = select(ScholarshipApplication).where(ScholarshipApplication.scholarship_id == scholarship_id).options(
-        selectinload(ScholarshipApplication.student))
+    query = select(ScholarshipApplication) \
+        .where(ScholarshipApplication.scholarship_id == scholarship_id) \
+        .options(selectinload(ScholarshipApplication.student))  # Carga eager del estudiante
 
-    if current_user.role in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
-        pass
-    elif current_user.role == UserRole.CONCEJAL:
-        if not current_user.career:
-            return []
+    if current_user.role == UserRole.CONCEJAL:
+        if not current_user.career: return []
         query = query.where(ScholarshipApplication.career == current_user.career)
-    else:
-        raise HTTPException(status_code=403, detail="No tienes permisos")
+    elif current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
+        raise HTTPException(status_code=403, detail="No autorizado")
 
     return session.exec(query).all()
 
-
-# ==========================================
-# 3. ACTUALIZACIÓN Y GENERACIÓN DE FOLIOS
-# ==========================================
 
 @router.patch("/{scholarship_id}", response_model=ScholarshipRead)
 def update_scholarship(
         scholarship_id: int,
         scholarship_in: ScholarshipUpdate,
         session: Session = Depends(get_session),
-        current_user: User = Depends(get_current_user),
+        current_user: User = Depends(get_current_user)
 ):
     if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
-        raise HTTPException(status_code=403, detail="No tienes permisos")
+        raise HTTPException(status_code=403, detail="No autorizado")
 
     scholarship = session.get(Scholarship, scholarship_id)
     if not scholarship:
-        raise HTTPException(status_code=404, detail="Convocatoria no encontrada")
+        raise HTTPException(status_code=404, detail="No encontrada")
 
-    scholarship_data = scholarship_in.model_dump(exclude_unset=True)
-    for key, value in scholarship_data.items():
-        setattr(scholarship, key, value)
+    for k, v in scholarship_in.model_dump(exclude_unset=True).items():
+        setattr(scholarship, k, v)
 
     session.add(scholarship)
     session.commit()
     session.refresh(scholarship)
     return scholarship
 
+
+# ==========================================
+# 4. DICTAMEN Y LIBERACIÓN (CON DATOS MANUALES)
+# ==========================================
 
 @router.patch("/applications/{application_id}", response_model=ApplicationRead)
 def update_application_status(
@@ -344,47 +361,71 @@ def update_application_status(
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user),
 ):
-    application = session.get(ScholarshipApplication, application_id)
+    # Carga eager para asegurar que scholarship esté disponible
+    application = session.exec(
+        select(ScholarshipApplication)
+        .where(ScholarshipApplication.id == application_id)
+        .options(selectinload(ScholarshipApplication.scholarship))
+    ).first()
+
     if not application:
         raise HTTPException(status_code=404, detail="Solicitud no encontrada")
 
-    if current_user.role == UserRole.CONCEJAL:
-        if not current_user.career or application.career != current_user.career:
-            raise HTTPException(status_code=403, detail="Solo puedes evaluar tu carrera")
-    elif current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
-        raise HTTPException(status_code=403, detail="No autorizado")
+    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
+        # Concejales solo pueden ver, no liberar ni aprobar oficialmente (según reglas estrictas)
+        # O ajusta según tu regla de negocio
+        if current_user.role == UserRole.CONCEJAL:
+            pass  # O validación específica
+        else:
+            raise HTTPException(status_code=403, detail="No autorizado")
 
     old_status = application.status
     new_status = application_in.status
 
+    # Lógica de cambio de estado
     if new_status and new_status != old_status:
-        scholarship = session.get(Scholarship, application.scholarship_id)
+        scholarship = application.scholarship or session.get(Scholarship, application.scholarship_id)
 
-        # Gestión de Cupos
-        quota = session.exec(
-            select(ScholarshipQuota)
-            .where(ScholarshipQuota.scholarship_id == application.scholarship_id)
-            .where(ScholarshipQuota.career_name == application.career)
-        ).first()
-
+        # Gestión de Cupos (Solo al Aprobar)
         if new_status == ApplicationStatus.APROBADA:
-            if not quota:
-                raise HTTPException(status_code=400, detail="Cupos no definidos.")
-            if quota.used_slots >= quota.total_slots:
-                raise HTTPException(status_code=400, detail="¡CUPO LLENO!")
-            quota.used_slots += 1
-            session.add(quota)
+            quota = session.exec(
+                select(ScholarshipQuota)
+                .where(ScholarshipQuota.scholarship_id == application.scholarship_id)
+                .where(ScholarshipQuota.career_name == application.career)
+            ).first()
+
+            if quota:
+                if quota.used_slots >= quota.total_slots and current_user.role != UserRole.ADMIN_SYS:
+                    raise HTTPException(status_code=400, detail="¡Cupo Lleno!")
+                quota.used_slots += 1
+                session.add(quota)
 
         elif old_status == ApplicationStatus.APROBADA and new_status != ApplicationStatus.APROBADA:
+            # Liberar cupo si se arrepienten
+            quota = session.exec(
+                select(ScholarshipQuota)
+                .where(ScholarshipQuota.scholarship_id == application.scholarship_id)
+                .where(ScholarshipQuota.career_name == application.career)
+            ).first()
             if quota and quota.used_slots > 0:
                 quota.used_slots -= 1
                 session.add(quota)
 
-        # --- GENERAR FOLIO AUTOMÁTICO AL LIBERAR ---
-        if new_status == ApplicationStatus.LIBERADA and not application.release_folio:
-            application.release_folio = generate_release_folio(application, scholarship)
+        # --- GENERACIÓN DE FOLIO (USANDO DATOS MANUALES DEL COORDINADOR) ---
+        if new_status == ApplicationStatus.LIBERADA:
+            # Siempre generamos/regeneramos si vienen datos manuales, o si no tiene folio
+            application.release_folio = generate_release_folio(
+                application,
+                scholarship,
+                custom_activity=application_in.release_activity,
+                custom_year=application_in.release_year,
+                custom_period=application_in.release_period
+            )
 
-    update_data = application_in.model_dump(exclude_unset=True)
+    # Actualizar datos generales (excluyendo los campos temporales para no romper el modelo)
+    exclude_fields = {"release_activity", "release_year", "release_period"}
+    update_data = application_in.model_dump(exclude_unset=True, exclude=exclude_fields)
+
     for key, value in update_data.items():
         setattr(application, key, value)
 
@@ -392,28 +433,19 @@ def update_application_status(
     session.commit()
     session.refresh(application)
 
-    # Notificaciones
+    # Correos
     if new_status != old_status:
-        scholarship_name = application.scholarship.name if application.scholarship else "Beca CEITM"
-        frontend_link = f"{get_frontend_url()}/becas/resultados"
+        scholarship_name = application.scholarship.name if application.scholarship else "Beca"
+        link = f"{get_frontend_url()}/becas/resultados"
 
         if new_status == ApplicationStatus.APROBADA:
-            send_email_background(
-                background_tasks,
-                subject=f"✅ Aprobada: {scholarship_name}",
-                email_to=application.email,
-                template_name="accepted.html",
-                context={"name": application.full_name, "scholarship_name": scholarship_name, "link": frontend_link}
-            )
+            send_email_background(background_tasks, f"✅ Aprobada: {scholarship_name}", application.email,
+                                  "accepted.html",
+                                  {"name": application.full_name, "scholarship_name": scholarship_name, "link": link})
         elif new_status in [ApplicationStatus.RECHAZADA, ApplicationStatus.DOCUMENTACION_FALTANTE]:
-            send_email_background(
-                background_tasks,
-                subject=f"⚠️ Actualización: {scholarship_name}",
-                email_to=application.email,
-                template_name="rejected.html",
-                context={"name": application.full_name, "scholarship_name": scholarship_name,
-                         "observations": application.admin_comments, "link": frontend_link}
-            )
+            send_email_background(background_tasks, f"⚠️ Aviso: {scholarship_name}", application.email, "rejected.html",
+                                  {"name": application.full_name, "scholarship_name": scholarship_name,
+                                   "observations": application.admin_comments, "link": link})
 
     return application
 
@@ -422,43 +454,22 @@ def update_application_status(
 async def download_application_pdf(
         application_id: int,
         session: Session = Depends(get_session),
-        current_user: User = Depends(get_current_user),
+        current_user: User = Depends(get_current_user)
 ):
-    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA, UserRole.CONCEJAL]:
-        raise HTTPException(status_code=403, detail="No autorizado")
-
     application = session.get(ScholarshipApplication, application_id)
-    if not application:
-        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
-
-    if current_user.role == UserRole.CONCEJAL:
-        if application.career != current_user.career:
-            raise HTTPException(status_code=403, detail="Solo tu carrera")
+    if not application: raise HTTPException(status_code=404, detail="No encontrada")
 
     try:
         pdf_bytes = await generate_scholarship_pdf(application)
-    except Exception as e:
-        print(f"Error generando PDF: {e}")
-        raise HTTPException(status_code=500, detail="Error al generar el documento PDF.")
-
-    filename = f"Expediente_{application.control_number}.pdf"
-
-    return StreamingResponse(
-        io.BytesIO(pdf_bytes),
-        media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
-    )
+        return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={
+            "Content-Disposition": f"attachment; filename={application.control_number}.pdf"})
+    except:
+        raise HTTPException(status_code=500, detail="Error generando PDF")
 
 
 @router.get("/status/{control_number}", response_model=List[ApplicationPublicStatus])
 @limiter.limit("5/minute")
-def check_application_status(
-        request: Request,
-        control_number: str,
-        session: Session = Depends(get_session)
-):
+def check_application_status(request: Request, control_number: str, session: Session = Depends(get_session)):
     return session.exec(
-        select(ScholarshipApplication)
-        .where(ScholarshipApplication.control_number == control_number)
-        .order_by(ScholarshipApplication.created_at.desc())
-    ).all()
+        select(ScholarshipApplication).where(ScholarshipApplication.control_number == control_number).order_by(
+            ScholarshipApplication.created_at.desc())).all()

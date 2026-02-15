@@ -16,18 +16,18 @@ router = APIRouter()
 @router.get("/", response_model=List[ShiftRead])
 def read_shifts(
         db: Session = Depends(deps.get_db),
-        current_user: User = Depends(deps.get_current_active_user),
         skip: int = 0,
         limit: int = 100,
 ):
     """
     Recupera la lista de turnos asignados.
-    Visible para todos los usuarios autenticados.
+    ACCESO PÚBLICO para el directorio de concejales.
     """
-    statement = select(Shift).offset(skip).limit(limit)
+    # Cargamos la relación de usuario para mostrar nombres
+    from sqlalchemy.orm import selectinload
+    statement = select(Shift).options(selectinload(Shift.user)).offset(skip).limit(limit)
     shifts = db.exec(statement).all()
     return shifts
-
 
 # -----------------------------------------------------------------------------
 # POST / - Asignar un turno (Solo Contraloría/Admin)

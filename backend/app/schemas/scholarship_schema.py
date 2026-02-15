@@ -153,6 +153,12 @@ class ApplicationUpdate(SQLModel):
     doc_request: Optional[str] = None
     doc_motivos: Optional[str] = None
 
+    # --- DATOS PARA LIBERACIÓN MANUAL (ADMIN) ---
+    # Estos campos los llena el Coordinador en el modal
+    release_activity: Optional[str] = None  # Ej: "Recolecta" -> REC
+    release_year: Optional[int] = None  # Ej: 2026
+    release_period: Optional[str] = None  # Ej: "A" o "B"
+
 
 # --- RESULTADOS PÚBLICOS (SAFE) ---
 class ApplicationPublicStatus(SQLModel):

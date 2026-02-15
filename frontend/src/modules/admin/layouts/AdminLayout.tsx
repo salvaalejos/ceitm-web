@@ -142,7 +142,7 @@ export const AdminLayout = () => {
                 {canManageBecarios && (
                     <Link to="/admin/becarios" className={getLinkClass('/admin/becarios')}>
                         <Heart  size={20} />
-                        Contraloría
+                        Becarios
                     </Link>
                 )}
 

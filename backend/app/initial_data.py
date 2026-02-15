@@ -120,38 +120,40 @@ def seed_convenios(session: Session):
 # 4. BECAS Y ESTUDIANTES (Lógica de Expedientes)
 # ==========================================
 def seed_scholarships_and_students(session: Session):
-    logger.info("⏳ Sembrando Becas y Estudiantes...")
+    logger.info("⏳ Sembrando Becas y Expedientes...")
 
+    # 1. Crear Beca
     beca = session.exec(select(Scholarship).where(Scholarship.name == "Beca de Reinscripción 2026")).first()
     if not beca:
         beca = Scholarship(
             name="Beca de Reinscripción 2026",
             type=ScholarshipType.REINSCRIPCION,
-            description="Apoyo semestre Enero-Junio 2026.",
+            description="Apoyo semestre Ene-Jun 2026",
             start_date=datetime.utcnow(),
             end_date=datetime.utcnow() + timedelta(days=30),
             results_date=datetime.utcnow() + timedelta(days=45),
-            year=2026,
-            period=ScholarshipPeriod.ENE_JUN,
-            folio_identifier="REI",
-            is_active=True
+            year=2026, period=ScholarshipPeriod.ENE_JUN, folio_identifier="REI", is_active=True
         )
         session.add(beca)
         session.commit()
 
-    # Estudiante para historial (CON EL FIX DEL MODELO)
+    # 2. Crear Estudiante de Prueba (CORREGIDO)
     student_control = "21120538"
     if not session.exec(select(Student).where(Student.control_number == student_control)).first():
-        career_obj = session.exec(select(Career).where(Career.slug == "sistemas")).first()
-        session.add(Student(
-            control_number=student_control,
-            full_name="Salvador Alejos Soria",
-            career="Ingeniería en Sistemas Computacionales",
-            career_id=career_obj.id if career_obj else None,
-            email="21120538@morelia.tecnm.mx",
-            is_blacklisted=False
-        ))
-    session.commit()
+        # Buscamos la carrera para obtener su ID real
+        career = session.exec(select(Career).where(Career.slug == "sistemas")).first()
+        if career:
+            student = Student(
+                control_number=student_control,
+                full_name="Salvador Alejos Soria",
+                email="21120538@morelia.tecnm.mx",
+                phone_number="4431126867",
+                career_id=career.id,  # Asignamos ID, no string
+                is_blacklisted=False
+            )
+            session.add(student)
+            session.commit()
+            logger.info(f"✅ Expediente creado para {student_control}")
 
 
 # ==========================================

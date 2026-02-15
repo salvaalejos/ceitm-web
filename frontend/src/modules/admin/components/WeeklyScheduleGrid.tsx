@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getShifts, createShift, deleteShift, getUsers } from '../../../shared/services/api';
 import { useAuthStore } from '../../../shared/store/authStore';
-import {type Shift, DayOfWeek, type User, UserArea, UserRole } from '../../../shared/types';
+import { type Shift, DayOfWeek, type User, UserArea, UserRole } from '../../../shared/types';
 import Swal from 'sweetalert2';
 
 const DAYS = [DayOfWeek.LUNES, DayOfWeek.MARTES, DayOfWeek.MIERCOLES, DayOfWeek.JUEVES, DayOfWeek.VIERNES];
@@ -23,12 +23,10 @@ const WeeklyScheduleGrid: React.FC = () => {
     try {
       setLoading(true);
       const shiftsData = await getShifts();
-      let usersData: User[] = [];
-      if (canEdit) {
-        usersData = await getUsers();
-      }
       setShifts(shiftsData);
+
       if (canEdit) {
+        const usersData = await getUsers();
         setUsers(usersData.filter((u: User) => u.is_active));
       }
     } catch (error) {
@@ -46,16 +44,23 @@ const WeeklyScheduleGrid: React.FC = () => {
     if (!canEdit) return;
     const existingShift = getShift(day, hour);
 
+    const isDark = document.documentElement.classList.contains('dark');
+    const swalColors = {
+        background: isDark ? '#1e293b' : '#fff',
+        color: isDark ? '#fff' : '#000'
+    };
+
     if (existingShift) {
       const result = await Swal.fire({
         title: '¿Liberar bloque?',
         text: `Se eliminará la guardia de ${existingShift.user?.full_name}`,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6', // Azul primario acorde a tu UI
+        confirmButtonColor: '#3085d6',
         cancelButtonColor: '#d33',
         confirmButtonText: 'Sí, liberar',
-        cancelButtonText: 'Cancelar'
+        cancelButtonText: 'Cancelar',
+        ...swalColors
       });
 
       if (result.isConfirmed) {
@@ -63,7 +68,7 @@ const WeeklyScheduleGrid: React.FC = () => {
           await deleteShift(existingShift.id);
           setShifts((prev) => prev.filter((s) => s.id !== existingShift.id));
         } catch (error) {
-          Swal.fire('Error', 'No se pudo eliminar', 'error');
+          Swal.fire({ title: 'Error', text: 'No se pudo eliminar', icon: 'error', ...swalColors });
         }
       }
     } else {
@@ -74,33 +79,40 @@ const WeeklyScheduleGrid: React.FC = () => {
 
       const { value: userId } = await Swal.fire({
         title: 'Asignar Guardia',
-        html: `<select id="swal-user" class="swal2-input">${options}</select>`,
+        html: `
+            <select id="swal-user" class="swal2-select w-full m-0 border-gray-300 dark:bg-slate-700 dark:text-white dark:border-slate-600 rounded-lg">
+                <option value="">-- Seleccionar --</option>
+                ${options}
+            </select>
+        `,
         showCancelButton: true,
+        ...swalColors,
         preConfirm: () => (document.getElementById('swal-user') as HTMLSelectElement).value
       });
 
       if (userId) {
         try {
-          await createShift({ user_id: parseInt(userId), day, hour });
-          fetchData();
+          const newShift = await createShift({ user_id: parseInt(userId), day, hour });
+          setShifts(prev => [...prev, newShift]); // Update local state optimization
+          // fetchData(); // Optional: refresh completely
         } catch (error) {
-          Swal.fire('Error', 'No se pudo asignar', 'error');
+          Swal.fire({ title: 'Error', text: 'No se pudo asignar (¿Horario ocupado?)', icon: 'error', ...swalColors });
         }
       }
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-primary-600">Cargando horario...</div>;
+  if (loading) return <div className="p-8 text-center text-gray-400 animate-pulse">Cargando horario...</div>;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden transition-colors">
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="p-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-r border-gray-200 w-24">Hora</th>
+            <tr className="bg-gray-50 dark:bg-slate-800/50 border-b border-gray-200 dark:border-slate-800">
+              <th className="p-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-r border-gray-200 dark:border-slate-800 w-24">Hora</th>
               {DAYS.map(day => (
-                <th key={day} className="p-3 text-xs font-bold text-primary-700 uppercase tracking-wider border-r border-gray-200 last:border-r-0">
+                <th key={day} className="p-3 text-xs font-bold text-guinda-700 dark:text-guinda-400 uppercase tracking-wider border-r border-gray-200 dark:border-slate-800 last:border-r-0">
                   {day}
                 </th>
               ))}
@@ -108,8 +120,8 @@ const WeeklyScheduleGrid: React.FC = () => {
           </thead>
           <tbody>
             {HOURS.map(hour => (
-              <tr key={hour} className="border-b border-gray-100 last:border-b-0">
-                <td className="p-3 text-center text-xs font-semibold text-gray-400 bg-gray-50 border-r border-gray-200">
+              <tr key={hour} className="border-b border-gray-100 dark:border-slate-800/50 last:border-b-0">
+                <td className="p-3 text-center text-xs font-semibold text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-slate-800/30 border-r border-gray-200 dark:border-slate-800">
                   {hour}:00
                 </td>
                 {DAYS.map(day => {
@@ -119,19 +131,25 @@ const WeeklyScheduleGrid: React.FC = () => {
                     <td
                       key={`${day}-${hour}`}
                       onClick={() => handleCellClick(day, hour)}
-                      className={`p-1 border-r border-gray-100 last:border-r-0 h-16 min-w-[120px] transition-colors
-                        ${canEdit ? 'cursor-pointer hover:bg-gray-50' : ''}
-                        ${shift ? (isMine ? 'bg-blue-50' : 'bg-gray-50/50') : ''}
+                      className={`
+                        p-1 border-r border-gray-100 dark:border-slate-800 last:border-r-0 h-16 min-w-[120px] transition-all
+                        ${canEdit ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800' : ''}
+                        ${shift 
+                            ? (isMine ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-gray-50/50 dark:bg-slate-800/40') 
+                            : 'bg-white dark:bg-slate-900'}
                       `}
                     >
                       {shift && (
-                        <div className={`h-full flex flex-col justify-center items-center rounded-lg p-1 
-                          ${isMine ? 'border-l-4 border-primary-500 bg-white shadow-sm' : 'bg-white border border-gray-200'}`}>
-                          <span className="text-[10px] font-bold text-gray-800 leading-tight line-clamp-2">
+                        <div className={`h-full flex flex-col justify-center items-center rounded-lg p-1 animate-scale-up
+                          ${isMine 
+                            ? 'border-l-4 border-blue-500 bg-white dark:bg-slate-800 shadow-sm' 
+                            : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700'}
+                        `}>
+                          <span className="text-[10px] font-bold text-gray-800 dark:text-gray-200 leading-tight line-clamp-2 text-center">
                             {shift.user?.full_name}
                           </span>
-                          <span className="text-[9px] text-primary-600 font-medium mt-1">
-                            {shift.user?.area}
+                          <span className="text-[9px] text-guinda-600 dark:text-guinda-400 font-medium mt-1 uppercase tracking-tighter">
+                            {shift.user?.area || shift.user?.role}
                           </span>
                         </div>
                       )}
