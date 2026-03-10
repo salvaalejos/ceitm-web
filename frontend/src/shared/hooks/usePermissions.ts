@@ -63,7 +63,7 @@ export const usePermissions = () => {
   const canManageBecas = isPowerUser || isBecasTeam;
 
   // - Revisión (Entrar al módulo): Los de arriba + Concejales (para revisar a sus alumnos)
-  const canReviewBecas = canManageBecas || isConcejal;
+  const canReviewBecas = canManageBecas || isConcejal || role === ROLES.VOCAL || role === ROLES.COORDINADOR || isPowerUser;
 
   // C. CONVENIOS
   // Power Users O área de Vinculación

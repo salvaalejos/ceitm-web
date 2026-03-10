@@ -45,6 +45,14 @@ class ScholarshipQuota(SQLModel, table=True):
     def available_slots(self) -> int:
         return self.total_slots - self.used_slots
 
+# --- NUEVO: MODELO DE CAFETERÍA ---
+class Cafeteria(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    nombre: str = Field(index=True)
+    campus: str = Field(index=True)
+    limite_becas: int = Field(default=0)
+
+    # Podremos calcular cuántas becas tiene asignadas consultando la tabla ScholarshipApplication
 
 # --- CONVOCATORIA (ADMIN) ---
 class Scholarship(SQLModel, table=True):
@@ -133,3 +141,21 @@ class ScholarshipApplication(SQLModel, table=True):
     # Relaciones
     scholarship: Optional[Scholarship] = Relationship(back_populates="applications")
     student: Optional["Student"] = Relationship(back_populates="applications")
+
+    # --- NUEVO: CAMPOS PARA BECA ALIMENTICIA ---
+    campus_preferencia: Optional[str] = None
+    cafeteria_solicitada_id: Optional[int] = Field(default=None, foreign_key="cafeteria.id")
+    cafeteria_asignada_id: Optional[int] = Field(default=None, foreign_key="cafeteria.id")
+
+    # Relaciones (opcionales pero muy recomendables para consultas rápidas)
+    cafeteria_solicitada: Optional["Cafeteria"] = Relationship(
+        sa_relationship_kwargs={"foreign_keys": "ScholarshipApplication.cafeteria_solicitada_id"}
+    )
+    cafeteria_asignada: Optional["Cafeteria"] = Relationship(
+        sa_relationship_kwargs={"foreign_keys": "ScholarshipApplication.cafeteria_asignada_id"}
+    )
+
+    # Relaciones existentes
+    scholarship: Optional[Scholarship] = Relationship(back_populates="applications")
+    student: Optional["Student"] = Relationship(back_populates="applications")
+

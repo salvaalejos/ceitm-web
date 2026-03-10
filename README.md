@@ -14,13 +14,13 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white&color=0f172a)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white&color=0f172a)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white&color=0f172a)
+![Nginx](https://img.shields.io/badge/Nginx-009639?style=for-the-badge&logo=nginx&logoColor=white&color=0f172a)
 
 </div>
 
 > **Gestión integral, transparente y escalable para el H. Consejo Estudiantil del Instituto Tecnológico de Morelia.**
 
-Esta plataforma implementa una arquitectura moderna de microservicios contenerizados para digitalizar los procesos críticos del CEITM, incluyendo la gestión de becas, convenios empresariales, auditoría de transparencia y difusión de noticias, en estricto cumplimiento con los **Estatutos Oficiales 2025**.
-
+Esta plataforma implementa una arquitectura moderna de microservicios conteinerizados para digitalizar los procesos críticos del CEITM, incluyendo la gestión de becas, convenios empresariales, geolocalización de espacios (mapa interactivo), auditoría de transparencia y difusión de noticias, en estricto cumplimiento con los **Estatutos Oficiales 2025**.
 
 ---
 
@@ -30,47 +30,55 @@ Esta plataforma implementa una arquitectura moderna de microservicios conteneriz
 
 ![Dashboard Demo](assets/demo-dark.png)
 ![Dashboard Demo](assets/demo-light.png)
-![Dashboard Demo](assets/becas-dark.png)
-![Dashboard Demo](assets/becas-light.png)
+![Becas Demo](assets/becas-dark.png)
+![Becas Demo](assets/becas-light.png)
 
 ---
 
 ## 🏗️ Arquitectura del Sistema
 
-El sistema utiliza el patrón **PERF** (Postgres, Express/FastAPI, React, FastAPI) desacoplado, garantizando alta disponibilidad y separación de responsabilidades.
+El sistema utiliza el patrón **PERF** (Postgres, Express/FastAPI, React, FastAPI) desacoplado, garantizando alta disponibilidad, separación de responsabilidades y despliegue seguro mediante Proxy Inverso.
 
 ```mermaid
 graph TD
-    User((Usuario)) -->|HTTPS/443| FE[Frontend SPA<br/>React + Vite]
-    FE -->|REST API/JSON| API[Backend API<br/>FastAPI]
-    API -->|SQLModel/ORM| DB[(PostgreSQL 15)]
-    API -->|Auth/JWT| Security[Módulo de Seguridad]
+    User((Usuario)) -->|HTTPS/443| NGINX[Nginx Proxy Inverso]
     
-    subgraph "Docker Network"
-    API
-    DB
+    NGINX -->|Rutas Estáticas| FE[Frontend SPA<br/>React + Vite]
+    NGINX -->|/api/*| API[Backend API<br/>FastAPI Container]
+    
+    subgraph "Docker Network (Internal)"
+        API -->|SQLModel/ORM| DB[(PostgreSQL 15)]
     end
+    
+    API -->|Auth/JWT| Security[Módulo de Seguridad]
 
 ```
+
+### Componentes Clave:
+
+1. **Nginx (Gateway):** Maneja SSL, sirve el Frontend estático y enruta las peticiones de API hacia Docker.
+2. **Frontend (React):** SPA optimizada con soporte PWA y SEO (Open Graph).
+3. **Backend (FastAPI):** Microservicio aislado en Docker, exponiendo solo el puerto interno al Proxy.
 
 ---
 
 ## 📋 Tabla de Contenidos
 
-- [🏛️ Plataforma CEITM - Sistema de Gobernanza Digital](#️-plataforma-ceitm---sistema-de-gobernanza-digital)
-  - [🏗️ Arquitectura del Sistema](#️-arquitectura-del-sistema)
-  - [📋 Tabla de Contenidos](#-tabla-de-contenidos)
-  - [🔌 Prerrequisitos del Entorno](#-prerrequisitos-del-entorno)
-  - [🚀 Instalación y Despliegue](#-instalación-y-despliegue)
-    - [1. Clonado y Configuración de Entorno](#1-clonado-y-configuración-de-entorno)
-    - [2. Despliegue con Docker (Método Recomendado)](#2-despliegue-con-docker-método-recomendado)
-    - [3. Ejecución del Frontend (Desarrollo Local)](#3-ejecución-del-frontend-desarrollo-local)
-  - [🛠️ Stack Tecnológico](#️-stack-tecnológico)
-    - [Frontend (SPA)](#frontend-spa)
-    - [Backend (REST API)](#backend-rest-api)
-  - [📂 Estructura del Proyecto](#-estructura-del-proyecto)
-  - [🔧 Troubleshooting](#-troubleshooting)
-    - [🤝 Contribución y Flujo de Trabajo](#-contribución-y-flujo-de-trabajo)
+* [🏛️ Plataforma CEITM - Sistema de Gobernanza Digital](https://www.google.com/search?q=%23%EF%B8%8F-plataforma-ceitm---sistema-de-gobernanza-digital)
+* [🏗️ Arquitectura del Sistema](https://www.google.com/search?q=%23%EF%B8%8F-arquitectura-del-sistema)
+* [📋 Tabla de Contenidos](https://www.google.com/search?q=%23-tabla-de-contenidos)
+* [🔌 Prerrequisitos del Entorno](https://www.google.com/search?q=%23-prerrequisitos-del-entorno)
+* [🚀 Instalación y Despliegue](https://www.google.com/search?q=%23-instalaci%C3%B3n-y-despliegue)
+* [1. Clonado y Configuración de Entorno](https://www.google.com/search?q=%231-clonado-y-configuraci%C3%B3n-de-entorno)
+* [2. Despliegue con Docker (Backend & DB)](https://www.google.com/search?q=%232-despliegue-con-docker-backend--db)
+* [3. Ejecución del Frontend (Desarrollo Local)](https://www.google.com/search?q=%233-ejecuci%C3%B3n-del-frontend-desarrollo-local)
+
+
+* [🛠️ Stack Tecnológico](https://www.google.com/search?q=%23%EF%B8%8F-stack-tecnol%C3%B3gico)
+* [📂 Estructura del Proyecto](https://www.google.com/search?q=%23-estructura-del-proyecto)
+* [🔧 Troubleshooting](https://www.google.com/search?q=%23-troubleshooting)
+* [🤝 Contribución](https://www.google.com/search?q=%23-contribuci%C3%B3n)
+
 
 
 ---
@@ -84,8 +92,7 @@ Para garantizar la ejecución correcta de los contenedores y el entorno de desar
 | **Docker Engine** | `24.0+` | Requerido para la orquestación de servicios y volúmenes persistentes. |
 | **Docker Compose** | `v2.20+` | Necesario para interpretar la sintaxis `version: '3.8'` del manifiesto. |
 | **Node.js** | `v18.17+ (LTS)` | Requerido por el Frontend si se ejecuta fuera de Docker (Vite build target). |
-| **Python** | `3.10+` | Solo necesario para desarrollo backend local sin contenedores (Type hinting). |
-| **Git** | `2.30+` | Control de versiones y gestión de submódulos (si aplica). |
+| **Git** | `2.30+` | Control de versiones. |
 
 ---
 
@@ -104,11 +111,11 @@ cd ceitm-platform
 cp .env.example .env
 
 # 3. (Opcional) Editar credenciales de BD y SECRET_KEY
-vim .env
+nano .env
 
 ```
 
-### 2. Despliegue con Docker (Método Recomendado)
+### 2. Despliegue con Docker (Backend & DB)
 
 Este comando aprovisiona la base de datos PostgreSQL y el servidor API Uvicorn en una red aislada.
 
@@ -126,7 +133,7 @@ Para habilitar HMR (Hot Module Replacement) y depuración en tiempo real:
 ```bash
 cd frontend
 
-# Instalación limpia de dependencias (según package-lock.json)
+# Instalación limpia de dependencias
 npm install
 
 # Iniciar servidor de desarrollo
@@ -145,30 +152,29 @@ npm run dev
 
 ## 🛠️ Stack Tecnológico
 
-La plataforma está construida sobre tecnologías de "Bleeding Edge" para maximizar rendimiento y mantenibilidad.
+La plataforma está construida sobre tecnologías de "Bleeding Edge" para maximizar rendimiento, SEO y mantenibilidad.
 
-### Frontend (SPA)
+### Frontend (SPA & PWA)
 
-| Tecnología | Propósito | Referencia en Código |
-| --- | --- | --- |
-| **React 18** | Biblioteca UI base | `package.json` |
-| **TypeScript** | Tipado estático estricto | `tsconfig.json` |
-| **Vite** | Build tool de próxima generación | `vite.config.ts` |
-| **Tailwind CSS** | Framework de estilos Utility-first | `tailwind.config.js` |
-| **Zustand** | Gestión de estado global ligero | `store/authStore.ts` |
-| **Recharts** | Visualización de datos y analíticas | `components/AnalyticsWidget.tsx` |
-| **React-GA4** | Analítica web (Google Analytics 4) | `package.json` |
+| Tecnología | Propósito |
+| --- | --- |
+| **React 18** | Biblioteca UI base. |
+| **TypeScript** | Tipado estático estricto. |
+| **Vite** | Build tool de próxima generación. |
+| **Tailwind CSS** | Framework de estilos Utility-first. |
+| **Mapbox GL JS** | Mapa interactivo con geofencing y GPS. |
+| **Zustand** | Gestión de estado global ligero. |
+| **Open Graph** | Optimización SEO para redes sociales (WhatsApp/FB). |
 
 ### Backend (REST API)
 
-| Tecnología | Propósito | Referencia en Código |
-| --- | --- | --- |
-| **FastAPI** | Framework asíncrono de alto rendimiento | `main.py` |
-| **SQLModel** | ORM (intersección SQLAlchemy + Pydantic) | `core/database.py` |
-| **PostgreSQL 15** | Motor de base de datos relacional | `docker-compose.yml` |
-| **Python-Jose** | Implementación de tokens JWT | `core/security.py` |
-| **Passlib** | Hashing criptográfico (Bcrypt) | `requirements.txt` |
-| **Uvicorn** | Servidor ASGI de producción | `docker-compose.yml` |
+| Tecnología | Propósito |
+| --- | --- |
+| **FastAPI** | Framework asíncrono de alto rendimiento. |
+| **SQLModel** | ORM (intersección SQLAlchemy + Pydantic). |
+| **PostgreSQL 15** | Motor de base de datos relacional. |
+| **Python-Jose** | Implementación de tokens JWT. |
+| **Uvicorn** | Servidor ASGI de producción. |
 
 ---
 
@@ -183,23 +189,21 @@ Organización modular tipo "Monorepo" para facilitar la escalabilidad horizontal
 │   │   ├── /api/v1/endpoints   # Controladores por dominio (becas, noticias, usuarios)
 │   │   ├── /core               # Configuración global, Seguridad, DB Connectors
 │   │   ├── /models             # Esquemas de Base de Datos (SQLModel)
-│   │   └── /schemas            # Esquemas de Validación Pydantic (Request/Response)
+│   │   └── /schemas            # Esquemas de Validación Pydantic
 │   ├── /static/uploads         # Almacenamiento local de archivos (PDFs, Imágenes)
-│   └── Dockerfile              # Definición de imagen Python-Slim
+│   └── Dockerfile              # Imagen Python-Slim optimizada
 │
 ├── /frontend
+│   ├── /public                 # Assets estáticos (og-image, logos, manifest)
 │   ├── /src
 │   │   ├── /modules            # Arquitectura orientada a dominios
-│   │   │   ├── /admin          # Panel de administración y dashboard
-│   │   │   ├── /auth           # Login y protección de rutas
-│   │   │   ├── /convenios      # Catálogo público de convenios
-│   │   │   ├── /scholarships   # Sistema de solicitud y resultados de becas
-│   │   │   └── /transparency   # Módulo de transparencia y buzón
+│   │   │   ├── /admin          # Panel de administración
+│   │   │   ├── /map            # Módulo de Mapa Interactivo (Mapbox)
+│   │   │   ├── /scholarships   # Sistema de becas
+│   │   │   └── /...
 │   │   ├── /shared             # Componentes, Hooks y Servicios reutilizables
-│   │   └── /assets             # Recursos estáticos
-│   └── vite.config.ts
+│   └── index.html              # Entry point con SEO Tags
 │
-├── /database                   # Scripts de inicialización SQL (si aplica)
 └── docker-compose.yml          # Orquestador de servicios
 
 ```
@@ -208,25 +212,27 @@ Organización modular tipo "Monorepo" para facilitar la escalabilidad horizontal
 
 ## 🔧 Troubleshooting
 
-Soluciones a incidencias comunes durante el despliegue o desarrollo.
+Soluciones a incidencias comunes durante el despliegue.
 
-| Problema | Causa Probable | Solución |
-| --- | --- | --- |
-| **Error: port 5432 already allocated** | Conflicto con una instancia local de Postgres. | Detener el servicio local de Postgres (`sudo service postgresql stop`) o cambiar el puerto en `docker-compose.yml`. |
-| **CORS Error (Frontend)** | El Backend no permite peticiones desde `localhost:5173`. | Verificar `backend/app/main.py` y asegurar que `CORSMiddleware` incluye el origen del frontend. |
-| **Error: role "postgres" does not exist** | Configuración incorrecta en variables de entorno. | Revisar que `POSTGRES_USER` en `.env` coincida con lo esperado por `docker-compose.yml`. |
-| **Module 'types' not found** | Dependencias de TypeScript desactualizadas. | Ejecutar `npm install` o verificar `tsconfig.app.json` paths. |
-| **Upload Failed (413 Entity Too Large)** | Límite de tamaño de archivo excedido (Nginx/FastAPI). | Verificar configuración en `python-multipart` o proxy inverso. |
+| Problema | Solución |
+| --- | --- |
+| **Port 5432 already allocated** | Detener el servicio local de Postgres (`sudo service postgresql stop`). |
+| **CORS Error (Frontend)** | Verificar que `CORSMiddleware` en FastAPI incluya el dominio del frontend. |
+| **404 en Service Worker (sw.js)** | Verificar permisos de lectura en `/var/www/ceitm` o carpeta `dist`. |
+| **Mapa no carga en móvil** | Asegurar que el sitio se sirva por HTTPS (requerido para GPS). |
+| **WhatsApp no muestra imagen** | Usar el Debugger de FB para limpiar caché y verificar etiquetas OG. |
 
 ---
 
-### 🤝 Contribución y Flujo de Trabajo
+### 🤝 Contribución
 
-1. **Branching:** Crear ramas descriptivas (`feat/nuevo-modulo-becas`, `fix/login-bug`).
-2. **Commits:** Seguir la convención [Conventional Commits](https://www.conventionalcommits.org/) (ej. `feat: agregar validación de matricula`).
-3. **Linting:** Ejecutar `npm run lint` en frontend y `flake8` en backend antes de realizar un Pull Request.
+1. **Branching:** Crear ramas descriptivas (`feat/nuevo-mapa`, `fix/login-bug`).
+2. **Commits:** Seguir la convención [Conventional Commits](https://www.conventionalcommits.org/).
+3. **Linting:** Ejecutar `npm run lint` antes de PR.
 
 ---
 
 > **Mantenido por:** Coordinación de Sistemas del CEITM.
 > *Copyright © 2025 - Todos los derechos reservados.*
+
+```

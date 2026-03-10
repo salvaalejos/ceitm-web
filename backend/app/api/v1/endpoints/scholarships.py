@@ -88,7 +88,6 @@ def generate_release_folio(
 def sync_student_record(session: Session, application_in: ApplicationCreate) -> Student:
     """
     Sincroniza o crea el expediente del alumno.
-    FIX: Eliminada la asignación de string a la relación 'career' para evitar Error 500.
     """
     student = session.get(Student, application_in.control_number)
 
@@ -109,15 +108,14 @@ def sync_student_record(session: Session, application_in: ApplicationCreate) -> 
             full_name=application_in.full_name,
             email=application_in.email,
             phone_number=application_in.phone_number,
-            # career=application_in.career, <--- ESTA LÍNEA SE ELIMINÓ PORQUE CAUSABA EL ERROR DE CORS/500
+            # career=application_in.career, <--- ELIMINADO para evitar error CORS/500
             career_id=career_id,
             is_blacklisted=False
         )
         session.add(student)
 
-    # Nota: No hacemos commit aquí, se hace en el endpoint principal para atomicidad
+    # El commit se hace en el endpoint principal
     return student
-
 
 # ==========================================
 # 1. GESTIÓN DE ALUMNOS (ENDPOINT FALTANTE)
@@ -313,15 +311,30 @@ def read_all_applications(
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user)
 ):
+    # Base query: Traemos la solicitud y cargamos al estudiante
     query = select(ScholarshipApplication) \
         .where(ScholarshipApplication.scholarship_id == scholarship_id) \
-        .options(selectinload(ScholarshipApplication.student))  # Carga eager del estudiante
+        .options(selectinload(ScholarshipApplication.student))
 
-    if current_user.role == UserRole.CONCEJAL:
-        if not current_user.career: return []
-        query = query.where(ScholarshipApplication.career == current_user.career)
-    elif current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
-        raise HTTPException(status_code=403, detail="No autorizado")
+    # --- LÓGICA DE PERMISOS CORREGIDA ---
+
+    # 1. Admin y Estructura ven TODO
+    if current_user.role in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
+        pass
+
+        # 2. Concejales y Coordinadores ven SOLO SU CARRERA
+    elif current_user.role in [UserRole.CONCEJAL, UserRole.COORDINADOR]:
+        if not current_user.career:
+            return []  # Si no tiene carrera asignada, no ve nada
+
+        # Filtro: Coincidencia exacta o parcial para evitar errores de tipeo
+        # (Ej: "Sistemas" vs "Ing. en Sistemas")
+        from sqlmodel import col
+        query = query.where(col(ScholarshipApplication.career).contains(current_user.career))
+
+    # 3. Cualquier otro rol (Vocal, etc.) -> Error 403
+    else:
+        raise HTTPException(status_code=403, detail="No tienes permisos para ver solicitudes.")
 
     return session.exec(query).all()
 

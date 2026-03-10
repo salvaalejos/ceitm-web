@@ -5,6 +5,32 @@ from pydantic import field_validator, model_validator
 from app.models.scholarship_model import ScholarshipType, ApplicationStatus, ScholarshipPeriod
 
 
+# --- NUEVO: SCHEMAS PARA CAFETERÍAS ---
+class CafeteriaBase(SQLModel):
+    nombre: str
+    campus: str
+    limite_becas: int
+
+
+class CafeteriaCreate(CafeteriaBase):
+    pass
+
+
+class CafeteriaUpdate(SQLModel):
+    nombre: Optional[str] = None
+    campus: Optional[str] = None
+    limite_becas: Optional[int] = None
+
+
+class CafeteriaRead(CafeteriaBase):
+    id: int
+    becas_asignadas: int = 0  # Este lo calcularemos al vuelo en el endpoint
+
+    @property
+    def cupo_disponible(self) -> int:
+        return self.limite_becas - self.becas_asignadas
+
+
 # --- 1. SCHEMAS PARA CUPOS (QUOTAS) ---
 class ScholarshipQuotaBase(SQLModel):
     career_name: str
@@ -130,6 +156,10 @@ class ApplicationBase(SQLModel):
 
     # NOTA: Se eliminó check_release_folio para permitir flujos de regularización
 
+    # --- NUEVO: PREFERENCIAS DE CAFETERÍA (Opcionales, solo para alimenticia) ---
+    campus_preferencia: Optional[str] = None
+    cafeteria_solicitada_id: Optional[int] = None
+
 
 class ApplicationCreate(ApplicationBase):
     scholarship_id: int
@@ -145,6 +175,8 @@ class ApplicationRead(ApplicationBase):
     scholarship_name: Optional[str] = None
     doc_request: Optional[str] = None
     doc_motivos: Optional[str] = None
+    # --- NUEVO: LECTURA DE ASIGNACIÓN ---
+    cafeteria_asignada_id: Optional[int] = None
 
 
 class ApplicationUpdate(SQLModel):
@@ -158,6 +190,8 @@ class ApplicationUpdate(SQLModel):
     release_activity: Optional[str] = None  # Ej: "Recolecta" -> REC
     release_year: Optional[int] = None  # Ej: 2026
     release_period: Optional[str] = None  # Ej: "A" o "B"
+    # --- NUEVO: ASIGNACIÓN DE CAFETERÍA (ADMIN) ---
+    cafeteria_asignada_id: Optional[int] = None
 
 
 # --- RESULTADOS PÚBLICOS (SAFE) ---

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { api } from '../../../shared/services/api';
-import { Search, Ban, CheckCircle, History, GraduationCap, FileText, Download, Send, X, AlertTriangle, UserCheck, UserX } from 'lucide-react';
+import { Search, Ban, CheckCircle, History, GraduationCap, FileText, Download, Send, X, UserCheck, UserX } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 // --- TIPOS ---
@@ -214,7 +214,7 @@ const AdminBecarios = () => {
                                             <FileText size={16}/> <span className="hidden md:inline">Expediente</span>
                                         </button>
 
-                                        {/* Botón Blacklist (RECUPERADO) */}
+                                        {/* Botón Blacklist */}
                                         <button
                                             onClick={() => handleToggleBlacklist(s)}
                                             className={`p-2 rounded-lg transition-all border ${
@@ -395,4 +395,5 @@ const AdminBecarios = () => {
     );
 };
 
+// ESTE ES LA CLAVE DEL ARREGLO DE SYNTAX ERROR:
 export default AdminBecarios;

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
@@ -18,18 +18,22 @@ def read_students(
         current_user: User = Depends(get_current_user),
 ):
     """
-    Obtiene SOLO los alumnos que son oficialmente BECARIOS
-    (tienen al menos una solicitud APROBADA o LIBERADA).
+    Obtiene lista de becarios.
+    FIX: Asegura que 'career_rel' se cargue para mostrar el nombre.
     """
     if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
         raise HTTPException(status_code=403, detail="No autorizado")
 
-    # Filtramos estudiantes que tengan al menos una application con status positivo
-    query = select(Student).distinct().join(ScholarshipApplication).where(
-        ScholarshipApplication.status.in_([ApplicationStatus.APROBADA, ApplicationStatus.LIBERADA])
-    ).options(selectinload(Student.career_rel))  # Cargamos carrera para que no salga vacía
+    # Filtramos estudiantes que son BECARIOS (tienen al menos 1 solicitud aprobada/liberada)
+    # Y usamos selectinload para traer la carrera asociada
+    query = select(Student) \
+        .distinct() \
+        .join(ScholarshipApplication) \
+        .where(ScholarshipApplication.status.in_([ApplicationStatus.APROBADA, ApplicationStatus.LIBERADA])) \
+        .options(selectinload(Student.career_rel))
 
-    return session.exec(query).all()
+    students = session.exec(query).all()
+    return students
 
 
 @router.get("/{control_number}/history")
@@ -38,9 +42,6 @@ def get_student_history(
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user)
 ):
-    """
-    Historial completo con datos para descargar y liberar.
-    """
     if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
         raise HTTPException(status_code=403, detail="No autorizado")
 
