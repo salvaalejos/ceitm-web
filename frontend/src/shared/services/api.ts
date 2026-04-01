@@ -64,6 +64,8 @@ export const deleteUser = async (id: number) => {
   return response.data;
 };
 
+// CARRERAS
+
 export const getCareers = async () => {
   const response = await api.get('/carreras/');
   return response.data;
@@ -71,6 +73,16 @@ export const getCareers = async () => {
 
 export const updateCareer = async (id: number, data: any) => {
   const response = await api.patch(`/carreras/${id}`, data);
+  return response.data;
+};
+
+export const createCareer = async (data: any) => {
+  const response = await api.post('/carreras/', data);
+  return response.data;
+};
+
+export const deleteCareer = async (id: number) => {
+  const response = await api.delete(`/carreras/${id}`);
   return response.data;
 };
 
@@ -82,8 +94,9 @@ export const getConcejalesPublic = getPublicConcejales;
 
 
 // --- CONVENIOS ---
+
 export const getConvenios = async () => {
-  const response = await api.get(ENDPOINTS.CONVENIOS.BASE);
+  const response = await api.get('/convenios/all');
   return response.data;
 };
 
@@ -105,7 +118,8 @@ export const deleteConvenio = async (id: number) => {
 
 // --- NOTICIAS ---
 export const getNews = async (category?: string) => {
-  let url = ENDPOINTS.NEWS.BASE;
+  // CAMBIAMOS ENDPOINTS.NEWS.BASE por la ruta pública
+  let url = '/noticias/public';
   if (category && category !== 'TODAS') {
       url += `?category=${category}`;
   }
@@ -142,8 +156,11 @@ export const getPublicDocuments = async (category?: string) => {
   return response.data;
 };
 
-export const getAllDocuments = async () => {
-  const response = await api.get(ENDPOINTS.DOCUMENTS.ADMIN);
+export const getAllDocuments = async (skip: number = 0, limit: number = 10, search: string = '') => {
+  let url = `${ENDPOINTS.DOCUMENTS.ADMIN}?skip=${skip}&limit=${limit}`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+
+  const response = await api.get(url);
   return response.data;
 };
 
@@ -192,7 +209,16 @@ export const deleteComplaint = async (id: number) => {
 
 // --- BECAS ---
 export const getScholarships = async (activeOnly: boolean = true) => {
-  const response = await api.get<Scholarship[]>(`${ENDPOINTS.SCHOLARSHIPS.BASE}?active_only=${activeOnly}`);
+  // Usamos la ruta plana para selectores y la vista pública
+  const response = await api.get<Scholarship[]>(`${ENDPOINTS.SCHOLARSHIPS.BASE}all?active_only=${activeOnly}`);
+  return response.data;
+};
+
+// NUEVA FUNCIÓN: Para el panel de administrador
+export const getPaginatedScholarships = async (skip: number, limit: number, search: string = '') => {
+  let url = `${ENDPOINTS.SCHOLARSHIPS.BASE}?skip=${skip}&limit=${limit}`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+  const response = await api.get(url);
   return response.data;
 };
 
@@ -206,11 +232,13 @@ export const createScholarship = async (data: ScholarshipCreate) => {
   return response.data;
 };
 
-export const getApplications = async (scholarshipId: number) => {
-  const response = await api.get<ScholarshipApplication[]>(ENDPOINTS.SCHOLARSHIPS.APPLICATIONS, {
-    params: { scholarship_id: scholarshipId }
-  });
-  return response.data;
+// ACTUALIZADA: Ahora pide la página, límite y búsqueda
+export const getApplications = async (scholarshipId: number, skip: number = 0, limit: number = 10, search: string = '', status: string = 'Todos') => {
+  let url = `${ENDPOINTS.SCHOLARSHIPS.APPLICATIONS}?scholarship_id=${scholarshipId}&skip=${skip}&limit=${limit}`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+  if (status && status !== 'Todos') url += `&status=${encodeURIComponent(status)}`;
+  const response = await api.get(url);
+  return response.data; // Retorna { total, items }
 };
 
 export const updateScholarship = async (id: number, data: any) => {
@@ -266,7 +294,7 @@ export const updateQuota = async (quotaId: number, totalSlots: number) => {
 
 
 // ==========================================
-// 🚀 NUEVO: MÓDULO CONTRALORÍA (Fase 2)
+// NUEVO: MÓDULO CONTRALORÍA (Fase 2)
 // ==========================================
 
 // --- GUARDIAS (SHIFTS) ---
@@ -315,7 +343,7 @@ export const deleteSanction = async (id: number) => {
 
 
 // ==========================================
-// 🚀 NUEVO: MÓDULO AUDITORÍA (Base de Datos)
+// NUEVO: MÓDULO AUDITORÍA (Base de Datos)
 // ==========================================
 export const getAuditLogs = async (module?: string) => {
   const params = module ? { module } : {};
@@ -324,25 +352,22 @@ export const getAuditLogs = async (module?: string) => {
 };
 
 export const downloadDbBackup = async () => {
-    try {
-        const response = await api.get('/audit/dump', { responseType: 'blob' });
+  const response = await api.get('/audit/dump', {
+    responseType: 'blob', // ESTO ES OBLIGATORIO
+  });
 
-        // Generar nombre con fecha: backup_2025-02-14.sql
-        const dateStr = new Date().toISOString().split('T')[0];
-        const fileName = `backup_${dateStr}.sql`;
+  // Crear un link invisible para forzar la descarga en el navegador
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement('a');
+  link.href = url;
 
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', fileName);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(url);
-    } catch (error) {
-        console.error("Error descargando respaldo:", error);
-        throw error;
-    }
+  const fecha = new Date().toISOString().split('T')[0];
+  link.setAttribute('download', `CEITM_Respaldo_${fecha}.sql`);
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
 };
 
 

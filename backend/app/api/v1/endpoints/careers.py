@@ -86,7 +86,28 @@ def update_career(
     for key, value in update_data.items():
         setattr(career, key, value)
 
+
+
     session.add(career)
     session.commit()
     session.refresh(career)
     return career
+
+# --- ADMIN: ELIMINAR CARRERA ---
+@router.delete("/{career_id}")
+def delete_career(
+        career_id: int,
+        session: Session = Depends(get_session),
+        current_user: User = Depends(get_current_user)
+):
+    # Solo el Super Admin o Estructura pueden eliminar
+    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
+        raise HTTPException(status_code=403, detail="No tienes permisos para eliminar carreras")
+
+    career = session.get(Career, career_id)
+    if not career:
+        raise HTTPException(status_code=404, detail="Carrera no encontrada")
+
+    session.delete(career)
+    session.commit()
+    return {"message": "Carrera eliminada exitosamente"}

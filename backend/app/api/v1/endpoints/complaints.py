@@ -3,7 +3,7 @@ import os
 from uuid import uuid4
 from typing import List, Optional
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks, File, UploadFile, Form
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks, File, UploadFile, Form, Query
 from sqlmodel import Session, select, func
 from pydantic import BaseModel
 
@@ -32,11 +32,16 @@ class ComplaintTrackPublic(BaseModel):
     resolved_at: Optional[datetime] = None
 
 
+# 👇 NUEVO: Esquema para Paginación de Quejas
+class PaginatedComplaints(BaseModel):
+    total: int
+    items: List[ComplaintRead]
+
+
 # --- UTILIDAD: GENERAR FOLIO ---
 def generate_tracking_code(session: Session) -> str:
     """Genera un folio único formato: CEITM-YYYY-XXX"""
     year = datetime.now().year
-    # Contamos cuántas quejas hay para el consecutivo
     count = session.exec(select(func.count()).select_from(Complaint)).one()
     return f"CEITM-{year}-{count + 1:03d}"
 
@@ -60,31 +65,22 @@ def create_complaint(
         evidencia: UploadFile = File(None),
         session: Session = Depends(get_session)
 ):
-    """
-    Crea la queja, genera folio, sube evidencia y notifica por correo.
-    """
-    # 1. Generar Folio
     tracking_code = generate_tracking_code(session)
-
-    # 2. Procesar Archivo (Si existe)
     evidence_url = None
+
     if evidencia:
         upload_dir = "static/uploads/quejas"
         os.makedirs(upload_dir, exist_ok=True)
-
         try:
             ext = evidencia.filename.split(".")[-1]
             filename = f"{uuid4()}.{ext}"
             file_path = os.path.join(upload_dir, filename)
-
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(evidencia.file, buffer)
-
             evidence_url = f"{settings.DOMAIN}/{file_path}"
         except Exception as e:
             print(f"Error subiendo evidencia de queja: {e}")
 
-    # 3. Crear objeto
     complaint = Complaint(
         full_name=full_name,
         control_number=control_number,
@@ -103,7 +99,6 @@ def create_complaint(
     session.commit()
     session.refresh(complaint)
 
-    # 4. ENVIAR CORREO DE CONFIRMACIÓN (ADAPTADO)
     if email:
         try:
             email_data = {
@@ -113,9 +108,9 @@ def create_complaint(
             }
             send_email_background(
                 background_tasks=background_tasks,
-                subject=f"Reporte Recibido: {tracking_code}", # Asunto más claro
+                subject=f"Reporte Recibido: {tracking_code}",
                 email_to=email,
-                template_name="complaint_received.html",  # <--- Plantilla NUEVA correcta
+                template_name="complaint_received.html",
                 context=email_data
             )
         except Exception as e:
@@ -156,9 +151,6 @@ def resolve_complaint(
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user)
 ):
-    """
-    Cierra el ticket, guarda evidencia y notifica.
-    """
     if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
         raise HTTPException(status_code=403, detail="No tienes permisos.")
 
@@ -166,24 +158,19 @@ def resolve_complaint(
     if not complaint:
         raise HTTPException(status_code=404, detail="Queja no encontrada")
 
-    # 1. Procesar Archivo Resolución (Si existe)
     if evidencia:
         upload_dir = "static/uploads/resoluciones"
         os.makedirs(upload_dir, exist_ok=True)
-
         try:
             file_ext = evidencia.filename.split(".")[-1]
             unique_filename = f"{uuid4()}.{file_ext}"
             file_path = os.path.join(upload_dir, unique_filename)
-
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(evidencia.file, buffer)
-
             complaint.resolution_evidence_url = f"{settings.DOMAIN}/{file_path}"
         except Exception as e:
             print(f"Error subiendo evidencia resolución: {e}")
 
-    # 2. Actualizar Status
     try:
         complaint.status = ComplaintStatus(status)
     except ValueError:
@@ -196,14 +183,12 @@ def resolve_complaint(
     session.commit()
     session.refresh(complaint)
 
-    # 3. ENVIAR CORREO RESOLUCIÓN (ADAPTADO)
     if complaint.email:
         try:
-            # Seleccionar plantilla y asunto según el dictamen
             if status == "Resuelto":
                 template = "complaint_resolved.html"
                 subject = f"¡Tu Reporte ha sido Atendido! - {complaint.tracking_code}"
-            else: # Rechazado u otro
+            else:
                 template = "complaint_rejected.html"
                 subject = f"Actualización de Reporte - {complaint.tracking_code}"
 
@@ -229,24 +214,49 @@ def resolve_complaint(
 
 
 # ==========================================
-# 4. PRIVADO: LISTADO
+# 4. PRIVADO: LISTADO (AHORA PAGINADO Y CON FILTROS)
 # ==========================================
-@router.get("/", response_model=List[ComplaintRead])
+@router.get("/", response_model=PaginatedComplaints)
 def read_complaints(
+        skip: int = Query(0, ge=0),
+        limit: int = Query(10, ge=1, le=100),
+        search: Optional[str] = Query(None),
+        status: Optional[str] = Query(None),
+        career: Optional[str] = Query(None),
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user)
 ):
     if current_user.role in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
-        statement = select(Complaint).order_by(Complaint.created_at.desc())
+        base_query = select(Complaint)
     else:
+        # Si es un concejal normal, solo ve las de su carrera
         if not current_user.career:
-            return []
-        statement = select(Complaint).where(
-            Complaint.career == current_user.career
-        ).order_by(Complaint.created_at.desc())
+            return PaginatedComplaints(total=0, items=[])
+        base_query = select(Complaint).where(Complaint.career == current_user.career)
 
-    complaints = session.exec(statement).all()
-    return complaints
+    # Aplicar Filtros de la Base de Datos
+    if status and status != 'Todos':
+        base_query = base_query.where(Complaint.status == status)
+
+    if career and career != 'Todas':
+        base_query = base_query.where(Complaint.career == career)
+
+    if search:
+        base_query = base_query.where(
+            (Complaint.full_name.icontains(search)) |
+            (Complaint.tracking_code.icontains(search)) |
+            (Complaint.control_number.icontains(search))
+        )
+
+    # Contar total
+    all_matching = session.exec(base_query).all()
+    total = len(all_matching)
+
+    # Paginar
+    query = base_query.order_by(Complaint.created_at.desc()).offset(skip).limit(limit)
+    complaints = session.exec(query).all()
+
+    return PaginatedComplaints(total=total, items=complaints)
 
 
 # ==========================================

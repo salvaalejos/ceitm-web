@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
-    Inbox, Search, MessageSquare, CheckCircle, Filter, ChevronDown, Clock, XCircle, Trash2, Building, FileText, Download
-} from 'lucide-react'; // <--- AGREGUÉ ICONOS
-import { getComplaints, getCareers, deleteComplaint } from '../../../shared/services/api';
-import {type Complaint, ComplaintStatus, type Career } from '../../../shared/types';
+    Inbox, Search, MessageSquare, CheckCircle, Filter, ChevronDown, Clock, XCircle, Trash2, Building, FileText, Download, ChevronLeft, ChevronRight
+} from 'lucide-react';
+import { api, getCareers, deleteComplaint } from '../../../shared/services/api';
+import { type Complaint, ComplaintStatus, type Career } from '../../../shared/types';
 import { ComplaintModal } from '../components/ComplaintModal';
 
 export const AdminQuejas = () => {
@@ -11,7 +11,11 @@ export const AdminQuejas = () => {
   const [careersList, setCareersList] = useState<Career[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filtros
+  // Estados Paginación y Filtros
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const limit = 10;
+
   const [filterStatus, setFilterStatus] = useState('Todos');
   const [filterCareer, setFilterCareer] = useState('Todas');
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,18 +24,42 @@ export const AdminQuejas = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
 
-  useEffect(() => { loadData(); }, []);
+  // Cargar catálogo de carreras solo una vez al montar
+  useEffect(() => {
+    getCareers().then(setCareersList).catch(console.error);
+  }, []);
+
+  // Cargar quejas (Con Debounce para búsqueda)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+        loadData();
+    }, 400);
+    return () => clearTimeout(timeoutId);
+  }, [page, filterStatus, filterCareer, searchTerm]);
+
+  // Si cambia un filtro, regresar a la página 1
+  useEffect(() => {
+    setPage(1);
+  }, [filterStatus, filterCareer, searchTerm]);
 
   const loadData = async () => {
       setLoading(true);
       try {
-          const [dataComplaints, dataCareers] = await Promise.all([
-              getComplaints(),
-              getCareers()
-          ]);
-          setComplaints(dataComplaints);
-          setCareersList(dataCareers);
-      } catch (error) { console.error(error); } finally { setLoading(false); }
+          const skip = (page - 1) * limit;
+          let url = `/quejas/?skip=${skip}&limit=${limit}`;
+
+          if (searchTerm) url += `&search=${encodeURIComponent(searchTerm)}`;
+          if (filterStatus !== 'Todos') url += `&status=${encodeURIComponent(filterStatus)}`;
+          if (filterCareer !== 'Todas') url += `&career=${encodeURIComponent(filterCareer)}`;
+
+          const response = await api.get(url);
+          setComplaints(response.data.items);
+          setTotal(response.data.total);
+      } catch (error) {
+          console.error(error);
+      } finally {
+          setLoading(false);
+      }
   };
 
   const handleOpenModal = (complaint: Complaint) => {
@@ -43,19 +71,11 @@ export const AdminQuejas = () => {
       if (!confirm("¿Estás seguro de ELIMINAR este ticket permanentemente?")) return;
       try {
           await deleteComplaint(id);
-          setComplaints(prev => prev.filter(c => c.id !== id));
+          loadData(); // Recargamos para traer la paginación correcta
       } catch (error) { alert("Error al eliminar."); }
   };
 
-  const filtered = complaints.filter(c => {
-      const matchesStatus = filterStatus === 'Todos' || c.status === filterStatus;
-      const matchesCareer = filterCareer === 'Todas' || c.career === filterCareer;
-      const matchesSearch =
-        c.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.tracking_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.control_number.includes(searchTerm);
-      return matchesStatus && matchesCareer && matchesSearch;
-  });
+  const totalPages = Math.ceil(total / limit);
 
   return (
     <div className="animate-fade-in pb-20">
@@ -130,21 +150,21 @@ export const AdminQuejas = () => {
 
         {/* --- LISTADO --- */}
         {loading ? (
-            <div className="text-center py-20">
+            <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-guinda-600 mx-auto mb-4"></div>
-                <p className="text-gray-500">Cargando...</p>
+                <p className="text-gray-500 font-medium">Buscando reportes...</p>
             </div>
-        ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-gray-200 dark:border-slate-800">
+        ) : complaints.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-gray-200 dark:border-slate-800 shadow-sm">
                 <div className="w-16 h-16 bg-gray-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
                     <Filter size={32} className="text-gray-400" />
                 </div>
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">Sin resultados</h3>
-                <p className="text-gray-500 dark:text-gray-400 text-sm">Intenta ajustar los filtros de búsqueda.</p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">No se encontraron tickets con estos filtros.</p>
             </div>
         ) : (
             <div className="space-y-6">
-                {filtered.map(item => (
+                {complaints.map(item => (
                     <div key={item.id} className="card-base p-0 overflow-hidden hover:shadow-lg transition-all duration-300 border border-gray-100 dark:border-slate-800 group">
 
                         {/* Status Bar */}
@@ -214,7 +234,7 @@ export const AdminQuejas = () => {
                             <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-xl text-sm text-gray-700 dark:text-gray-300 mb-4 border border-gray-100 dark:border-slate-800">
                                 <p className="mb-3">"{item.description}"</p>
 
-                                {/* NUEVO: BOTÓN EVIDENCIA ALUMNO */}
+                                {/* EVIDENCIA ALUMNO */}
                                 {item.evidence_url && (
                                     <a
                                         href={item.evidence_url}
@@ -236,7 +256,7 @@ export const AdminQuejas = () => {
                                         {item.admin_response}
                                     </p>
 
-                                    {/* NUEVO: BOTÓN EVIDENCIA ADMIN */}
+                                    {/* EVIDENCIA ADMIN */}
                                     {item.resolution_evidence_url && (
                                         <a
                                             href={item.resolution_evidence_url}
@@ -257,6 +277,37 @@ export const AdminQuejas = () => {
                         </div>
                     </div>
                 ))}
+            </div>
+        )}
+
+        {/* --- CONTROLES DE PAGINACIÓN --- */}
+        {!loading && complaints.length > 0 && (
+            <div className="mt-8 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Mostrando <span className="font-bold text-gray-900 dark:text-white">{complaints.length}</span> tickets de <span className="font-bold text-gray-900 dark:text-white">{total}</span>
+                </span>
+
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <ChevronLeft size={18} />
+                    </button>
+
+                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300 px-3">
+                        Página {page} de {totalPages || 1}
+                    </span>
+
+                    <button
+                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        disabled={page >= totalPages || totalPages === 0}
+                        className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <ChevronRight size={18} />
+                    </button>
+                </div>
             </div>
         )}
 

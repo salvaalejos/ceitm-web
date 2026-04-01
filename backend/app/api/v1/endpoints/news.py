@@ -3,69 +3,88 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlmodel import Session, select
 from slugify import slugify
 from datetime import datetime
+from pydantic import BaseModel
 
 from app.core.database import get_session
 from app.models.news_model import News
-from app.models.user_model import User
+from app.models.user_model import User, UserRole
 from app.schemas.news_schema import NewsCreate, NewsUpdate, NewsPublic
 from app.api.deps import get_current_user
-# 👇 IMPORTAMOS EL LOGGER
 from app.core.audit_logger import log_action
 
 router = APIRouter()
 
 
-# --- PUBLICO ---
+# 👇 NUEVO: Esquema de Paginación
+class PaginatedNews(BaseModel):
+    total: int
+    items: List[NewsPublic]
 
-@router.get("/", response_model=List[NewsPublic])
-def read_news(
+
+# ==========================================
+# 1. PÚBLICO: OBTENER NOTICIAS PUBLICADAS
+# ==========================================
+@router.get("/public", response_model=List[NewsPublic])
+def read_public_news(
         session: Session = Depends(get_session),
-        limit: int = 10,
-        offset: int = 0,
-        # 👇 NUEVO PARÁMETRO DE FILTRO
         category: Optional[str] = Query(None, description="Filtrar por categoría (ej. BECAS, ACADEMICO)")
 ):
     """
-    Obtener noticias publicadas (paginadas).
-    Permite filtrar por categoría opcionalmente.
+    Obtener SOLO noticias publicadas para la vista de alumnos.
     """
-    # 1. Iniciamos la consulta base (solo publicadas)
     statement = select(News).where(News.is_published == True)
-
-    # 2. 👇 APLICAMOS FILTRO SI EXISTE
     if category:
         statement = statement.where(News.category == category)
 
-    # 3. Ordenamos y paginamos al final
-    statement = statement.order_by(News.created_at.desc()).offset(offset).limit(limit)
-
+    statement = statement.order_by(News.created_at.desc())
     news = session.exec(statement).all()
     return news
 
 
-@router.get("/{slug}", response_model=NewsPublic)
-def read_single_news(slug: str, session: Session = Depends(get_session)):
+# ==========================================
+# 2. PRIVADO: ADMIN LISTADO PAGINADO (INCLUYE BORRADORES)
+# ==========================================
+@router.get("/", response_model=PaginatedNews)
+def read_admin_news(
+        skip: int = Query(0, ge=0),
+        limit: int = Query(10, ge=1, le=100),
+        search: Optional[str] = Query(None),
+        session: Session = Depends(get_session),
+        current_user: User = Depends(get_current_user)
+):
     """
-    Leer una noticia específica por su URL (slug).
+    Listar todas las noticias (Paginado) para el administrador.
     """
-    news = session.exec(select(News).where(News.slug == slug)).first()
-    if not news:
-        raise HTTPException(status_code=404, detail="Noticia no encontrada")
-    return news
+    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+    base_query = select(News)
+
+    if search:
+        base_query = base_query.where(
+            (News.title.icontains(search)) |
+            (News.category.icontains(search)) |
+            (News.excerpt.icontains(search))
+        )
+
+    all_matching = session.exec(base_query).all()
+    total = len(all_matching)
+
+    query = base_query.order_by(News.created_at.desc()).offset(skip).limit(limit)
+    news = session.exec(query).all()
+
+    return PaginatedNews(total=total, items=news)
 
 
-# --- PRIVADO (ADMIN) ---
-
+# ==========================================
+# 3. PRIVADO: CREAR NOTICIA
+# ==========================================
 @router.post("/", response_model=NewsPublic)
 def create_news(
         news_in: NewsCreate,
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user)
 ):
-    """
-    Crear nueva noticia.
-    """
-    # Generar slug único
     base_slug = slugify(news_in.title)
     slug = base_slug
     counter = 1
@@ -74,13 +93,11 @@ def create_news(
         slug = f"{base_slug}-{counter}"
         counter += 1
 
-    # Creamos la noticia (la categoría ya viene en news_in o usa el default)
     news = News.model_validate(news_in, update={"slug": slug, "author_id": current_user.id})
     session.add(news)
     session.commit()
     session.refresh(news)
 
-    # 👇 LOG: Creación de noticia
     log_action(
         session=session,
         user=current_user,
@@ -90,10 +107,12 @@ def create_news(
         resource_id=str(news.id)
     )
     session.commit()
-
     return news
 
 
+# ==========================================
+# 4. PRIVADO: EDITAR NOTICIA
+# ==========================================
 @router.put("/{news_id}", response_model=NewsPublic)
 def update_news(
         news_id: int,
@@ -101,9 +120,6 @@ def update_news(
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user)
 ):
-    """
-    Editar noticia.
-    """
     news = session.get(News, news_id)
     if not news:
         raise HTTPException(status_code=404, detail="Noticia no encontrada")
@@ -118,7 +134,6 @@ def update_news(
     session.commit()
     session.refresh(news)
 
-    # 👇 LOG: Edición de noticia
     log_action(
         session=session,
         user=current_user,
@@ -128,10 +143,12 @@ def update_news(
         resource_id=str(news.id)
     )
     session.commit()
-
     return news
 
 
+# ==========================================
+# 5. PRIVADO: ELIMINAR NOTICIA
+# ==========================================
 @router.delete("/{news_id}")
 def delete_news(
         news_id: int,
@@ -142,11 +159,9 @@ def delete_news(
     if not news:
         raise HTTPException(status_code=404, detail="Noticia no encontrada")
 
-    news_title = news.title  # Guardamos el título para el log
-
+    news_title = news.title
     session.delete(news)
 
-    # 👇 LOG: Eliminación de noticia
     log_action(
         session=session,
         user=current_user,
@@ -158,3 +173,14 @@ def delete_news(
 
     session.commit()
     return {"ok": True}
+
+
+# ==========================================
+# 6. PÚBLICO: LEER NOTICIA POR SLUG (Debe ir al final)
+# ==========================================
+@router.get("/{slug}", response_model=NewsPublic)
+def read_single_news(slug: str, session: Session = Depends(get_session)):
+    news = session.exec(select(News).where(News.slug == slug)).first()
+    if not news:
+        raise HTTPException(status_code=404, detail="Noticia no encontrada")
+    return news

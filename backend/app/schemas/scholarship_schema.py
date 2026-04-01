@@ -136,6 +136,16 @@ class ApplicationBase(SQLModel):
     # AHORA ES TOTALMENTE OPCIONAL (Para lógica de Rezagados)
     release_folio: Optional[str] = None
 
+    @field_validator('release_folio', mode='before')
+    @classmethod
+    def empty_str_to_none(cls, v):
+        if not v or v.strip() == "":
+            return None
+        return v
+
+    activities: Optional[str] = None
+    motivos: str
+
     activities: Optional[str] = None
     motivos: str
 

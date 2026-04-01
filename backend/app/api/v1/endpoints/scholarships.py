@@ -1,9 +1,10 @@
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks, Query
 from fastapi.responses import StreamingResponse
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 from datetime import datetime
+from pydantic import BaseModel
 import io
 
 from app.core.database import get_session
@@ -32,6 +33,17 @@ def get_frontend_url():
     return "https://ceitm.ddnsking.com"
 
 
+# 👇 NUEVO: ESQUEMAS DE PAGINACIÓN
+class PaginatedScholarships(BaseModel):
+    total: int
+    items: List[ScholarshipRead]
+
+
+class PaginatedApplications(BaseModel):
+    total: int
+    items: List[ApplicationRead]
+
+
 # ==========================================
 # 0. UTILIDADES (LÓGICA DE FOLIO MEJORADA)
 # ==========================================
@@ -43,21 +55,12 @@ def generate_release_folio(
         custom_year: int = None,
         custom_period: str = None
 ) -> str:
-    """
-    Genera el folio. Prioriza los datos manuales del Coordinador.
-    Formato: [XXX]-[CONTROL]-[TIPO]-[YY][PERIODO]
-    Ejemplo: REC-21120538-ALI-26A
-    """
-    # 1. Código de Actividad (Manual o Automático)
     if custom_activity:
-        # Tomamos las primeras 3 letras de lo que escribió el coordinador
         activity_code = custom_activity[:3].upper()
     else:
         activity_code = scholarship.folio_identifier[:3].upper() if scholarship.folio_identifier else "GEN"
 
     control = application.control_number.strip().upper()
-
-    # 2. Tipo de Beca (Fijo según la convocatoria)
     type_code = "GEN"
     sch_type_str = str(scholarship.type.value) if hasattr(scholarship.type, 'value') else str(scholarship.type)
 
@@ -68,11 +71,9 @@ def generate_release_folio(
     elif "Idiomas" in sch_type_str:
         type_code = "CLE"
 
-    # 3. Año (Manual o de la Beca)
     year_val = custom_year if custom_year else scholarship.year
     year_short = str(year_val)[-2:]
 
-    # 4. Periodo (Manual o de la Beca)
     if custom_period:
         period_letter = custom_period.upper()
     else:
@@ -86,12 +87,7 @@ def generate_release_folio(
 
 
 def sync_student_record(session: Session, application_in: ApplicationCreate) -> Student:
-    """
-    Sincroniza o crea el expediente del alumno.
-    """
     student = session.get(Student, application_in.control_number)
-
-    # Buscamos el ID de la carrera
     career_obj = session.exec(select(Career).where(Career.name == application_in.career)).first()
     career_id = career_obj.id if career_obj else None
 
@@ -108,36 +104,29 @@ def sync_student_record(session: Session, application_in: ApplicationCreate) -> 
             full_name=application_in.full_name,
             email=application_in.email,
             phone_number=application_in.phone_number,
-            # career=application_in.career, <--- ELIMINADO para evitar error CORS/500
             career_id=career_id,
             is_blacklisted=False
         )
         session.add(student)
-
-    # El commit se hace en el endpoint principal
     return student
 
-# ==========================================
-# 1. GESTIÓN DE ALUMNOS (ENDPOINT FALTANTE)
-# ==========================================
 
+# ==========================================
+# 1. GESTIÓN DE ALUMNOS
+# ==========================================
 @router.get("/students", response_model=List[Student])
 def read_students(
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user)
 ):
-    """Devuelve la lista de expedientes (Soluciona error 405)."""
     if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
         raise HTTPException(status_code=403, detail="No autorizado")
-
-    # Cargamos la relación de carrera para mostrarla en la tabla
     return session.exec(select(Student).options(selectinload(Student.career))).all()
 
 
 # ==========================================
 # 2. GESTIÓN DE CUPOS
 # ==========================================
-
 @router.post("/{scholarship_id}/quotas/init", response_model=List[ScholarshipQuotaRead])
 def initialize_quotas(
         scholarship_id: int,
@@ -212,7 +201,7 @@ def update_quota(
 
 
 # ==========================================
-# 3. ENDPOINTS DE SOLICITUD (FIX 500/CORS)
+# 3. ENDPOINTS DE SOLICITUD
 # ==========================================
 
 @router.post("/apply", response_model=ApplicationRead)
@@ -223,15 +212,12 @@ def submit_application(
         background_tasks: BackgroundTasks,
         session: Session = Depends(get_session)
 ):
-    # 1. Validar Beca
     scholarship = session.get(Scholarship, application_in.scholarship_id)
     if not scholarship or not scholarship.is_active:
         raise HTTPException(status_code=400, detail="La convocatoria no está activa")
 
-    # 2. Sincronizar Estudiante (Sin guardar todavía)
     student = sync_student_record(session, application_in)
 
-    # 3. Verificar duplicados
     existing = session.exec(
         select(ScholarshipApplication)
         .where(ScholarshipApplication.control_number == application_in.control_number)
@@ -240,7 +226,6 @@ def submit_application(
 
     if existing:
         if existing.status in [ApplicationStatus.DOCUMENTACION_FALTANTE, ApplicationStatus.RECHAZADA]:
-            # Permitir reintento
             existing.sqlmodel_update(application_in.model_dump(exclude_unset=True))
             existing.status = ApplicationStatus.PENDIENTE
             existing.admin_comments = None
@@ -251,15 +236,12 @@ def submit_application(
         else:
             raise HTTPException(status_code=400, detail="Ya tienes una solicitud activa para esta beca.")
     else:
-        # Nueva solicitud
         application = ScholarshipApplication.model_validate(application_in)
-        # Aseguramos la relación con el estudiante
         application.student_id = student.control_number
         session.add(application)
         session.commit()
         session.refresh(application)
 
-    # 4. Enviar Correo
     try:
         scholarship_name = scholarship.name
         frontend_link = f"{get_frontend_url()}/becas/resultados"
@@ -282,12 +264,37 @@ def submit_application(
     return application
 
 
-@router.get("/", response_model=List[ScholarshipRead])
-def read_scholarships(active_only: bool = True, session: Session = Depends(get_session)):
+# 👇 NUEVO: ENDPOINT LISTA PLANA DE CONVOCATORIAS (PARA PUBLICO Y SELECTORES)
+@router.get("/all", response_model=List[ScholarshipRead])
+def read_all_scholarships(active_only: bool = True, session: Session = Depends(get_session)):
     query = select(Scholarship).options(selectinload(Scholarship.quotas))
     if active_only:
         query = query.where(Scholarship.is_active == True)
     return session.exec(query).all()
+
+
+# 👇 NUEVO: ENDPOINT DE CONVOCATORIAS PAGINADAS
+@router.get("/", response_model=PaginatedScholarships)
+def read_scholarships_paginated(
+        skip: int = Query(0, ge=0),
+        limit: int = Query(10, ge=1, le=100),
+        search: Optional[str] = Query(None),
+        session: Session = Depends(get_session),
+        current_user: User = Depends(get_current_user)
+):
+    query = select(Scholarship).options(selectinload(Scholarship.quotas))
+    if search:
+        query = query.where(
+            (Scholarship.name.icontains(search)) |
+            (Scholarship.cycle.icontains(search))
+        )
+
+    all_items = session.exec(query).all()
+    total = len(all_items)
+
+    query = query.order_by(Scholarship.id.desc()).offset(skip).limit(limit)
+    items = session.exec(query).all()
+    return PaginatedScholarships(total=total, items=items)
 
 
 @router.post("/", response_model=ScholarshipRead)
@@ -305,38 +312,47 @@ def create_scholarship(
     return scholarship
 
 
-@router.get("/applications", response_model=List[ApplicationRead])
-def read_all_applications(
+# 👇 NUEVO: ENDPOINT DE SOLICITUDES PAGINADAS Y CON FILTROS
+@router.get("/applications", response_model=PaginatedApplications)
+def read_all_applications_paginated(
         scholarship_id: int,
+        skip: int = Query(0, ge=0),
+        limit: int = Query(10, ge=1, le=100),
+        search: Optional[str] = Query(None),
+        status: Optional[str] = Query(None),
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user)
 ):
-    # Base query: Traemos la solicitud y cargamos al estudiante
     query = select(ScholarshipApplication) \
         .where(ScholarshipApplication.scholarship_id == scholarship_id) \
         .options(selectinload(ScholarshipApplication.student))
 
-    # --- LÓGICA DE PERMISOS CORREGIDA ---
-
-    # 1. Admin y Estructura ven TODO
     if current_user.role in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
         pass
-
-        # 2. Concejales y Coordinadores ven SOLO SU CARRERA
     elif current_user.role in [UserRole.CONCEJAL, UserRole.COORDINADOR]:
         if not current_user.career:
-            return []  # Si no tiene carrera asignada, no ve nada
-
-        # Filtro: Coincidencia exacta o parcial para evitar errores de tipeo
-        # (Ej: "Sistemas" vs "Ing. en Sistemas")
+            return PaginatedApplications(total=0, items=[])
         from sqlmodel import col
         query = query.where(col(ScholarshipApplication.career).contains(current_user.career))
-
-    # 3. Cualquier otro rol (Vocal, etc.) -> Error 403
     else:
         raise HTTPException(status_code=403, detail="No tienes permisos para ver solicitudes.")
 
-    return session.exec(query).all()
+    if status and status != 'Todos':
+        query = query.where(ScholarshipApplication.status == status)
+
+    if search:
+        query = query.where(
+            (ScholarshipApplication.control_number.icontains(search)) |
+            (ScholarshipApplication.full_name.icontains(search))
+        )
+
+    all_items = session.exec(query).all()
+    total = len(all_items)
+
+    query = query.order_by(ScholarshipApplication.created_at.desc()).offset(skip).limit(limit)
+    items = session.exec(query).all()
+
+    return PaginatedApplications(total=total, items=items)
 
 
 @router.patch("/{scholarship_id}", response_model=ScholarshipRead)
@@ -374,7 +390,6 @@ def update_application_status(
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user),
 ):
-    # Carga eager para asegurar que scholarship esté disponible
     application = session.exec(
         select(ScholarshipApplication)
         .where(ScholarshipApplication.id == application_id)
@@ -385,21 +400,17 @@ def update_application_status(
         raise HTTPException(status_code=404, detail="Solicitud no encontrada")
 
     if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
-        # Concejales solo pueden ver, no liberar ni aprobar oficialmente (según reglas estrictas)
-        # O ajusta según tu regla de negocio
         if current_user.role == UserRole.CONCEJAL:
-            pass  # O validación específica
+            pass
         else:
             raise HTTPException(status_code=403, detail="No autorizado")
 
     old_status = application.status
     new_status = application_in.status
 
-    # Lógica de cambio de estado
     if new_status and new_status != old_status:
         scholarship = application.scholarship or session.get(Scholarship, application.scholarship_id)
 
-        # Gestión de Cupos (Solo al Aprobar)
         if new_status == ApplicationStatus.APROBADA:
             quota = session.exec(
                 select(ScholarshipQuota)
@@ -414,7 +425,6 @@ def update_application_status(
                 session.add(quota)
 
         elif old_status == ApplicationStatus.APROBADA and new_status != ApplicationStatus.APROBADA:
-            # Liberar cupo si se arrepienten
             quota = session.exec(
                 select(ScholarshipQuota)
                 .where(ScholarshipQuota.scholarship_id == application.scholarship_id)
@@ -424,9 +434,7 @@ def update_application_status(
                 quota.used_slots -= 1
                 session.add(quota)
 
-        # --- GENERACIÓN DE FOLIO (USANDO DATOS MANUALES DEL COORDINADOR) ---
         if new_status == ApplicationStatus.LIBERADA:
-            # Siempre generamos/regeneramos si vienen datos manuales, o si no tiene folio
             application.release_folio = generate_release_folio(
                 application,
                 scholarship,
@@ -435,7 +443,6 @@ def update_application_status(
                 custom_period=application_in.release_period
             )
 
-    # Actualizar datos generales (excluyendo los campos temporales para no romper el modelo)
     exclude_fields = {"release_activity", "release_year", "release_period"}
     update_data = application_in.model_dump(exclude_unset=True, exclude=exclude_fields)
 
@@ -446,7 +453,6 @@ def update_application_status(
     session.commit()
     session.refresh(application)
 
-    # Correos
     if new_status != old_status:
         scholarship_name = application.scholarship.name if application.scholarship else "Beca"
         link = f"{get_frontend_url()}/becas/resultados"

@@ -4,9 +4,8 @@ import {
     User, Home, FileText, Upload, CheckCircle,
     ArrowRight, ArrowLeft, AlertCircle, Loader2, Trash2, FileCheck, HelpCircle, Image as ImageIcon
 } from 'lucide-react';
-import { getScholarships, submitScholarshipApplication, uploadFile } from '../../../shared/services/api';
-import type { Scholarship, ScholarshipApplication } from '../../../shared/types';
-import { CARRERAS } from '../../../shared/constants/carreras';
+import { getScholarships, submitScholarshipApplication, uploadFile, getCareers } from '../../../shared/services/api';
+import type { Scholarship, ScholarshipApplication, Career } from '../../../shared/types';
 // Importamos los recursos nuevos
 import { SuccessScholarshipModal } from '../components/SuccessScholarshipModal';
 import { WHATSAPP_LINKS } from '../../../shared/constants/grupos';
@@ -24,6 +23,7 @@ export const SolicitudPage = () => {
 
     const [scholarship, setScholarship] = useState<Scholarship | null>(null);
     const [currentStep, setCurrentStep] = useState(1);
+    const [careerList, setCareerList] = useState<Career[]>([]);
 
     // Estados de UI
     const [submitting, setSubmitting] = useState(false);
@@ -74,6 +74,19 @@ export const SolicitudPage = () => {
         };
         loadBeca();
     }, [id, navigate]);
+
+    // Cargar Catálogo de Carreras desde la BD
+    useEffect(() => {
+        const fetchCareers = async () => {
+            try {
+                const data = await getCareers();
+                setCareerList(data.filter((c: Career) => c.is_active));
+            } catch (e) {
+                console.error("Error cargando carreras:", e);
+            }
+        };
+        fetchCareers();
+    }, []);
 
     // Cálculo automático de Ingreso Per Cápita
     useEffect(() => {
@@ -208,6 +221,7 @@ export const SolicitudPage = () => {
             if (finalData.previous_scholarship === 'Otro') {
                 finalData.previous_scholarship = `Otro: ${otherScholarshipName}`;
             }
+            if (finalData.release_folio === '') finalData.release_folio = null;
 
             for (const key of Object.keys(selectedFiles)) {
                 setUploadingInfo(`Subiendo ${key === 'student_photo' ? 'FOTO' : key.replace('doc_', '').toUpperCase()}...`);
@@ -309,7 +323,7 @@ export const SolicitudPage = () => {
                                     <label className="form-label">Carrera</label>
                                     <select name="career" value={formData.career} onChange={handleChange} className="form-input">
                                         <option value="">Selecciona...</option>
-                                        {CARRERAS.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
+                                        {careerList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                                     </select>
                                 </div>
                                 <div>

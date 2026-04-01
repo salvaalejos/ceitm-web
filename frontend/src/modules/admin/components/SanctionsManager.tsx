@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getSanctions, createSanction, updateSanction, deleteSanction, getUsers } from '../../../shared/services/api';
+import { api, getSanctions, createSanction, updateSanction, deleteSanction } from '../../../shared/services/api';
 import { type Sanction, SanctionSeverity, SanctionStatus, type User, UserRole } from '../../../shared/types';
 import { CheckCircle2, Trash2, Plus, Clock, ShieldAlert, X, AlertTriangle } from 'lucide-react';
 import Swal from 'sweetalert2';
@@ -10,7 +10,6 @@ export const SanctionsManager: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Estado del formulario
   const [formData, setFormData] = useState({
     user_id: '',
     severity: SanctionSeverity.LEVE,
@@ -25,12 +24,13 @@ export const SanctionsManager: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [sanctionsData, usersData] = await Promise.all([
+      const [sanctionsData, usersRes] = await Promise.all([
         getSanctions(),
-        getUsers()
+        api.get('/users/all') // 👈 Utilizamos el nuevo endpoint dedicado sin paginación
       ]);
       setSanctions(sanctionsData);
-      setUsers(usersData.filter(u => u.role !== UserRole.ADMIN_SYS));
+      // Como ahora viene un array directo, usamos data.filter directamente
+      setUsers(usersRes.data.filter((u: User) => u.role !== UserRole.ADMIN_SYS));
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -95,7 +95,6 @@ export const SanctionsManager: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm">
         <div className="flex items-center gap-3">
             <div className="p-2 bg-guinda-50 dark:bg-guinda-900/20 rounded-lg">
@@ -114,7 +113,6 @@ export const SanctionsManager: React.FC = () => {
         </button>
       </div>
 
-      {/* Grid de Sanciones (Mejor que tabla simple) */}
       <div className="grid grid-cols-1 gap-4">
         {sanctions.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 dark:bg-slate-900 rounded-2xl border border-dashed border-gray-200 dark:border-slate-800">
@@ -180,7 +178,6 @@ export const SanctionsManager: React.FC = () => {
         )}
       </div>
 
-      {/* Modal Nativo Personalizado */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-gray-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">

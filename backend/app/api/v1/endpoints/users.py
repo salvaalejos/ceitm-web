@@ -1,16 +1,21 @@
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
+from pydantic import BaseModel
 
 from app.core.database import get_session
 from app.core.security import get_password_hash
 from app.models.user_model import User, UserRole
 from app.schemas.user_schema import UserPublic, UserCreate, UserUpdate, UserUpdateMe
 from app.api.deps import get_current_user
-# 👇 IMPORTAMOS EL LOGGER DE AUDITORÍA
 from app.core.audit_logger import log_action
 
 router = APIRouter()
+
+# --- ESQUEMAS PARA PAGINACIÓN ---
+class PaginatedUsers(BaseModel):
+    total: int
+    items: List[UserPublic]
 
 
 # ==========================================
@@ -73,19 +78,53 @@ def read_concejales(session: Session = Depends(get_session)):
     return users
 
 
-@router.get("/", response_model=List[UserPublic])
+# 👇 NUEVO ENDPOINT: Trae TODOS los activos para los Selects/Dropdowns
+@router.get("/all", response_model=List[UserPublic])
+def read_all_active_users(
+        session: Session = Depends(get_session),
+        current_user: User = Depends(get_current_user)
+):
+    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
+        raise HTTPException(status_code=403, detail="No tienes permisos")
+    # Solo traemos a los activos ordenados alfabéticamente
+    users = session.exec(select(User).where(User.is_active == True).order_by(User.full_name)).all()
+    return users
+
+
+@router.get("/", response_model=PaginatedUsers)
 def read_users(
+        skip: int = Query(0, ge=0),
+        limit: int = Query(10, ge=1, le=100),
+        search: Optional[str] = Query(None),
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user)
 ):
     """
-    Listar todos los usuarios (Solo Admin/Estructura).
+    Listar todos los usuarios de forma paginada y con búsqueda (Solo Admin/Estructura).
     """
     if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
         raise HTTPException(status_code=403, detail="No tienes permisos")
 
-    users = session.exec(select(User).order_by(User.id)).all()
-    return users
+    # 1. Consulta base
+    base_query = select(User)
+
+    # 2. Si hay búsqueda, filtramos por nombre, correo o rol
+    if search:
+        base_query = base_query.where(
+            (User.full_name.icontains(search)) |
+            (User.email.icontains(search)) |
+            (User.role.icontains(search))
+        )
+
+    # 3. Contamos el total de registros de forma segura para SQLite
+    all_matching_users = session.exec(base_query).all()
+    total = len(all_matching_users)
+
+    # 4. Traemos solo la página solicitada
+    query = base_query.order_by(User.id).offset(skip).limit(limit)
+    users = session.exec(query).all()
+
+    return PaginatedUsers(total=total, items=users)
 
 
 @router.post("/", response_model=UserPublic)
@@ -117,15 +156,11 @@ def create_user(
         action="CREATE",
         module="USUARIOS",
         details=f"Creó al usuario {user.email} con rol {user.role}",
-        resource_id=None  # No tenemos ID hasta el commit, pero podemos omitirlo o hacer flush si urge
+        resource_id=None
     )
 
     session.commit()
     session.refresh(user)
-
-    # Actualizamos el log con el ID si fuera crítico, pero por simplicidad lo dejamos así arriba
-    # o hacemos un session.flush() antes del log.
-
     return user
 
 
@@ -195,7 +230,7 @@ def delete_user(
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-    user_email_deleted = user.email  # Guardamos el mail para el log antes de borrar
+    user_email_deleted = user.email
 
     session.delete(user)
 

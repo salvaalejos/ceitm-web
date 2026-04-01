@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getShifts, createShift, deleteShift, getUsers } from '../../../shared/services/api';
+import { api, getShifts, createShift, deleteShift } from '../../../shared/services/api';
 import { useAuthStore } from '../../../shared/store/authStore';
 import { type Shift, DayOfWeek, type User, UserArea, UserRole } from '../../../shared/types';
 import Swal from 'sweetalert2';
@@ -26,8 +26,10 @@ const WeeklyScheduleGrid: React.FC = () => {
       setShifts(shiftsData);
 
       if (canEdit) {
-        const usersData = await getUsers();
-        setUsers(usersData.filter((u: User) => u.is_active));
+        // 👇 Utilizamos el nuevo endpoint plano sin paginación
+        const usersRes = await api.get('/users/all');
+        // Ya viene como array desde el backend, con is_active=True
+        setUsers(usersRes.data);
       }
     } catch (error) {
       console.error('Error cargando guardias:', error);
@@ -93,8 +95,7 @@ const WeeklyScheduleGrid: React.FC = () => {
       if (userId) {
         try {
           const newShift = await createShift({ user_id: parseInt(userId), day, hour });
-          setShifts(prev => [...prev, newShift]); // Update local state optimization
-          // fetchData(); // Optional: refresh completely
+          setShifts(prev => [...prev, newShift]);
         } catch (error) {
           Swal.fire({ title: 'Error', text: 'No se pudo asignar (¿Horario ocupado?)', icon: 'error', ...swalColors });
         }

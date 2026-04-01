@@ -1,57 +1,81 @@
 import { useState, useEffect } from 'react';
 import {
   getScholarships,
+  getPaginatedScholarships,
   updateScholarship,
   getApplications
 } from '../../../shared/services/api';
 import type { Scholarship, ScholarshipApplication } from '../../../shared/types';
 import { RevisionModal } from '../components/RevisionModal';
 import { ScholarshipModal } from '../components/ScholarshipModal';
-// Importamos el gestor de cupos
 import { QuotaManager } from '../components/QuotaManager';
 import {
   CheckCircle, XCircle, Clock, Search, Filter, FileText,
-  AlertTriangle, Edit, PlusCircle, BarChart3, ShieldAlert
+  AlertTriangle, Edit, PlusCircle, BarChart3, ShieldAlert, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { usePermissions } from '../../../shared/hooks/usePermissions';
 
 export default function AdminBecas() {
   const { canManageBecas, isConcejal } = usePermissions();
 
-  // Estado de pestañas actualizado con 'cupos'
   const [activeTab, setActiveTab] = useState<'convocatorias' | 'solicitudes' | 'cupos'>(
       isConcejal ? 'solicitudes' : 'convocatorias'
   );
 
+  // Estado para Dropdowns (Lista Plana)
+  const [allScholarships, setAllScholarships] = useState<Scholarship[]>([]);
+  const [selectedScholarshipId, setSelectedScholarshipId] = useState<number | null>(null);
+
+  // Estados Paginación de CONVOCATORIAS
   const [scholarships, setScholarships] = useState<Scholarship[]>([]);
+  const [scholPage, setScholPage] = useState(1);
+  const [scholTotal, setScholTotal] = useState(0);
+  const [scholSearch, setScholSearch] = useState('');
+
+  // Estados Paginación de SOLICITUDES
   const [applications, setApplications] = useState<ScholarshipApplication[]>([]);
+  const [appPage, setAppPage] = useState(1);
+  const [appTotal, setAppTotal] = useState(0);
+  const [appSearch, setAppSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('Todos');
 
   const [loading, setLoading] = useState(false);
-  const [selectedScholarshipId, setSelectedScholarshipId] = useState<number | null>(null);
-  const [filterStatus, setFilterStatus] = useState<string>('Todos');
+  const limit = 10;
 
   const [editingApp, setEditingApp] = useState<ScholarshipApplication | null>(null);
   const [showScholarshipModal, setShowScholarshipModal] = useState(false);
   const [editingScholarship, setEditingScholarship] = useState<Scholarship | null>(null);
 
+  // 1. Cargar lista plana (Solo para los selects de las otras pestañas)
   useEffect(() => {
-    loadScholarships();
+    const fetchAll = async () => {
+      try {
+        const data = await getScholarships(false);
+        setAllScholarships(data);
+        if (data.length > 0 && !selectedScholarshipId) {
+          setSelectedScholarshipId(data[0].id);
+        }
+      } catch (error) { console.error(error); }
+    };
+    fetchAll();
   }, []);
 
+  // 2. Cargar CONVOCATORIAS Paginadas (con Debounce)
   useEffect(() => {
-    if (selectedScholarshipId && activeTab === 'solicitudes') {
-      loadApplications(selectedScholarshipId);
-    }
-  }, [selectedScholarshipId, activeTab]);
+    if (activeTab !== 'convocatorias') return;
+    const timeoutId = setTimeout(() => {
+      loadPaginatedScholarships();
+    }, 400);
+    return () => clearTimeout(timeoutId);
+  }, [scholPage, scholSearch, activeTab]);
 
-  const loadScholarships = async () => {
+  const loadPaginatedScholarships = async () => {
     setLoading(true);
     try {
-      const data = await getScholarships(false);
-      setScholarships(data);
-      if (data.length > 0 && !selectedScholarshipId) {
-        setSelectedScholarshipId(data[0].id);
-      }
+      const skip = (scholPage - 1) * limit;
+      const data = await getPaginatedScholarships(skip, limit, scholSearch);
+      setScholarships(data.items);
+      setScholTotal(data.total);
     } catch (error) {
       console.error(error);
     } finally {
@@ -59,14 +83,37 @@ export default function AdminBecas() {
     }
   };
 
-  const loadApplications = async (id: number) => {
+  // 3. Cargar SOLICITUDES Paginadas (con Debounce)
+  useEffect(() => {
+    if (activeTab !== 'solicitudes' || !selectedScholarshipId) return;
+    const timeoutId = setTimeout(() => {
+      loadApplications();
+    }, 400);
+    return () => clearTimeout(timeoutId);
+  }, [appPage, appSearch, filterStatus, selectedScholarshipId, activeTab]);
+
+  // Si cambia filtro de status o search, regresar a pág 1
+  const handleAppSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setAppSearch(e.target.value);
+      setAppPage(1);
+  };
+  const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      setFilterStatus(e.target.value);
+      setAppPage(1);
+  };
+
+  const loadApplications = async () => {
+    if (!selectedScholarshipId) return;
     setLoading(true);
     try {
-      const data = await getApplications(id);
-      setApplications(data);
+      const skip = (appPage - 1) * limit;
+      const data = await getApplications(selectedScholarshipId, skip, limit, appSearch, filterStatus);
+      setApplications(data.items);
+      setAppTotal(data.total);
     } catch (error) {
       console.error(error);
       setApplications([]);
+      setAppTotal(0);
     } finally {
       setLoading(false);
     }
@@ -76,7 +123,7 @@ export default function AdminBecas() {
     if (!confirm(`¿Deseas ${s.is_active ? 'cerrar' : 'activar'} la convocatoria?`)) return;
     try {
       await updateScholarship(s.id, { is_active: !s.is_active });
-      loadScholarships();
+      loadPaginatedScholarships();
     } catch (error) {
       alert("Error al actualizar estatus");
     }
@@ -92,13 +139,11 @@ export default function AdminBecas() {
     setShowScholarshipModal(true);
   };
 
-  const filteredApps = applications.filter(app => {
-    if (filterStatus === 'Todos') return true;
-    return app.status === filterStatus;
-  });
+  const scholTotalPages = Math.ceil(scholTotal / limit);
+  const appTotalPages = Math.ceil(appTotal / limit);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in pb-20">
       <div className="flex justify-between items-center">
         <div>
             <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Gestión de Becas</h1>
@@ -159,60 +204,95 @@ export default function AdminBecas() {
         </nav>
       </div>
 
-      {/* VISTA 1: CONVOCATORIAS */}
+      {/* =======================================================
+          VISTA 1: CONVOCATORIAS (AHORA PAGINADA)
+          ======================================================= */}
       {activeTab === 'convocatorias' && (
-        <div className="bg-white dark:bg-slate-800 shadow rounded-lg overflow-hidden border border-gray-100 dark:border-slate-700">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
-            <thead className="bg-gray-50 dark:bg-slate-900">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">Nombre</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">Ciclo</th>
-                <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">Estado</th>
-                {canManageBecas && (
-                    <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">Acciones</th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-              {scholarships.map((s) => (
-                <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{s.name}</td>
-                  <td className="px-6 py-4 text-gray-500 dark:text-gray-300">{s.cycle}</td>
-                  <td className="px-6 py-4 text-center">
-                    <span className={`px-2 py-1 text-xs rounded-full font-bold ${
-                      s.is_active 
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-                        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                    }`}>
-                      {s.is_active ? 'Activa' : 'Cerrada'}
-                    </span>
-                  </td>
+        <div className="space-y-4">
+            <div className="relative max-w-sm">
+                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                    type="text"
+                    placeholder="Buscar convocatoria..."
+                    className="form-input pl-10 py-2 w-full"
+                    value={scholSearch}
+                    onChange={(e) => { setScholSearch(e.target.value); setScholPage(1); }}
+                />
+            </div>
 
-                  {canManageBecas && (
-                      <td className="px-6 py-4 text-right text-sm flex justify-end items-center gap-3">
-                        <button
-                          onClick={() => handleToggleActive(s)}
-                          className={`${s.is_active ? 'text-red-600 hover:text-red-800 dark:text-red-400' : 'text-green-600 hover:text-green-800 dark:text-green-400'} font-bold hover:underline text-xs`}
-                        >
-                          {s.is_active ? 'Cerrar' : 'Activar'}
-                        </button>
-                        <button
-                            onClick={() => handleEditScholarship(s)}
-                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                            title="Editar"
-                        >
-                            <Edit size={18} />
-                        </button>
-                      </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            <div className="bg-white dark:bg-slate-800 shadow rounded-lg overflow-hidden border border-gray-100 dark:border-slate-700">
+                {loading ? (
+                    <div className="p-10 text-center text-gray-500 dark:text-slate-400">Cargando convocatorias...</div>
+                ) : (
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                        <thead className="bg-gray-50 dark:bg-slate-900">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">Nombre</th>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">Ciclo</th>
+                            <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">Estado</th>
+                            {canManageBecas && (
+                                <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">Acciones</th>
+                            )}
+                        </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
+                        {scholarships.map((s) => (
+                            <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                            <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{s.name}</td>
+                            <td className="px-6 py-4 text-gray-500 dark:text-gray-300">{s.cycle}</td>
+                            <td className="px-6 py-4 text-center">
+                                <span className={`px-2 py-1 text-xs rounded-full font-bold ${
+                                s.is_active 
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                                    : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                }`}>
+                                {s.is_active ? 'Activa' : 'Cerrada'}
+                                </span>
+                            </td>
+
+                            {canManageBecas && (
+                                <td className="px-6 py-4 text-right text-sm flex justify-end items-center gap-3">
+                                    <button
+                                    onClick={() => handleToggleActive(s)}
+                                    className={`${s.is_active ? 'text-red-600 hover:text-red-800 dark:text-red-400' : 'text-green-600 hover:text-green-800 dark:text-green-400'} font-bold hover:underline text-xs`}
+                                    >
+                                    {s.is_active ? 'Cerrar' : 'Activar'}
+                                    </button>
+                                    <button
+                                        onClick={() => handleEditScholarship(s)}
+                                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                        title="Editar"
+                                    >
+                                        <Edit size={18} />
+                                    </button>
+                                </td>
+                            )}
+                            </tr>
+                        ))}
+                        </tbody>
+                    </table>
+                )}
+
+                {/* Paginación Convocatorias */}
+                {scholarships.length > 0 && !loading && (
+                    <div className="p-4 border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/30 flex justify-between items-center">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                            Mostrando {scholarships.length} de {scholTotal}
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setScholPage(p => Math.max(1, p - 1))} disabled={scholPage === 1} className="p-1.5 border rounded-lg text-gray-600 disabled:opacity-50"><ChevronLeft size={16}/></button>
+                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300 px-2">Pág {scholPage} / {scholTotalPages || 1}</span>
+                            <button onClick={() => setScholPage(p => Math.min(scholTotalPages, p + 1))} disabled={scholPage >= scholTotalPages || scholTotalPages === 0} className="p-1.5 border rounded-lg text-gray-600 disabled:opacity-50"><ChevronRight size={16}/></button>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
       )}
 
-      {/* VISTA 2: SOLICITUDES */}
+      {/* =======================================================
+          VISTA 2: SOLICITUDES (AHORA PAGINADA)
+          ======================================================= */}
       {activeTab === 'solicitudes' && (
         <div className="space-y-4">
           <div className="flex flex-col md:flex-row gap-4 justify-between bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700">
@@ -223,17 +303,24 @@ export default function AdminBecas() {
                   onChange={(e) => setSelectedScholarshipId(Number(e.target.value))}
                   className="form-input py-1 text-sm w-64"
                 >
-                  {scholarships.map(s => (
+                  {allScholarships.map(s => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
             </div>
-            <div className="flex items-center gap-2">
-                <Filter size={18} className="text-gray-400" />
+
+            <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+                <input
+                    type="text"
+                    placeholder="Buscar por control o nombre..."
+                    className="form-input py-1 text-sm w-full sm:w-64"
+                    value={appSearch}
+                    onChange={handleAppSearch}
+                />
                 <select
                     value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className="form-input py-1 text-sm"
+                    onChange={handleStatusChange}
+                    className="form-input py-1 text-sm w-full sm:w-auto"
                 >
                     <option value="Todos">Todos</option>
                     <option value="Pendiente">Pendientes</option>
@@ -246,7 +333,7 @@ export default function AdminBecas() {
 
           <div className="bg-white dark:bg-slate-800 shadow rounded-lg overflow-hidden border border-gray-100 dark:border-slate-700">
              {loading ? (
-                 <div className="p-10 text-center text-gray-500 dark:text-slate-400">Cargando datos...</div>
+                 <div className="p-10 text-center text-gray-500 dark:text-slate-400">Cargando solicitudes...</div>
              ) : (
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
                   <thead className="bg-gray-50 dark:bg-slate-900">
@@ -259,10 +346,10 @@ export default function AdminBecas() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-                    {filteredApps.length === 0 ? (
+                    {applications.length === 0 ? (
                         <tr><td colSpan={5} className="p-8 text-center text-gray-500 dark:text-slate-400">No hay solicitudes</td></tr>
                     ) : (
-                        filteredApps.map((app) => (
+                        applications.map((app) => (
                         <tr key={app.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                             <td className="px-6 py-4 font-mono text-sm text-gray-900 dark:text-gray-200 font-semibold">{app.control_number}</td>
 
@@ -270,7 +357,6 @@ export default function AdminBecas() {
                                 <div className="flex flex-col">
                                     <div className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
                                         {app.full_name}
-                                        {/* 👇 ALERTA DE BLACKLIST (Única modificación solicitada) */}
                                         {app.student?.is_blacklisted && (
                                             <ShieldAlert size={14} className="text-red-500" title="Alumno en Blacklist" />
                                         )}
@@ -307,6 +393,20 @@ export default function AdminBecas() {
                   </tbody>
                 </table>
              )}
+
+             {/* Paginación Solicitudes */}
+             {applications.length > 0 && !loading && (
+                 <div className="p-4 border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/30 flex justify-between items-center">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                        Mostrando {applications.length} de {appTotal}
+                    </span>
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => setAppPage(p => Math.max(1, p - 1))} disabled={appPage === 1} className="p-1.5 border rounded-lg text-gray-600 disabled:opacity-50"><ChevronLeft size={16}/></button>
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300 px-2">Pág {appPage} / {appTotalPages || 1}</span>
+                        <button onClick={() => setAppPage(p => Math.min(appTotalPages, p + 1))} disabled={appPage >= appTotalPages || appTotalPages === 0} className="p-1.5 border rounded-lg text-gray-600 disabled:opacity-50"><ChevronRight size={16}/></button>
+                    </div>
+                </div>
+             )}
           </div>
         </div>
       )}
@@ -326,7 +426,7 @@ export default function AdminBecas() {
                         onChange={(e) => setSelectedScholarshipId(Number(e.target.value))}
                         className="form-input py-2 px-3 text-sm w-full md:w-64"
                     >
-                        {scholarships.map(s => (
+                        {allScholarships.map(s => (
                             <option key={s.id} value={s.id}>{s.name}</option>
                         ))}
                     </select>
@@ -348,7 +448,7 @@ export default function AdminBecas() {
         <ScholarshipModal
           scholarship={editingScholarship}
           onClose={() => setShowScholarshipModal(false)}
-          onSuccess={() => loadScholarships()}
+          onSuccess={() => loadPaginatedScholarships()} // Recargar al guardar
         />
       )}
 
@@ -357,7 +457,7 @@ export default function AdminBecas() {
             application={editingApp}
             onClose={() => setEditingApp(null)}
             onUpdate={() => {
-                if (selectedScholarshipId) loadApplications(selectedScholarshipId);
+                if (selectedScholarshipId) loadApplications(); // Recargar solicitudes
             }}
         />
       )}

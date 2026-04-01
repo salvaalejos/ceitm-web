@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../../shared/services/api';
-import { Search, Ban, CheckCircle, History, GraduationCap, FileText, Download, Send, X, UserCheck, UserX } from 'lucide-react';
+import { Search, Ban, CheckCircle, History, GraduationCap, FileText, Download, Send, X, UserCheck, UserX, ChevronLeft, ChevronRight } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 // --- TIPOS ---
@@ -29,6 +29,11 @@ const AdminBecarios = () => {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('');
 
+    // --- ESTADOS PARA PAGINACIÓN ---
+    const [total, setTotal] = useState(0);
+    const [page, setPage] = useState(1);
+    const limit = 10; // Registros por página
+
     // --- ESTADOS PARA MODALES ---
     const [selectedStudent, setSelectedStudent] = useState<StudentRecord | null>(null);
     const [history, setHistory] = useState<ApplicationHistory[]>([]);
@@ -43,20 +48,38 @@ const AdminBecarios = () => {
         year: new Date().getFullYear()
     });
 
+    // Petición al Backend con Paginación y Búsqueda (Debounced)
     useEffect(() => {
-        loadStudents();
-    }, []);
+        const timeoutId = setTimeout(() => {
+            loadStudents();
+        }, 400); // Espera 400ms después de que el usuario deja de escribir
+
+        return () => clearTimeout(timeoutId);
+    }, [page, filter]);
 
     const loadStudents = async () => {
         try {
             setLoading(true);
-            const { data } = await api.get<StudentRecord[]>('/students/');
-            setStudents(data);
+            const skip = (page - 1) * limit;
+            const searchParam = filter ? `&search=${encodeURIComponent(filter)}` : '';
+
+            // Consumimos el endpoint con los parámetros
+            const { data } = await api.get(`/students/?skip=${skip}&limit=${limit}${searchParam}`);
+
+            // Adaptamos al nuevo formato PaginatedStudents
+            setStudents(data.items);
+            setTotal(data.total);
         } catch (error) {
             console.error(error);
         } finally {
             setLoading(false);
         }
+    };
+
+    // Resetea la página a 1 cada que se busca algo nuevo
+    const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFilter(e.target.value);
+        setPage(1);
     };
 
     const loadHistory = async (student: StudentRecord) => {
@@ -139,17 +162,13 @@ const AdminBecarios = () => {
         if (res.isConfirmed) {
             try {
                 await api.patch(`/students/${student.control_number}/toggle-blacklist`);
+                // Actualiza solo el estudiante modificado en la lista actual
                 setStudents(prev => prev.map(s => s.control_number === student.control_number ? { ...s, is_blacklisted: !s.is_blacklisted } : s));
             } catch (e) { Swal.fire('Error', 'Falló la operación', 'error'); }
         }
     };
 
-    const filteredStudents = students.filter(s =>
-        s.full_name.toLowerCase().includes(filter.toLowerCase()) ||
-        s.control_number.includes(filter)
-    );
-
-    if (loading) return <div className="p-10 text-center animate-pulse text-gray-400">Cargando Padrón...</div>;
+    const totalPages = Math.ceil(total / limit);
 
     return (
         <div className="space-y-6 animate-fade-in pb-10">
@@ -167,14 +186,23 @@ const AdminBecarios = () => {
                         type="text"
                         placeholder="Buscar por nombre o control..."
                         className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-guinda-500 shadow-sm transition-all"
-                        onChange={(e) => setFilter(e.target.value)}
+                        value={filter}
+                        onChange={handleSearch}
                     />
                 </div>
             </div>
 
             {/* Tabla Principal */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden relative">
+
+                {/* Loader Overlay */}
+                {loading && (
+                    <div className="absolute inset-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-[2px] z-10 flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-guinda-600"></div>
+                    </div>
+                )}
+
+                <div className="overflow-x-auto min-h-[300px]">
                     <table className="w-full text-left text-sm">
                         <thead className="bg-gray-50 dark:bg-slate-800/50 text-gray-500 dark:text-gray-400 uppercase font-bold text-xs border-b border-gray-100 dark:border-slate-800">
                             <tr>
@@ -186,9 +214,9 @@ const AdminBecarios = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
-                            {filteredStudents.length === 0 ? (
-                                <tr><td colSpan={5} className="p-12 text-center text-gray-400 italic">No se encontraron registros.</td></tr>
-                            ) : filteredStudents.map(s => (
+                            {!loading && students.length === 0 ? (
+                                <tr><td colSpan={5} className="p-12 text-center text-gray-400 italic">No se encontraron registros en la base de datos.</td></tr>
+                            ) : students.map(s => (
                                 <tr key={s.control_number} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
                                     <td className="p-4 font-mono text-gray-600 dark:text-gray-400 font-medium">{s.control_number}</td>
                                     <td className="p-4">
@@ -205,7 +233,6 @@ const AdminBecarios = () => {
                                         }
                                     </td>
                                     <td className="p-4 flex justify-center gap-2">
-                                        {/* Botón Historial */}
                                         <button
                                             onClick={() => loadHistory(s)}
                                             className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 py-2 px-3 rounded-lg text-xs font-bold flex items-center gap-2 transition-all"
@@ -214,7 +241,6 @@ const AdminBecarios = () => {
                                             <FileText size={16}/> <span className="hidden md:inline">Expediente</span>
                                         </button>
 
-                                        {/* Botón Blacklist */}
                                         <button
                                             onClick={() => handleToggleBlacklist(s)}
                                             className={`p-2 rounded-lg transition-all border ${
@@ -232,9 +258,34 @@ const AdminBecarios = () => {
                         </tbody>
                     </table>
                 </div>
-                <div className="p-4 border-t border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30 text-xs text-gray-500 dark:text-gray-400 flex justify-between">
-                    <span>{filteredStudents.length} resultados</span>
-                    <span>Total: {students.length}</span>
+
+                {/* --- CONTROLES DE PAGINACIÓN --- */}
+                <div className="p-4 border-t border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                        Mostrando <span className="font-bold text-gray-900 dark:text-white">{students.length}</span> registros de un total de <span className="font-bold text-gray-900 dark:text-white">{total}</span>
+                    </span>
+
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                            className="p-1.5 rounded-lg border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronLeft size={18} />
+                        </button>
+
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300 px-2">
+                            Página {page} de {totalPages || 1}
+                        </span>
+
+                        <button
+                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                            disabled={page >= totalPages || totalPages === 0}
+                            className="p-1.5 rounded-lg border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronRight size={18} />
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -242,7 +293,6 @@ const AdminBecarios = () => {
             {selectedStudent && (
                 <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] border border-gray-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
-                        {/* Header Modal */}
                         <div className="p-5 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gray-50/80 dark:bg-slate-800/50 backdrop-blur">
                             <div className="flex items-center gap-3">
                                 <div className="h-10 w-10 rounded-full bg-guinda-100 dark:bg-guinda-900/30 flex items-center justify-center text-guinda-700 dark:text-guinda-400 font-bold text-lg">
@@ -258,7 +308,6 @@ const AdminBecarios = () => {
                             </button>
                         </div>
 
-                        {/* Content Modal */}
                         <div className="p-6 overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900">
                             {loadingHistory ? (
                                 <div className="text-center py-12">
@@ -274,7 +323,6 @@ const AdminBecarios = () => {
                                 <div className="space-y-4">
                                     {history.map((app, index) => (
                                         <div key={app.id} className="relative pl-6 pb-6 border-l-2 border-gray-100 dark:border-slate-800 last:pb-0 last:border-0">
-                                            {/* Timeline Dot */}
                                             <div className={`absolute -left-[9px] top-0 h-4 w-4 rounded-full border-2 border-white dark:border-slate-900 
                                                 ${app.status === 'Liberada' ? 'bg-blue-500' : 
                                                   app.status === 'Aprobada' ? 'bg-green-500' : 
@@ -395,5 +443,4 @@ const AdminBecarios = () => {
     );
 };
 
-// ESTE ES LA CLAVE DEL ARREGLO DE SYNTAX ERROR:
 export default AdminBecarios;

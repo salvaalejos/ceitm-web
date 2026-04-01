@@ -1,20 +1,24 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
+from pydantic import BaseModel
 
 from app.core.database import get_session
 from app.models.document_model import Document, DocumentCategory
 from app.models.user_model import User, UserRole
 from app.schemas.document_schema import DocumentCreate, DocumentUpdate, DocumentPublic
 from app.api.deps import get_current_user
-# 👇 IMPORTAMOS EL LOGGER
 from app.core.audit_logger import log_action
 
 router = APIRouter()
 
+# 👇 NUEVO: Esquema de Paginación
+class PaginatedDocuments(BaseModel):
+    total: int
+    items: List[DocumentPublic]
+
 
 # --- PÚBLICO ---
-
 @router.get("/", response_model=List[DocumentPublic])
 def read_documents(
         category: Optional[DocumentCategory] = None,
@@ -34,11 +38,12 @@ def read_documents(
     return docs
 
 
-# --- PRIVADO (ADMIN) ---
-
-# Ver TODOS los documentos (incluyendo privados)
-@router.get("/admin", response_model=List[DocumentPublic])
-def read_all_documents(
+# --- PRIVADO (ADMIN PAGINADO) ---
+@router.get("/admin", response_model=PaginatedDocuments)
+def read_all_documents_paginated(
+        skip: int = Query(0, ge=0),
+        limit: int = Query(10, ge=1, le=100),
+        search: Optional[str] = Query(None),
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user)
 ):
@@ -46,9 +51,24 @@ def read_all_documents(
     if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
         raise HTTPException(status_code=403, detail="No tienes permisos")
 
-    # Traer todo sin filtrar por is_public
-    docs = session.exec(select(Document).order_by(Document.created_at.desc())).all()
-    return docs
+    base_query = select(Document)
+
+    if search:
+        base_query = base_query.where(
+            (Document.title.icontains(search)) |
+            (Document.description.icontains(search)) |
+            (Document.category.icontains(search))
+        )
+
+    # Contar total
+    all_docs = session.exec(base_query).all()
+    total = len(all_docs)
+
+    # Paginar
+    query = base_query.order_by(Document.created_at.desc()).offset(skip).limit(limit)
+    docs = session.exec(query).all()
+
+    return PaginatedDocuments(total=total, items=docs)
 
 
 @router.post("/", response_model=DocumentPublic)
@@ -66,7 +86,7 @@ def create_document(
     session.commit()
     session.refresh(doc)
 
-    # 👇 LOG: Registro de subida
+    # LOG: Registro de subida
     log_action(
         session=session,
         user=current_user,
@@ -93,11 +113,11 @@ def delete_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Documento no encontrado")
 
-    doc_title = doc.title  # Guardamos título para el log
+    doc_title = doc.title
 
     session.delete(doc)
 
-    # 👇 LOG: Registro de eliminación
+    # LOG: Registro de eliminación
     log_action(
         session=session,
         user=current_user,
