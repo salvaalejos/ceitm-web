@@ -15,7 +15,7 @@ from app.core.limiter import limiter
 from app.api.v1.endpoints import (
     convenios, login, utils, users, news, documents,
     complaints, scholarships, audit, careers, map,
-    shifts, sanctions, students
+    shifts, sanctions, students, attendance
 )
 
 
@@ -83,7 +83,7 @@ app.include_router(careers.router, prefix="/api/v1/carreras", tags=["Carreras"])
 app.include_router(map.router, prefix="/api/v1/map", tags=["Mapa"])
 app.include_router(students.router, prefix="/api/v1/students", tags=["Expedientes"])
 
-# --- NUEVOS MÓDULOS (CONTRALORÍA) ---
+app.include_router(attendance.router, prefix="/api/v1/asistencias", tags=["Asistencias"])
 app.include_router(shifts.router, prefix="/api/v1/shifts", tags=["Guardias"])
 app.include_router(sanctions.router, prefix="/api/v1/sanctions", tags=["Sanciones"])
 

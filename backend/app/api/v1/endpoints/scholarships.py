@@ -3,20 +3,22 @@ from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks,
 from fastapi.responses import StreamingResponse
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
+from sqlalchemy import func  # 👇 IMPORTANTE PARA CONTEO DINÁMICO
 from datetime import datetime
 from pydantic import BaseModel
 import io
 
 from app.core.database import get_session
-from app.models.user_model import User, UserRole
+from app.models.user_model import User, UserRole, UserArea
 from app.models.scholarship_model import Scholarship, ScholarshipApplication, ApplicationStatus, ScholarshipQuota, \
-    ScholarshipPeriod
+    ScholarshipPeriod, Cafeteria
 from app.models.student_model import Student
 from app.models.career_model import Career
 from app.schemas.scholarship_schema import (
     ScholarshipCreate, ScholarshipRead, ScholarshipUpdate,
     ApplicationCreate, ApplicationRead, ApplicationUpdate, ApplicationPublicStatus,
-    ScholarshipQuotaRead, ScholarshipQuotaUpdate
+    ScholarshipQuotaRead, ScholarshipQuotaUpdate,
+    CafeteriaCreate, CafeteriaUpdate, CafeteriaRead
 )
 from app.api.deps import get_current_user
 from app.core.limiter import limiter
@@ -33,7 +35,6 @@ def get_frontend_url():
     return "https://ceitm.ddnsking.com"
 
 
-# 👇 NUEVO: ESQUEMAS DE PAGINACIÓN
 class PaginatedScholarships(BaseModel):
     total: int
     items: List[ScholarshipRead]
@@ -45,9 +46,8 @@ class PaginatedApplications(BaseModel):
 
 
 # ==========================================
-# 0. UTILIDADES (LÓGICA DE FOLIO MEJORADA)
+# 0. UTILIDADES
 # ==========================================
-
 def generate_release_folio(
         application: ScholarshipApplication,
         scholarship: Scholarship,
@@ -119,7 +119,7 @@ def read_students(
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user)
 ):
-    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
+    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA] and current_user.area != UserArea.BECAS:
         raise HTTPException(status_code=403, detail="No autorizado")
     return session.exec(select(Student).options(selectinload(Student.career))).all()
 
@@ -133,7 +133,7 @@ def initialize_quotas(
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user),
 ):
-    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
+    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA] and current_user.area != UserArea.BECAS:
         raise HTTPException(status_code=403, detail="No autorizado")
 
     scholarship = session.get(Scholarship, scholarship_id)
@@ -168,9 +168,29 @@ def get_quotas(
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user),
 ):
-    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA, UserRole.CONCEJAL]:
+    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA,
+                                 UserRole.CONCEJAL] and current_user.area != UserArea.BECAS:
         raise HTTPException(status_code=403, detail="No autorizado")
-    return session.exec(select(ScholarshipQuota).where(ScholarshipQuota.scholarship_id == scholarship_id)).all()
+
+    quotas = session.exec(select(ScholarshipQuota).where(ScholarshipQuota.scholarship_id == scholarship_id)).all()
+
+    # 👇 CORRECCIÓN CLAVE: Sincronizar 'used_slots' contando en tiempo real las solicitudes aprobadas
+    for quota in quotas:
+        real_used = session.exec(
+            select(func.count(ScholarshipApplication.id)).where(
+                ScholarshipApplication.scholarship_id == scholarship_id,
+                ScholarshipApplication.career == quota.career_name,
+                ScholarshipApplication.status.in_([ApplicationStatus.APROBADA, ApplicationStatus.LIBERADA])
+            )
+        ).one()
+
+        # Si había desfase manual, la base de datos se auto-repara
+        if quota.used_slots != real_used:
+            quota.used_slots = real_used
+            session.add(quota)
+
+    session.commit()
+    return quotas
 
 
 @router.patch("/quotas/{quota_id}", response_model=ScholarshipQuotaRead)
@@ -180,7 +200,7 @@ def update_quota(
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user),
 ):
-    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
+    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA] and current_user.area != UserArea.BECAS:
         raise HTTPException(status_code=403, detail="No autorizado")
 
     quota = session.get(ScholarshipQuota, quota_id)
@@ -203,7 +223,6 @@ def update_quota(
 # ==========================================
 # 3. ENDPOINTS DE SOLICITUD
 # ==========================================
-
 @router.post("/apply", response_model=ApplicationRead)
 @limiter.limit("5/minute")
 def submit_application(
@@ -264,7 +283,6 @@ def submit_application(
     return application
 
 
-# 👇 NUEVO: ENDPOINT LISTA PLANA DE CONVOCATORIAS (PARA PUBLICO Y SELECTORES)
 @router.get("/all", response_model=List[ScholarshipRead])
 def read_all_scholarships(active_only: bool = True, session: Session = Depends(get_session)):
     query = select(Scholarship).options(selectinload(Scholarship.quotas))
@@ -273,7 +291,6 @@ def read_all_scholarships(active_only: bool = True, session: Session = Depends(g
     return session.exec(query).all()
 
 
-# 👇 NUEVO: ENDPOINT DE CONVOCATORIAS PAGINADAS
 @router.get("/", response_model=PaginatedScholarships)
 def read_scholarships_paginated(
         skip: int = Query(0, ge=0),
@@ -303,7 +320,7 @@ def create_scholarship(
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user)
 ):
-    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
+    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA] and current_user.area != UserArea.BECAS:
         raise HTTPException(status_code=403, detail="No autorizado")
     scholarship = Scholarship.model_validate(scholarship_in)
     session.add(scholarship)
@@ -312,7 +329,6 @@ def create_scholarship(
     return scholarship
 
 
-# 👇 NUEVO: ENDPOINT DE SOLICITUDES PAGINADAS Y CON FILTROS
 @router.get("/applications", response_model=PaginatedApplications)
 def read_all_applications_paginated(
         scholarship_id: int,
@@ -327,7 +343,7 @@ def read_all_applications_paginated(
         .where(ScholarshipApplication.scholarship_id == scholarship_id) \
         .options(selectinload(ScholarshipApplication.student))
 
-    if current_user.role in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
+    if current_user.role in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA] or current_user.area == UserArea.BECAS:
         pass
     elif current_user.role in [UserRole.CONCEJAL, UserRole.COORDINADOR]:
         if not current_user.career:
@@ -362,7 +378,7 @@ def update_scholarship(
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user)
 ):
-    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
+    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA] and current_user.area != UserArea.BECAS:
         raise HTTPException(status_code=403, detail="No autorizado")
 
     scholarship = session.get(Scholarship, scholarship_id)
@@ -379,9 +395,8 @@ def update_scholarship(
 
 
 # ==========================================
-# 4. DICTAMEN Y LIBERACIÓN (CON DATOS MANUALES)
+# 4. DICTAMEN Y LIBERACIÓN
 # ==========================================
-
 @router.patch("/applications/{application_id}", response_model=ApplicationRead)
 def update_application_status(
         application_id: int,
@@ -399,7 +414,8 @@ def update_application_status(
     if not application:
         raise HTTPException(status_code=404, detail="Solicitud no encontrada")
 
-    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
+    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA] and current_user.area not in [UserArea.BECAS,
+                                                                                                        UserArea.PREVENCION]:
         if current_user.role == UserRole.CONCEJAL:
             pass
         else:
@@ -411,6 +427,7 @@ def update_application_status(
     if new_status and new_status != old_status:
         scholarship = application.scholarship or session.get(Scholarship, application.scholarship_id)
 
+        # 👇 CORRECCIÓN: Si pasa a ser APROBADA, revisamos cupos en tiempo real.
         if new_status == ApplicationStatus.APROBADA:
             quota = session.exec(
                 select(ScholarshipQuota)
@@ -419,19 +436,37 @@ def update_application_status(
             ).first()
 
             if quota:
-                if quota.used_slots >= quota.total_slots and current_user.role != UserRole.ADMIN_SYS:
-                    raise HTTPException(status_code=400, detail="¡Cupo Lleno!")
-                quota.used_slots += 1
+                real_used = session.exec(
+                    select(func.count(ScholarshipApplication.id)).where(
+                        ScholarshipApplication.scholarship_id == application.scholarship_id,
+                        ScholarshipApplication.career == application.career,
+                        ScholarshipApplication.status.in_([ApplicationStatus.APROBADA, ApplicationStatus.LIBERADA])
+                    )
+                ).one()
+
+                if real_used >= quota.total_slots and current_user.role != UserRole.ADMIN_SYS:
+                    raise HTTPException(status_code=400, detail="¡Cupo Lleno para esta carrera!")
+
+                quota.used_slots = real_used + 1
                 session.add(quota)
 
-        elif old_status == ApplicationStatus.APROBADA and new_status != ApplicationStatus.APROBADA:
+        # 👇 CORRECCIÓN: Si se echa para atrás (Ej. Aprobada a Rechazada), actualizamos el cupo dinámicamente
+        elif old_status in [ApplicationStatus.APROBADA, ApplicationStatus.LIBERADA] and new_status not in [
+            ApplicationStatus.APROBADA, ApplicationStatus.LIBERADA]:
             quota = session.exec(
                 select(ScholarshipQuota)
                 .where(ScholarshipQuota.scholarship_id == application.scholarship_id)
                 .where(ScholarshipQuota.career_name == application.career)
             ).first()
-            if quota and quota.used_slots > 0:
-                quota.used_slots -= 1
+            if quota:
+                real_used = session.exec(
+                    select(func.count(ScholarshipApplication.id)).where(
+                        ScholarshipApplication.scholarship_id == application.scholarship_id,
+                        ScholarshipApplication.career == application.career,
+                        ScholarshipApplication.status.in_([ApplicationStatus.APROBADA, ApplicationStatus.LIBERADA])
+                    )
+                ).one()
+                quota.used_slots = max(0, real_used - 1)
                 session.add(quota)
 
         if new_status == ApplicationStatus.LIBERADA:
@@ -492,3 +527,86 @@ def check_application_status(request: Request, control_number: str, session: Ses
     return session.exec(
         select(ScholarshipApplication).where(ScholarshipApplication.control_number == control_number).order_by(
             ScholarshipApplication.created_at.desc())).all()
+
+
+# --- NUEVO: GESTIÓN DE CAFETERÍAS ---
+@router.get("/cafeterias", response_model=List[CafeteriaRead])
+def read_cafeterias(session: Session = Depends(get_session)):
+    cafeterias = session.exec(select(Cafeteria)).all()
+    result = []
+    for caf in cafeterias:
+        asignadas = session.exec(
+            select(func.count(ScholarshipApplication.id)).where(
+                ScholarshipApplication.cafeteria_asignada_id == caf.id,
+                ScholarshipApplication.status.in_([ApplicationStatus.APROBADA, ApplicationStatus.LIBERADA])
+            )
+        ).one()
+        caf_dict = caf.model_dump()
+        caf_dict["becas_asignadas"] = asignadas
+        result.append(caf_dict)
+    return result
+
+
+@router.post("/cafeterias", response_model=CafeteriaRead)
+def create_cafeteria(*, session: Session = Depends(get_session), cafeteria_in: CafeteriaCreate,
+                     current_user: User = Depends(get_current_user)):
+    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA] and current_user.area != UserArea.BECAS:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    cafeteria = Cafeteria.model_validate(cafeteria_in)
+    session.add(cafeteria)
+    session.commit()
+    session.refresh(cafeteria)
+    return cafeteria
+
+
+@router.patch("/cafeterias/{id}", response_model=CafeteriaRead)
+def update_cafeteria(*, session: Session = Depends(get_session), id: int, cafeteria_in: CafeteriaUpdate,
+                     current_user: User = Depends(get_current_user)):
+    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA] and current_user.area != UserArea.BECAS:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    cafeteria = session.get(Cafeteria, id)
+    if not cafeteria: raise HTTPException(status_code=404, detail="Cafetería no encontrada")
+    update_data = cafeteria_in.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(cafeteria, key, value)
+    session.add(cafeteria)
+    session.commit()
+    session.refresh(cafeteria)
+    return cafeteria
+
+
+@router.delete("/cafeterias/{id}")
+def delete_cafeteria(*, session: Session = Depends(get_session), id: int,
+                     current_user: User = Depends(get_current_user)):
+    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA] and current_user.area != UserArea.BECAS:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    cafeteria = session.get(Cafeteria, id)
+    if not cafeteria: raise HTTPException(status_code=404, detail="Cafetería no encontrada")
+    session.delete(cafeteria)
+    session.commit()
+    return {"ok": True}
+
+
+@router.post("/cafeterias/reset")
+def reset_cafeteria_assignments(
+        session: Session = Depends(get_session),
+        current_user: User = Depends(get_current_user)
+):
+    # Validamos que sea de sistemas, estructura o de becas
+    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA] and current_user.area != UserArea.BECAS:
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+    # Buscamos todas las solicitudes que tengan una cafetería asignada
+    applications = session.exec(
+        select(ScholarshipApplication).where(ScholarshipApplication.cafeteria_asignada_id != None)
+    ).all()
+
+    count = len(applications)
+
+    # Los desasignamos a todos
+    for app in applications:
+        app.cafeteria_asignada_id = None
+        session.add(app)
+
+    session.commit()
+    return {"ok": True, "message": f"Se liberaron los cupos de {count} becarios."}

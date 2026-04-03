@@ -192,9 +192,23 @@ export interface Scholarship {
   quotas?: ScholarshipQuota[];
 }
 
-export interface ScholarshipCreate extends Omit<Scholarship, 'id' | 'quotas'> {}
-export interface ScholarshipUpdate extends Partial<ScholarshipCreate> {}
+export interface ScholarshipCreate {
+  name: string;
+  type: ScholarshipType;
+  description: string;
+  start_date: string;
+  end_date: string;
+  results_date: string;
+  is_active: boolean;
+  // --- NUEVOS CAMPOS ---
+  year: number;
+  period: string;
+  folio_identifier: string;
+}
 
+export interface Scholarship extends ScholarshipCreate {
+  id: number;
+}
 export interface ScholarshipApplication {
   id: number;
   scholarship_id: number;
@@ -339,4 +353,49 @@ export interface MapSearchResult {
   building_id: number;
   coordinates: { lat?: number; lng?: number };
   category: string;
+}
+
+// ==========================================
+// NUEVO: MÓDULO DE ASISTENCIAS (BECARIOS)
+// ==========================================
+
+export enum AttendanceStatus {
+  PRESENTE = "presente",
+  FALTA = "falta",
+  JUSTIFICADO = "justificado"
+}
+
+export interface Attendance {
+  id: number;
+  student_id: string;
+  date: string; // YYYY-MM-DD
+  time_in?: string;
+  status: AttendanceStatus;
+  nfc_uid_scanned?: string;
+  registered_by_id?: number;
+}
+
+export interface AttendanceCreate {
+  student_id: string;
+  date: string;
+  time_in?: string;
+  status: AttendanceStatus;
+}
+
+export interface WeeklyFaults {
+  student_id: string;
+  fault_count: int;
+}
+
+// Actualizamos la interfaz de Student (si ya la tienes, asegúrate de que tenga estos campos)
+export interface Student {
+  control_number: string;
+  full_name: string;
+  email: string;
+  phone_number?: string;
+  career_id?: number;
+  is_blacklisted: boolean;
+  nfc_uid?: string;
+  // Propiedad virtual que agregaremos en el frontend para manejar el color rojo
+  current_week_faults?: number;
 }

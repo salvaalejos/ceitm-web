@@ -5,8 +5,13 @@ import {
 import { api, getCareers, deleteComplaint } from '../../../shared/services/api';
 import { type Complaint, ComplaintStatus, type Career } from '../../../shared/types';
 import { ComplaintModal } from '../components/ComplaintModal';
+import { useAuthStore } from '../../../shared/store/authStore';
 
 export const AdminQuejas = () => {
+  // 👇 Obtenemos al usuario y verificamos sus permisos
+  const { user } = useAuthStore();
+  const isGlobalAdmin = user?.role === 'admin_sys' || user?.role === 'estructura';
+
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [careersList, setCareersList] = useState<Career[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,19 +22,20 @@ export const AdminQuejas = () => {
   const limit = 10;
 
   const [filterStatus, setFilterStatus] = useState('Todos');
-  const [filterCareer, setFilterCareer] = useState('Todas');
+  // 👇 Inicializamos el filtro con la carrera del usuario si no es admin global
+  const [filterCareer, setFilterCareer] = useState(isGlobalAdmin ? 'Todas' : (user?.career || ''));
   const [searchTerm, setSearchTerm] = useState('');
 
   // Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
 
-  // Cargar catálogo de carreras solo una vez al montar
   useEffect(() => {
-    getCareers().then(setCareersList).catch(console.error);
-  }, []);
+    if (isGlobalAdmin) {
+        getCareers().then(setCareersList).catch(console.error);
+    }
+  }, [isGlobalAdmin]);
 
-  // Cargar quejas (Con Debounce para búsqueda)
   useEffect(() => {
     const timeoutId = setTimeout(() => {
         loadData();
@@ -37,7 +43,6 @@ export const AdminQuejas = () => {
     return () => clearTimeout(timeoutId);
   }, [page, filterStatus, filterCareer, searchTerm]);
 
-  // Si cambia un filtro, regresar a la página 1
   useEffect(() => {
     setPage(1);
   }, [filterStatus, filterCareer, searchTerm]);
@@ -50,7 +55,7 @@ export const AdminQuejas = () => {
 
           if (searchTerm) url += `&search=${encodeURIComponent(searchTerm)}`;
           if (filterStatus !== 'Todos') url += `&status=${encodeURIComponent(filterStatus)}`;
-          if (filterCareer !== 'Todas') url += `&career=${encodeURIComponent(filterCareer)}`;
+          if (filterCareer !== 'Todas' && filterCareer !== '') url += `&career=${encodeURIComponent(filterCareer)}`;
 
           const response = await api.get(url);
           setComplaints(response.data.items);
@@ -71,7 +76,7 @@ export const AdminQuejas = () => {
       if (!confirm("¿Estás seguro de ELIMINAR este ticket permanentemente?")) return;
       try {
           await deleteComplaint(id);
-          loadData(); // Recargamos para traer la paginación correcta
+          loadData();
       } catch (error) { alert("Error al eliminar."); }
   };
 
@@ -115,22 +120,35 @@ export const AdminQuejas = () => {
                 </div>
 
                 <div className="flex flex-col md:flex-row w-full gap-3">
-                    {/* 2. Filtro Carrera */}
+                    {/* 2. Filtro Carrera (BLOQUEADO CONDICIONALMENTE) */}
                     <div className="relative w-full md:w-72 group">
-                        <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-guinda-600 transition-colors" size={16} />
+                        <Building className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${isGlobalAdmin ? 'text-gray-400 group-hover:text-guinda-600' : 'text-gray-400 opacity-60'}`} size={16} />
                         <select
                             value={filterCareer}
                             onChange={(e) => setFilterCareer(e.target.value)}
-                            className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-800 border border-transparent dark:border-slate-700 text-gray-700 dark:text-gray-200 text-sm font-medium focus:ring-2 focus:ring-guinda-500 focus:bg-white dark:focus:bg-slate-800 appearance-none cursor-pointer transition-all hover:bg-gray-100 dark:hover:bg-slate-700/80"
+                            disabled={!isGlobalAdmin}
+                            className={`w-full pl-10 pr-10 py-2.5 rounded-xl border border-transparent dark:border-slate-700 text-sm font-medium appearance-none transition-all ${
+                                isGlobalAdmin 
+                                    ? 'bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-guinda-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700/80 focus:bg-white dark:focus:bg-slate-800' 
+                                    : 'bg-gray-100 dark:bg-slate-900/50 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-90'
+                            }`}
                         >
-                            <option value="Todas" className="dark:bg-slate-800">Todas las Carreras</option>
-                            {careersList.map(c => (
-                                <option key={c.id} value={c.name} className="dark:bg-slate-800 text-gray-900 dark:text-gray-200">
-                                    {c.name}
+                            {isGlobalAdmin ? (
+                                <>
+                                    <option value="Todas" className="dark:bg-slate-800">Todas las Carreras</option>
+                                    {careersList.map(c => (
+                                        <option key={c.id} value={c.name} className="dark:bg-slate-800 text-gray-900 dark:text-gray-200">
+                                            {c.name}
+                                        </option>
+                                    ))}
+                                </>
+                            ) : (
+                                <option value={user?.career || ''} className="dark:bg-slate-800">
+                                    {user?.career || 'Sin carrera asignada'}
                                 </option>
-                            ))}
+                            )}
                         </select>
-                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-gray-600 dark:text-gray-500 transition-colors pointer-events-none" size={16} />
+                        <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${isGlobalAdmin ? 'text-gray-400 group-hover:text-gray-600 dark:text-gray-500' : 'text-gray-300 dark:text-gray-600'}`} size={16} />
                     </div>
 
                     {/* 3. Buscador */}
@@ -217,8 +235,8 @@ export const AdminQuejas = () => {
                                         </div>
                                     )}
 
-                                    {/* Botón Eliminar */}
-                                    {(item.status === ComplaintStatus.RESUELTO || item.status === ComplaintStatus.RECHAZADO) && (
+                                    {/* Botón Eliminar - Solo visible para Administradores Globales */}
+                                    {isGlobalAdmin && (item.status === ComplaintStatus.RESUELTO || item.status === ComplaintStatus.RECHAZADO) && (
                                         <button
                                             onClick={() => handleDelete(item.id)}
                                             className="p-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-colors"

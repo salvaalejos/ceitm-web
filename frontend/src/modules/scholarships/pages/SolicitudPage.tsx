@@ -4,9 +4,8 @@ import {
     User, Home, FileText, Upload, CheckCircle,
     ArrowRight, ArrowLeft, AlertCircle, Loader2, Trash2, FileCheck, HelpCircle, Image as ImageIcon
 } from 'lucide-react';
-import { getScholarships, submitScholarshipApplication, uploadFile, getCareers } from '../../../shared/services/api';
+import { getScholarships, submitScholarshipApplication, uploadFile, getCareers, getCafeterias } from '../../../shared/services/api';
 import type { Scholarship, ScholarshipApplication, Career } from '../../../shared/types';
-// Importamos los recursos nuevos
 import { SuccessScholarshipModal } from '../components/SuccessScholarshipModal';
 import { WHATSAPP_LINKS } from '../../../shared/constants/grupos';
 
@@ -25,6 +24,9 @@ export const SolicitudPage = () => {
     const [currentStep, setCurrentStep] = useState(1);
     const [careerList, setCareerList] = useState<Career[]>([]);
 
+    // --- NUEVO ESTADO: CAFETERÍAS ---
+    const [cafeterias, setCafeterias] = useState<any[]>([]);
+
     // Estados de UI
     const [submitting, setSubmitting] = useState(false);
     const [uploadingInfo, setUploadingInfo] = useState<string>('');
@@ -40,8 +42,6 @@ export const SolicitudPage = () => {
     const [selectedFiles, setSelectedFiles] = useState<Record<string, File>>({});
     const [isForeign, setIsForeign] = useState(false);
     const [otherScholarshipName, setOtherScholarshipName] = useState('');
-
-    // Control de flujo para liberación (Local para la página)
     const [hasReleased, setHasReleased] = useState<'si' | 'no'>('no');
 
     // Estado del Formulario
@@ -56,7 +56,8 @@ export const SolicitudPage = () => {
         previous_scholarship: 'No', release_folio: '',
         activities: '', motivos: '',
         doc_address: '', doc_income: '',
-        doc_ine: '', doc_kardex: '', doc_extra: ''
+        doc_ine: '', doc_kardex: '', doc_extra: '',
+        cafeteria_solicitada_id: undefined // <-- Agregado para el select
     });
 
     // Cargar Beca
@@ -75,17 +76,21 @@ export const SolicitudPage = () => {
         loadBeca();
     }, [id, navigate]);
 
-    // Cargar Catálogo de Carreras desde la BD
+    // Cargar Catálogos (Carreras y Cafeterías)
     useEffect(() => {
-        const fetchCareers = async () => {
+        const fetchCatalogs = async () => {
             try {
-                const data = await getCareers();
-                setCareerList(data.filter((c: Career) => c.is_active));
+                const [careersData, cafeteriasData] = await Promise.all([
+                    getCareers(),
+                    getCafeterias().catch(() => []) // Fallback por si aún no levantas el backend
+                ]);
+                setCareerList(careersData.filter((c: Career) => c.is_active));
+                setCafeterias(cafeteriasData);
             } catch (e) {
-                console.error("Error cargando carreras:", e);
+                console.error("Error cargando catálogos:", e);
             }
         };
-        fetchCareers();
+        fetchCatalogs();
     }, []);
 
     // Cálculo automático de Ingreso Per Cápita
@@ -138,6 +143,14 @@ export const SolicitudPage = () => {
                 if (!formData.cle_control_number) { setValidationError('El No. Control CLE es requerido.'); return false; }
                 if (!formData.level_to_enter) { setValidationError('El nivel a cursar es requerido.'); return false; }
             }
+
+            // --- VALIDACIÓN CAFETERÍA ---
+            if (scholarship?.type === 'Alimenticia') {
+                if (!formData.cafeteria_solicitada_id) {
+                    setValidationError('Selecciona la cafetería de tu preferencia.');
+                    return false;
+                }
+            }
         }
 
         if (currentStep === 2) {
@@ -149,7 +162,6 @@ export const SolicitudPage = () => {
 
         if (currentStep === 3) {
             if (formData.previous_scholarship !== 'No') {
-                // Validación para detección de Rezagados
                 if (hasReleased === 'si' && !formData.release_folio?.trim()) {
                     setValidationError('El Folio de Liberación es obligatorio si ya liberaste tu beca.');
                     return false;
@@ -223,6 +235,11 @@ export const SolicitudPage = () => {
             }
             if (finalData.release_folio === '') finalData.release_folio = null;
 
+            // Formatear el ID de cafetería a número
+            if (finalData.cafeteria_solicitada_id) {
+                finalData.cafeteria_solicitada_id = Number(finalData.cafeteria_solicitada_id);
+            }
+
             for (const key of Object.keys(selectedFiles)) {
                 setUploadingInfo(`Subiendo ${key === 'student_photo' ? 'FOTO' : key.replace('doc_', '').toUpperCase()}...`);
                 const url = await uploadFile(selectedFiles[key]);
@@ -231,7 +248,6 @@ export const SolicitudPage = () => {
 
             setUploadingInfo('Registrando expediente...');
 
-            // Determinamos si es regular para el link de WhatsApp
             const studentIsRegular = finalData.previous_scholarship === 'No' || hasReleased === 'si';
             setIsRegular(studentIsRegular);
 
@@ -352,6 +368,31 @@ export const SolicitudPage = () => {
                                         <div><label className="form-label">Nivel a Cursar</label><input name="level_to_enter" value={formData.level_to_enter} onChange={handleChange} className="form-input" /></div>
                                     </div>
                                 )}
+
+                                {/* --- NUEVO: PREFERENCIA DE CAFETERÍA --- */}
+                                {scholarship?.type === 'Alimenticia' && (
+                                    <div className="md:col-span-2 bg-orange-50 dark:bg-orange-900/20 p-4 rounded-xl border border-orange-200 dark:border-orange-800 animate-fade-in-down">
+                                        <label className="form-label text-orange-800 dark:text-orange-400 font-bold">
+                                            Cafetería de Preferencia
+                                        </label>
+                                        <select
+                                            name="cafeteria_solicitada_id"
+                                            value={formData.cafeteria_solicitada_id || ''}
+                                            onChange={handleChange}
+                                            className="form-input border-orange-200 focus:border-orange-500 focus:ring-orange-500"
+                                        >
+                                            <option value="">Selecciona la cafetería...</option>
+                                            {cafeterias.map(c => (
+                                                <option key={c.id} value={c.id}>
+                                                    {c.nombre} - {c.campus} (Disponibles: {c.cupo_disponible ?? c.limite_becas})
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <p className="text-xs text-orange-600 dark:text-orange-400 mt-2">
+                                            * Esta selección es una preferencia y está sujeta a disponibilidad de cupos.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -388,7 +429,7 @@ export const SolicitudPage = () => {
                         </div>
                     )}
 
-                    {/* --- PASO 3: ANTECEDENTES (ACTUALIZADO) --- */}
+                    {/* --- PASO 3: ANTECEDENTES --- */}
                     {currentStep === 3 && (
                         <div className="space-y-6 animate-fade-in">
                             <h3 className="text-xl font-bold text-gray-900 dark:text-white border-b pb-2 dark:border-slate-800">Antecedentes</h3>
@@ -414,7 +455,6 @@ export const SolicitudPage = () => {
                                             </div>
                                         )}
 
-                                        {/* NUEVA LÓGICA DE LIBERACIÓN */}
                                         <div>
                                             <label className="form-label text-orange-800 dark:text-orange-400 font-bold tracking-tight">¿Ya liberaste tu servicio anterior?</label>
                                             <select
@@ -522,7 +562,6 @@ export const SolicitudPage = () => {
                             </button>
                         )}
                     </div>
-
                 </div>
             </div>
 

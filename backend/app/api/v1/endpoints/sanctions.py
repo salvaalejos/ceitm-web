@@ -10,8 +10,16 @@ from app.schemas.sanction_schema import SanctionCreate, SanctionRead, SanctionUp
 router = APIRouter()
 
 
+# --- FUNCIÓN AUXILIAR DE PERMISOS ---
+def is_contraloria_manager(user: User) -> bool:
+    return (
+            user.role in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA] or
+            user.area in [UserArea.CONTRALORIA, UserArea.PRESIDENCIA]
+    )
+
+
 # -----------------------------------------------------------------------------
-# GET / - Listar Sanciones (Con filtro de seguridad)
+# GET / - Listar Sanciones
 # -----------------------------------------------------------------------------
 @router.get("/", response_model=List[SanctionRead])
 def read_sanctions(
@@ -20,19 +28,9 @@ def read_sanctions(
         skip: int = 0,
         limit: int = 100,
 ):
-    """
-    Recupera sanciones.
-    - Si eres Admin/Contralor: Ves TODAS.
-    - Si eres Concejal: Ves SOLO LAS TUYAS.
-    """
-    is_admin = current_user.role == UserRole.ADMIN_SYS
-    is_contraloria = current_user.area == UserArea.CONTRALORIA
-
-    if is_admin or is_contraloria:
-        # Ver todo
+    if is_contraloria_manager(current_user):
         statement = select(Sanction).offset(skip).limit(limit).order_by(Sanction.created_at.desc())
     else:
-        # Ver solo lo mío
         statement = select(Sanction).where(Sanction.user_id == current_user.id).order_by(Sanction.created_at.desc())
 
     sanctions = db.exec(statement).all()
@@ -40,7 +38,7 @@ def read_sanctions(
 
 
 # -----------------------------------------------------------------------------
-# POST / - Crear Sanción (Solo Contraloría/Admin)
+# POST / - Crear Sanción
 # -----------------------------------------------------------------------------
 @router.post("/", response_model=SanctionRead)
 def create_sanction(
@@ -49,19 +47,13 @@ def create_sanction(
         sanction_in: SanctionCreate,
         current_user: User = Depends(deps.get_current_active_user),
 ):
-    # 1. Permisos
-    is_admin = current_user.role == UserRole.ADMIN_SYS
-    is_contraloria = current_user.area == UserArea.CONTRALORIA
-
-    if not (is_admin or is_contraloria):
+    if not is_contraloria_manager(current_user):
         raise HTTPException(status_code=403, detail="No tienes permisos para sancionar.")
 
-    # 2. Validar usuario destino
     user = db.get(User, sanction_in.user_id)
     if not user:
         raise HTTPException(status_code=404, detail="El usuario a sancionar no existe.")
 
-    # 3. Crear
     sanction = Sanction.from_orm(sanction_in)
     db.add(sanction)
     db.commit()
@@ -70,7 +62,7 @@ def create_sanction(
 
 
 # -----------------------------------------------------------------------------
-# PUT /{id} - Actualizar Sanción (Estatus/Datos)
+# PUT /{id} - Actualizar Sanción
 # -----------------------------------------------------------------------------
 @router.put("/{id}", response_model=SanctionRead)
 def update_sanction(
@@ -80,21 +72,13 @@ def update_sanction(
         sanction_in: SanctionUpdate,
         current_user: User = Depends(deps.get_current_active_user),
 ):
-    """
-    Útil para marcar como SALDADA o corregir un error.
-    Solo Contraloría.
-    """
-    is_admin = current_user.role == UserRole.ADMIN_SYS
-    is_contraloria = current_user.area == UserArea.CONTRALORIA
-
-    if not (is_admin or is_contraloria):
+    if not is_contraloria_manager(current_user):
         raise HTTPException(status_code=403, detail="No tienes permisos para editar sanciones.")
 
     sanction = db.get(Sanction, id)
     if not sanction:
         raise HTTPException(status_code=404, detail="Sanción no encontrada")
 
-    # Actualizar campos parciales
     sanction_data = sanction_in.dict(exclude_unset=True)
     for key, value in sanction_data.items():
         setattr(sanction, key, value)
@@ -108,17 +92,15 @@ def update_sanction(
 # -----------------------------------------------------------------------------
 # DELETE /{id} - Eliminar Sanción
 # -----------------------------------------------------------------------------
-@router.delete("/{id}", response_model=SanctionRead)
+# 👇 CORRECCIÓN: Quitamos el response_model
+@router.delete("/{id}")
 def delete_sanction(
         *,
         db: Session = Depends(deps.get_db),
         id: int,
         current_user: User = Depends(deps.get_current_active_user),
 ):
-    is_admin = current_user.role == UserRole.ADMIN_SYS
-    is_contraloria = current_user.area == UserArea.CONTRALORIA
-
-    if not (is_admin or is_contraloria):
+    if not is_contraloria_manager(current_user):
         raise HTTPException(status_code=403, detail="No tienes permisos para eliminar sanciones.")
 
     sanction = db.get(Sanction, id)
@@ -127,4 +109,6 @@ def delete_sanction(
 
     db.delete(sanction)
     db.commit()
-    return sanction
+
+    # 👇 CORRECCIÓN: Retornamos JSON simple
+    return {"ok": True, "message": "Sanción eliminada correctamente"}

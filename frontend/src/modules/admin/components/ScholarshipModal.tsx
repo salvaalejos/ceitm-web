@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Save, Calendar, Type, AlignLeft } from 'lucide-react';
+import { X, Save, Calendar, Type, AlignLeft, Hash } from 'lucide-react';
 import {
   type Scholarship,
   type ScholarshipCreate,
@@ -25,7 +25,9 @@ export const ScholarshipModal = ({ scholarship, onClose, onSuccess }: Props) => 
     name: '',
     description: '',
     type: ScholarshipType.ALIMENTICIA,
-    cycle: '',
+    year: new Date().getFullYear(),
+    period: 'Enero-Junio',
+    folio_identifier: '',
     start_date: '',
     end_date: '',
     results_date: '',
@@ -38,7 +40,9 @@ export const ScholarshipModal = ({ scholarship, onClose, onSuccess }: Props) => 
         name: scholarship.name,
         description: scholarship.description,
         type: scholarship.type,
-        cycle: scholarship.cycle,
+        year: scholarship.year || new Date().getFullYear(),
+        period: scholarship.period || 'Enero-Junio',
+        folio_identifier: scholarship.folio_identifier || '',
         start_date: scholarship.start_date.slice(0, 16),
         end_date: scholarship.end_date.slice(0, 16),
         results_date: scholarship.results_date.slice(0, 16),
@@ -51,10 +55,17 @@ export const ScholarshipModal = ({ scholarship, onClose, onSuccess }: Props) => 
     e.preventDefault();
     setLoading(true);
     try {
+      // Aseguramos que el identificador se vaya en mayúsculas sin espacios
+      const submissionData = {
+        ...formData,
+        folio_identifier: formData.folio_identifier.trim().toUpperCase(),
+        year: Number(formData.year)
+      };
+
       if (scholarship) {
-        await updateScholarship(scholarship.id, formData);
+        await updateScholarship(scholarship.id, submissionData);
       } else {
-        await createScholarship(formData);
+        await createScholarship(submissionData);
       }
       onSuccess();
       onClose();
@@ -112,18 +123,57 @@ export const ScholarshipModal = ({ scholarship, onClose, onSuccess }: Props) => 
                     </div>
                 </div>
 
-                <div>
-                    <label className="form-label">Tipo de Apoyo</label>
-                    <select name="type" value={formData.type} onChange={handleChange} className="form-input">
-                        {Object.values(ScholarshipType).map(t => (
-                            <option key={t} value={t}>{t}</option>
-                        ))}
-                    </select>
+                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div>
+                        <label className="form-label">Tipo de Apoyo</label>
+                        <select name="type" value={formData.type} onChange={handleChange} className="form-input">
+                            {Object.values(ScholarshipType).map(t => (
+                                <option key={t} value={t}>{t}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="form-label">Año</label>
+                        <input
+                            required
+                            type="number"
+                            name="year"
+                            value={formData.year}
+                            onChange={handleChange}
+                            className="form-input"
+                            min="2020"
+                            max="2100"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="form-label">Periodo</label>
+                        <select name="period" value={formData.period} onChange={handleChange} className="form-input">
+                            <option value="Enero-Junio">Enero-Junio</option>
+                            <option value="Agosto-Diciembre">Agosto-Diciembre</option>
+                            <option value="Verano">Verano</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div>
-                    <label className="form-label">Ciclo Escolar</label>
-                    <input required name="cycle" value={formData.cycle} onChange={handleChange} className="form-input" placeholder="Ej. Ene-Jun 2025" />
+                <div className="md:col-span-2">
+                    <label className="form-label flex items-center justify-between">
+                        <span>Identificador (Folio)</span>
+                        <span className="text-[10px] text-gray-400 font-normal normal-case">Siglas para los oficios de liberación</span>
+                    </label>
+                    <div className="relative group">
+                        <input
+                            required
+                            name="folio_identifier"
+                            value={formData.folio_identifier}
+                            onChange={handleChange}
+                            className="form-input pl-10 uppercase font-mono tracking-wider"
+                            placeholder="Ej. ALIM, REC, DON"
+                            maxLength={10}
+                        />
+                        <Hash size={18} className="absolute left-3 top-3.5 text-gray-400 dark:text-slate-500 group-focus-within:text-guinda-500 transition-colors" />
+                    </div>
                 </div>
             </div>
 
@@ -158,7 +208,6 @@ export const ScholarshipModal = ({ scholarship, onClose, onSuccess }: Props) => 
                             <label className="form-label text-[10px] mb-1">{field.label}</label>
 
                             {/* INPUT CON ICONO NATIVO OCULTO */}
-                            {/* [&::-webkit-calendar-picker-indicator]:hidden -> Oculta el icono nativo en Chrome/Edge */}
                             <input
                                 ref={field.ref as any}
                                 required
@@ -171,7 +220,7 @@ export const ScholarshipModal = ({ scholarship, onClose, onSuccess }: Props) => 
                                            [&::-webkit-calendar-picker-indicator]:appearance-none"
                             />
 
-                            {/* NUESTRO ICONO PERSONALIZADO */}
+                            {/* ICONO PERSONALIZADO */}
                             <Calendar
                                 size={16}
                                 className="absolute left-3 top-[34px] text-guinda-600 dark:text-guinda-400 pointer-events-none group-hover:text-guinda-700 dark:group-hover:text-guinda-300 transition-colors"

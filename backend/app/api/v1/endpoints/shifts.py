@@ -10,6 +10,14 @@ from app.schemas.shift_schema import ShiftCreate, ShiftRead
 router = APIRouter()
 
 
+# --- FUNCIÓN AUXILIAR DE PERMISOS ---
+def is_contraloria_manager(user: User) -> bool:
+    return (
+            user.role in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA] or
+            user.area in [UserArea.CONTRALORIA, UserArea.PRESIDENCIA]
+    )
+
+
 # -----------------------------------------------------------------------------
 # GET / - Obtener toda la grilla de horarios
 # -----------------------------------------------------------------------------
@@ -21,16 +29,15 @@ def read_shifts(
 ):
     """
     Recupera la lista de turnos asignados.
-    ACCESO PÚBLICO para el directorio de concejales.
     """
-    # Cargamos la relación de usuario para mostrar nombres
     from sqlalchemy.orm import selectinload
     statement = select(Shift).options(selectinload(Shift.user)).offset(skip).limit(limit)
     shifts = db.exec(statement).all()
     return shifts
 
+
 # -----------------------------------------------------------------------------
-# POST / - Asignar un turno (Solo Contraloría/Admin)
+# POST / - Asignar un turno
 # -----------------------------------------------------------------------------
 @router.post("/", response_model=ShiftRead)
 def create_shift(
@@ -41,25 +48,17 @@ def create_shift(
 ):
     """
     Asigna un usuario a un bloque de hora/día.
-    Restringido a: Contraloría o Admin Sys.
     """
-    # 1. Verificar Permisos
-    is_admin = current_user.role == UserRole.ADMIN_SYS
-    is_contraloria = current_user.area == UserArea.CONTRALORIA
-
-    if not (is_admin or is_contraloria):
+    if not is_contraloria_manager(current_user):
         raise HTTPException(
             status_code=403,
-            detail="No tienes permisos para asignar guardias. Contacta a Contraloría."
+            detail="No tienes permisos para asignar guardias."
         )
 
-    # 2. Verificar si el usuario a asignar existe
     user = db.get(User, shift_in.user_id)
     if not user:
         raise HTTPException(status_code=404, detail="El usuario indicado no existe.")
 
-    # 3. Verificar choque de horarios (Bloque ocupado)
-    #    Buscamos si YA existe un registro para ese Día + Hora
     statement = select(Shift).where(
         Shift.day == shift_in.day,
         Shift.hour == shift_in.hour
@@ -67,14 +66,11 @@ def create_shift(
     existing_shift = db.exec(statement).first()
 
     if existing_shift:
-        # Opción A: Bloquear
         raise HTTPException(
             status_code=400,
-            detail=f"El horario {shift_in.day} a las {shift_in.hour}:00 ya está ocupado por {existing_shift.user.full_name}."
+            detail=f"El horario ya está ocupado por {existing_shift.user.full_name}."
         )
-        # Opción B (Alternativa): Sobrescribir (Si prefieres esto, avísame)
 
-    # 4. Crear el turno
     shift = Shift.from_orm(shift_in)
     db.add(shift)
     db.commit()
@@ -83,9 +79,10 @@ def create_shift(
 
 
 # -----------------------------------------------------------------------------
-# DELETE /{id} - Eliminar un turno (Solo Contraloría/Admin)
+# DELETE /{id} - Eliminar un turno
 # -----------------------------------------------------------------------------
-@router.delete("/{id}", response_model=ShiftRead)
+# 👇 CORRECCIÓN: Quitamos el response_model que causaba el crash
+@router.delete("/{id}")
 def delete_shift(
         *,
         db: Session = Depends(deps.get_db),
@@ -95,11 +92,7 @@ def delete_shift(
     """
     Elimina una asignación de guardia.
     """
-    # 1. Verificar Permisos
-    is_admin = current_user.role == UserRole.ADMIN_SYS
-    is_contraloria = current_user.area == UserArea.CONTRALORIA
-
-    if not (is_admin or is_contraloria):
+    if not is_contraloria_manager(current_user):
         raise HTTPException(status_code=403, detail="No tienes permisos para eliminar guardias.")
 
     shift = db.get(Shift, id)
@@ -108,4 +101,6 @@ def delete_shift(
 
     db.delete(shift)
     db.commit()
-    return shift
+
+    # 👇 CORRECCIÓN: Devolvemos un simple OK en lugar de intentar leer el objeto borrado
+    return {"ok": True, "message": "Turno liberado correctamente"}

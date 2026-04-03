@@ -6,7 +6,7 @@ from sqlmodel import Session
 
 from app.core.database import get_session
 from app.core.config import settings
-from app.models.user_model import User, UserRole
+from app.models.user_model import User, UserRole, UserArea
 
 # Configuración de OAuth2
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/login/access-token")
@@ -57,4 +57,16 @@ def get_current_active_superuser(
         raise HTTPException(
             status_code=403, detail="El usuario no tiene suficientes privilegios"
         )
+    return current_user
+
+# --- 5. Obtener Gestor de Becas ---
+def get_becas_manager(
+    current_user: User = Depends(get_current_active_user),
+) -> User:
+    # Tienen acceso: Admins, Mesa Directiva, o cualquier miembro asignado al Área de Becas
+    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
+        if current_user.area != UserArea.BECAS:
+            raise HTTPException(
+                status_code=403, detail="No tienes permisos para administrar becas o padrones"
+            )
     return current_user

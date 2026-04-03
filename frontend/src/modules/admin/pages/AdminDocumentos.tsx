@@ -2,8 +2,14 @@ import { useEffect, useState } from 'react';
 import { Plus, Trash2, FileText, Download, Lock, Globe, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getAllDocuments, deleteDocument } from '../../../shared/services/api';
 import { DocumentForm } from '../components/DocumentForm';
+import { useAuthStore } from '../../../shared/store/authStore';
 
 export const AdminDocumentos = () => {
+  // 👇 AÑADIDO: Obtenemos al usuario para saber sus permisos visuales
+  const { user } = useAuthStore();
+  const canUpload = user?.role === 'admin_sys' || user?.role === 'estructura';
+  const canDelete = user?.role === 'admin_sys';
+
   const [docs, setDocs] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -55,7 +61,7 @@ export const AdminDocumentos = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
             <div>
                 <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Repositorio de Documentos</h1>
-                <p className="text-gray-500 dark:text-slate-400">Sube actas, informes y convocatorias.</p>
+                <p className="text-gray-500 dark:text-slate-400">Consulta de actas, informes y convocatorias.</p>
             </div>
 
             <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
@@ -69,9 +75,13 @@ export const AdminDocumentos = () => {
                         onChange={handleSearch}
                     />
                 </div>
-                <button onClick={() => setShowForm(true)} className="btn-primary flex items-center justify-center gap-2 w-full md:w-auto py-2.5 px-4 rounded-lg bg-guinda-600 text-white hover:bg-guinda-700 transition-all shadow-md">
-                    <Plus size={20} /> <span className="hidden sm:inline">Subir PDF</span>
-                </button>
+
+                {/* 👇 AÑADIDO: Ocultar botón si no tiene permisos */}
+                {canUpload && (
+                    <button onClick={() => setShowForm(true)} className="btn-primary flex items-center justify-center gap-2 w-full md:w-auto py-2.5 px-4 rounded-lg bg-guinda-600 text-white hover:bg-guinda-700 transition-all shadow-md">
+                        <Plus size={20} /> <span className="hidden sm:inline">Subir PDF</span>
+                    </button>
+                )}
             </div>
         </div>
 
@@ -126,9 +136,12 @@ export const AdminDocumentos = () => {
                                     <a href={doc.file_url} target="_blank" rel="noreferrer" className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg">
                                         <Download size={18} />
                                     </a>
-                                    <button onClick={() => handleDelete(doc.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg">
-                                        <Trash2 size={18} />
-                                    </button>
+                                    {/* 👇 AÑADIDO: Ocultar botón eliminar si no es ADMIN_SYS */}
+                                    {canDelete && (
+                                        <button onClick={() => handleDelete(doc.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg">
+                                            <Trash2 size={18} />
+                                        </button>
+                                    )}
                                 </td>
                             </tr>
                         ))}

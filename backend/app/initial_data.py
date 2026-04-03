@@ -15,6 +15,7 @@ from app.models.map_model import Building, Room
 from app.models.student_model import Student
 from app.models.sanction_model import Sanction, SanctionSeverity, SanctionStatus
 from app.models.shift_model import Shift, DayOfWeek
+from app.models.attendance_model import Attendance, AttendanceStatus  # <-- NUEVO IMPORT
 
 # Configuración básica de logs
 logging.basicConfig(level=logging.INFO)
@@ -285,6 +286,60 @@ def create_superuser(session: Session):
     return user
 
 
+# ==========================================
+# 8. ASISTENCIAS (NUEVO MÓDULO)
+# ==========================================
+def seed_attendances(session: Session, admin_id: int):
+    logger.info("⏳ Sembrando asistencias de prueba...")
+    student_control = "21120538"
+
+    # Verificamos que exista el estudiante (creado en seed_scholarships_and_students)
+    student = session.exec(select(Student).where(Student.control_number == student_control)).first()
+    if not student:
+        logger.warning(f"⚠️ No se encontró al estudiante {student_control} para asistencias.")
+        return
+
+    # Calculamos el lunes de la semana actual
+    today = datetime.utcnow().date()
+    start_of_week = today - timedelta(days=today.weekday())
+
+    # Generamos un patrón para la semana: Lunes(Presente), Martes(Falta), Miercoles(Presente), Jueves(Falta), Viernes(Falta)
+    # Total de faltas: 3 (Esto hará que en tu UI se pinte de rojo)
+    status_pattern = [
+        AttendanceStatus.PRESENTE,
+        AttendanceStatus.FALTA,
+        AttendanceStatus.PRESENTE,
+        AttendanceStatus.FALTA,
+        AttendanceStatus.FALTA
+    ]
+
+    count = 0
+    for i, status in enumerate(status_pattern):
+        current_date = start_of_week + timedelta(days=i)
+
+        # Evitamos duplicados
+        existing = session.exec(select(Attendance).where(
+            Attendance.student_id == student_control,
+            Attendance.date == current_date
+        )).first()
+
+        if not existing:
+            new_att = Attendance(
+                student_id=student_control,
+                date=current_date,
+                status=status,
+                registered_by_id=admin_id
+            )
+            session.add(new_att)
+            count += 1
+
+    if count > 0:
+        session.commit()
+        logger.info(f"✅ {count} asistencias generadas para {student_control} en la semana actual (Total faltas: 3).")
+    else:
+        logger.info("✅ Asistencias ya estaban sembradas.")
+
+
 if __name__ == "__main__":
     init_db()
     with Session(engine) as session:
@@ -295,4 +350,5 @@ if __name__ == "__main__":
         seed_scholarships_and_students(session)
         seed_contraloria(session, admin.id)
         seed_map(session)
+        seed_attendances(session, admin.id)  # <-- NUEVO LLAMADO
     logger.info("✨ Sistema actualizado exitosamente ✨")

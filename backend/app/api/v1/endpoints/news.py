@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from app.core.database import get_session
 from app.models.news_model import News
-from app.models.user_model import User, UserRole
+from app.models.user_model import User, UserRole, UserArea  # 👇 AÑADIDO: Importamos UserArea
 from app.schemas.news_schema import NewsCreate, NewsUpdate, NewsPublic
 from app.api.deps import get_current_user
 from app.core.audit_logger import log_action
@@ -15,10 +15,30 @@ from app.core.audit_logger import log_action
 router = APIRouter()
 
 
-# 👇 NUEVO: Esquema de Paginación
+# Esquema de Paginación
 class PaginatedNews(BaseModel):
     total: int
     items: List[NewsPublic]
+
+
+# ==========================================
+# 0. UTILIDAD: VALIDAR PERMISOS DE NOTICIAS
+# ==========================================
+def verify_news_manager(user: User):
+    """
+    Tienen acceso:
+    - Admin de Sistemas
+    - Mesa Directiva (Estructura)
+    - Miembros del área de Comunicación y Difusión
+    - Miembros del área de Marketing y Diseño
+    """
+    if user.role in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
+        return True
+
+    if user.area in [UserArea.COMUNICACION, UserArea.MARKETING]:
+        return True
+
+    raise HTTPException(status_code=403, detail="No tienes permisos para administrar noticias")
 
 
 # ==========================================
@@ -42,7 +62,7 @@ def read_public_news(
 
 
 # ==========================================
-# 2. PRIVADO: ADMIN LISTADO PAGINADO (INCLUYE BORRADORES)
+# 2. PRIVADO: ADMIN LISTADO PAGINADO
 # ==========================================
 @router.get("/", response_model=PaginatedNews)
 def read_admin_news(
@@ -52,11 +72,8 @@ def read_admin_news(
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user)
 ):
-    """
-    Listar todas las noticias (Paginado) para el administrador.
-    """
-    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
-        raise HTTPException(status_code=403, detail="No autorizado")
+    # 👇 APLICAMOS LA VALIDACIÓN
+    verify_news_manager(current_user)
 
     base_query = select(News)
 
@@ -85,6 +102,9 @@ def create_news(
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user)
 ):
+    # 👇 APLICAMOS LA VALIDACIÓN
+    verify_news_manager(current_user)
+
     base_slug = slugify(news_in.title)
     slug = base_slug
     counter = 1
@@ -120,6 +140,9 @@ def update_news(
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user)
 ):
+    # 👇 APLICAMOS LA VALIDACIÓN
+    verify_news_manager(current_user)
+
     news = session.get(News, news_id)
     if not news:
         raise HTTPException(status_code=404, detail="Noticia no encontrada")
@@ -155,6 +178,9 @@ def delete_news(
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user)
 ):
+    # 👇 APLICAMOS LA VALIDACIÓN
+    verify_news_manager(current_user)
+
     news = session.get(News, news_id)
     if not news:
         raise HTTPException(status_code=404, detail="Noticia no encontrada")

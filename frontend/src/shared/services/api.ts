@@ -10,7 +10,11 @@ import type {
   Sanction,
   Shift,
   DayOfWeek,
-  SanctionSeverity
+  SanctionSeverity,
+  AttendanceCreate,
+  Attendance,
+  WeeklyFaults,
+  Student
 } from "../types";
 
 export const api = axios.create({
@@ -442,5 +446,80 @@ export const getStudents = async () => {
 
 export const updateStudentStatus = async (controlNumber: string, data: any) => {
   const response = await api.patch(`/becas/students/${controlNumber}`, data);
+  return response.data;
+};
+
+// ==========================================
+// NUEVO: MÓDULO DE ASISTENCIAS (BECARIOS)
+// ==========================================
+
+export const registerAttendance = async (data: AttendanceCreate) => {
+  const response = await api.post<Attendance>('/asistencias/', data);
+  return response.data;
+};
+
+export const getWeeklyFaults = async (studentId: string) => {
+  const response = await api.get<WeeklyFaults>(`/asistencias/faltas-semana/${studentId}`);
+  return response.data;
+};
+
+export const exportAttendancesExcel = async (startDate: string, endDate: string) => {
+  // Solicitamos el archivo como 'blob' para poder descargarlo
+  const response = await api.get('/asistencias/exportar', {
+    params: { start_date: startDate, end_date: endDate },
+    responseType: 'blob'
+  });
+
+  // Crear enlace de descarga dinámico
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement('a');
+  link.href = url;
+
+  // Extraemos el nombre sugerido del archivo de los headers si es posible, o armamos uno por defecto
+  const contentDisposition = response.headers['content-disposition'];
+  let filename = `Asistencias_${startDate}_al_${endDate}.xlsx`;
+  if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+      if (filenameMatch && filenameMatch.length === 2) {
+          filename = filenameMatch[1];
+      }
+  }
+
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+};
+
+export const getWeeklyAttendanceRecords = async (studentId: string, dateRef?: string) => {
+  const params = dateRef ? { date_ref: dateRef } : {};
+  const response = await api.get<Attendance[]>(`/asistencias/semana/${studentId}`, { params });
+  return response.data;
+};
+
+// --- GESTIÓN DE CAFETERÍAS ---
+export const getCafeterias = async () => {
+  const response = await api.get('/becas/cafeterias');
+  return response.data;
+};
+
+export const createCafeteria = async (data: any) => {
+  const response = await api.post('/becas/cafeterias', data);
+  return response.data;
+};
+
+export const updateCafeteria = async (id: number, data: any) => {
+  const response = await api.patch(`/becas/cafeterias/${id}`, data);
+  return response.data;
+};
+
+export const deleteCafeteria = async (id: number) => {
+  const response = await api.delete(`/becas/cafeterias/${id}`);
+  return response.data;
+};
+
+export const resetCafeterias = async () => {
+  const response = await api.post('/becas/cafeterias/reset');
   return response.data;
 };

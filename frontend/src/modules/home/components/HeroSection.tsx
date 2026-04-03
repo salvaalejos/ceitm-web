@@ -38,7 +38,7 @@ export const HeroSection = () => {
 
             <div className={`transition-all duration-1000 transform ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
                 <span className="inline-block py-1 px-3 rounded-full bg-white/10 border border-white/20 text-white text-sm font-semibold mb-6 backdrop-blur-md">
-                    Consejo Estudiantil 2025 - 2026
+                    {`Consejo Estudiantil ${new Date().getFullYear()}`}
                 </span>
 
                 <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight drop-shadow-lg">

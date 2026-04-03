@@ -12,11 +12,10 @@ from app.core.audit_logger import log_action
 
 router = APIRouter()
 
-# 👇 NUEVO: Esquema de Paginación
+# Esquema de Paginación
 class PaginatedDocuments(BaseModel):
     total: int
     items: List[DocumentPublic]
-
 
 # --- PÚBLICO ---
 @router.get("/", response_model=List[DocumentPublic])
@@ -37,7 +36,6 @@ def read_documents(
     docs = session.exec(query).all()
     return docs
 
-
 # --- PRIVADO (ADMIN PAGINADO) ---
 @router.get("/admin", response_model=PaginatedDocuments)
 def read_all_documents_paginated(
@@ -47,8 +45,8 @@ def read_all_documents_paginated(
         session: Session = Depends(get_session),
         current_user: User = Depends(get_current_user)
 ):
-    # Solo Estructura y Admin pueden ver archivos privados
-    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA]:
+    # 👇 CORRECCIÓN: Permitimos que cualquier usuario de la estructura vea los documentos
+    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA, UserRole.COORDINADOR, UserRole.CONCEJAL, UserRole.VOCAL]:
         raise HTTPException(status_code=403, detail="No tienes permisos")
 
     base_query = select(Document)
@@ -69,7 +67,6 @@ def read_all_documents_paginated(
     docs = session.exec(query).all()
 
     return PaginatedDocuments(total=total, items=docs)
-
 
 @router.post("/", response_model=DocumentPublic)
 def create_document(
@@ -98,7 +95,6 @@ def create_document(
     session.commit()
 
     return doc
-
 
 @router.delete("/{doc_id}")
 def delete_document(

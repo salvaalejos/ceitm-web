@@ -27,3 +27,5 @@ fpdf2>=2.7.7               # Generación de PDFs (Reportes y Solicitudes)
 pypdf>=3.17.4              # Manipulación y Fusión de PDFs (Merge)
 httpx>=0.26.0              # Cliente HTTP asíncrono (Para descargar evidencias de la nube)
 Pillow>=10.2.0             # Procesamiento de imágenes (Fotos de alumnos)
+
+openpyxl>=3.1.2            # Para generar reportes en Excel
