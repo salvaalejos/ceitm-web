@@ -231,6 +231,17 @@ export const submitScholarshipApplication = async (data: any) => {
   return response.data;
 };
 
+export const submitAdminScholarshipApplication = async (data: {
+  scholarship_id: number;
+  control_number: string;
+  full_name: string;
+  career: string;
+  cafeteria_asignada_id?: number | null;
+}) => {
+  const response = await api.post('/becas/admin/apply', data);
+  return response.data;
+};
+
 export const createScholarship = async (data: ScholarshipCreate) => {
   const response = await api.post(ENDPOINTS.SCHOLARSHIPS.BASE, data);
   return response.data;

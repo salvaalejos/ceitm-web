@@ -3,13 +3,16 @@ import { Search, FilterX, ChevronDown, Check, LayoutGrid } from 'lucide-react';
 import { ConvenioCard } from '../components/ConvenioCard';
 import { ConvenioModal } from '../components/ConvenioModal';
 import type { Convenio } from '../../../shared/types';
-import { getConvenios } from '../../../shared/services/api';
+import { getConvenios, getConcejalesPublic } from '../../../shared/services/api';
+import type { User } from '../../../shared/types';
+import { ContactModal } from '../components/ContactModal';
 // 👇 Importamos las constantes
 import { CATEGORIAS_CONVENIOS } from '../../../shared/constants/convenios';
 
 export const ConveniosPage = () => {
   const [convenios, setConvenios] = useState<Convenio[]>([]);
   const [loading, setLoading] = useState(true);
+  const [coordinator, setCoordinator] = useState<User | null>(null);
 
   // Estados de Filtros
   const [busqueda, setBusqueda] = useState('');
@@ -17,6 +20,7 @@ export const ConveniosPage = () => {
 
   // UI States
   const [modalOpen, setModalOpen] = useState(false);
+  const [contactModalOpen, setContactModalOpen] = useState(false);
   const [convenioSeleccionado, setConvenioSeleccionado] = useState<Convenio | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -35,8 +39,19 @@ export const ConveniosPage = () => {
   useEffect(() => {
     async function cargar() {
       try {
-        const data = await getConvenios();
-        setConvenios(data);
+        const [conveniosData, concejalesData] = await Promise.all([
+          getConvenios(),
+          getConcejalesPublic().catch(() => []) // Fallback in case of error
+        ]);
+        
+        setConvenios(conveniosData);
+
+        // Buscar al coordinador de vinculación
+        const vinculacionCoord = concejalesData.find(
+          (u: User) => u.area === 'Vinculación' && u.role === 'coordinador'
+        );
+        setCoordinator(vinculacionCoord || null);
+
       } catch (error) {
         console.error("Error conectando al backend:", error);
       } finally {
@@ -81,9 +96,15 @@ export const ConveniosPage = () => {
                 <h1 className="text-4xl md:text-5xl font-bold mb-4">
                     Convenios <span className="text-guinda-500">Vigentes</span>
                 </h1>
-                <p className="text-slate-300 max-w-2xl mx-auto text-lg">
+                <p className="text-slate-300 max-w-2xl mx-auto text-lg mb-8">
                     Aprovecha los descuentos y beneficios exclusivos para la comunidad del CEITM.
                 </p>
+                <button
+                    onClick={() => setContactModalOpen(true)}
+                    className="btn-primary py-3 px-8 text-lg mt-4 shadow-xl shadow-guinda-900/50"
+                >
+                    ¿Quieres tener un convenio con nosotros?
+                </button>
             </div>
         </div>
 
@@ -205,13 +226,20 @@ export const ConveniosPage = () => {
             )}
         </div>
 
-        {/* MODAL */}
+        {/* MODAL CONVENIO */}
         {modalOpen && convenioSeleccionado && (
             <ConvenioModal
                 convenio={convenioSeleccionado}
                 onClose={() => setModalOpen(false)}
             />
         )}
+
+        {/* MODAL CONTACTO VINCULACIÓN */}
+        <ContactModal 
+            isOpen={contactModalOpen} 
+            onClose={() => setContactModalOpen(false)} 
+            coordinator={coordinator} 
+        />
     </div>
   );
 };

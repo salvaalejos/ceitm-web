@@ -117,7 +117,7 @@ export const LoginPage = () => {
       </div>
 
       {/* TARJETA DE LOGIN */}
-      <div className="card-base w-full max-w-md p-8 relative z-20 animate-fade-in shadow-2xl dark:shadow-black/50">
+      <div className="card-base w-full max-w-md p-8 relative z-20 animate-fade-in dark:shadow-black/50">
 
         <div className="text-center mb-8">
             <div className="w-16 h-16 bg-guinda-100 dark:bg-guinda-900/30 text-guinda-700 dark:text-guinda-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner">

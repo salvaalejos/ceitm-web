@@ -190,7 +190,7 @@ export const TransparenciaPage = () => {
                                     </h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {docsInCat.map(doc => (
-                                            <div key={doc.id} className="card-base p-5 flex items-start gap-4 hover:border-guinda-500 transition-colors group">
+                                            <div key={doc.id} className="card-base p-5 flex items-start gap-4 hover:-guinda-500 transition-colors group">
                                                 <div className="p-3 bg-gray-100 dark:bg-slate-800 text-gray-500 group-hover:bg-guinda-600 group-hover:text-white rounded-lg transition-all duration-300">
                                                     <FileText size={24} />
                                                 </div>
@@ -236,7 +236,7 @@ export const TransparenciaPage = () => {
 
         {/* VISTA 2: ESTATUTOS (LECTURA WEB) */}
         <div className={`transition-all duration-500 ${activeTab === 'estatutos' ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10 hidden'}`}>
-            <div className="card-base p-8 md:p-12 shadow-2xl relative overflow-hidden">
+            <div className="card-base p-8 md:p-12 relative overflow-hidden">
 
                 {/* Decoración de fondo */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-guinda-50 dark:bg-guinda-900/10 rounded-full blur-3xl -mr-20 -mt-20"></div>

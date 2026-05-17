@@ -10,6 +10,7 @@ import {
 import type { Scholarship, ScholarshipApplication } from '../../../shared/types';
 import { RevisionModal } from '../components/RevisionModal';
 import { ScholarshipModal } from '../components/ScholarshipModal';
+import { ManualApplicationModal } from '../components/ManualApplicationModal';
 import { QuotaManager } from '../components/QuotaManager';
 import { CafeteriaManager } from '../components/CafeteriaManager';
 import {
@@ -51,6 +52,7 @@ export default function AdminBecas() {
 
   const [editingApp, setEditingApp] = useState<ScholarshipApplication | null>(null);
   const [showScholarshipModal, setShowScholarshipModal] = useState(false);
+  const [showManualModal, setShowManualModal] = useState(false);
   const [editingScholarship, setEditingScholarship] = useState<Scholarship | null>(null);
 
   // Estados para Asignación de Cafetería
@@ -278,7 +280,7 @@ export default function AdminBecas() {
                 <input
                     type="text"
                     placeholder="Buscar convocatoria..."
-                    className="form-input pl-10 py-2 w-full"
+                    className="form-input py-2"
                     value={scholSearch}
                     onChange={(e) => { setScholSearch(e.target.value); setScholPage(1); }}
                 />
@@ -362,7 +364,7 @@ export default function AdminBecas() {
                 <select
                   value={selectedScholarshipId || ''}
                   onChange={(e) => setSelectedScholarshipId(Number(e.target.value))}
-                  className="form-input py-1 text-sm w-64"
+                  className="form-input py-1 w-64"
                 >
                   {allScholarships.map(s => (
                     <option key={s.id} value={s.id}>{s.name}</option>
@@ -374,14 +376,14 @@ export default function AdminBecas() {
                 <input
                     type="text"
                     placeholder="Buscar por control o nombre..."
-                    className="form-input py-1 text-sm w-full sm:w-64"
+                    className="form-input py-1 sm:w-64"
                     value={appSearch}
                     onChange={handleAppSearch}
                 />
                 <select
                     value={filterStatus}
                     onChange={handleStatusChange}
-                    className="form-input py-1 text-sm w-full sm:w-auto"
+                    className="form-input py-1 sm:w-auto"
                 >
                     <option value="Todos">Todos</option>
                     <option value="Pendiente">Pendientes</option>
@@ -389,6 +391,14 @@ export default function AdminBecas() {
                     <option value="Rechazada">Rechazadas</option>
                     <option value="Documentación Faltante">Corrección</option>
                 </select>
+                {canManageBecas && selectedScholarshipId && (
+                    <button
+                        onClick={() => setShowManualModal(true)}
+                        className="btn-primary py-1 px-3 flex items-center gap-2 whitespace-nowrap"
+                    >
+                        <PlusCircle size={16} /> Añadir Solicitud Manual
+                    </button>
+                )}
             </div>
           </div>
 
@@ -513,7 +523,7 @@ export default function AdminBecas() {
                     <select
                         value={selectedScholarshipId || ''}
                         onChange={(e) => setSelectedScholarshipId(Number(e.target.value))}
-                        className="form-input py-2 px-3 text-sm w-full md:w-64"
+                        className="form-input py-2 px-3 md:w-64"
                     >
                         {allScholarships.map(s => (
                             <option key={s.id} value={s.id}>{s.name}</option>
@@ -607,6 +617,14 @@ export default function AdminBecas() {
             onUpdate={() => {
                 if (selectedScholarshipId) loadApplications(); // Recargar solicitudes
             }}
+        />
+      )}
+
+      {showManualModal && selectedScholarshipId && (
+        <ManualApplicationModal
+            scholarshipId={selectedScholarshipId}
+            onClose={() => setShowManualModal(false)}
+            onSuccess={() => loadApplications()}
         />
       )}
     </div>

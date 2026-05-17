@@ -167,7 +167,7 @@ export const ComplaintModal: React.FC<ComplaintModalProps> = ({ isOpen, onClose,
                             required
                             value={adminResponse}
                             onChange={(e) => setAdminResponse(e.target.value)}
-                            className="form-input w-full h-32 resize-none text-sm"
+                            className="form-input h-32 resize-none"
                             placeholder="Describe la solución o la razón del rechazo. Este mensaje se enviará al estudiante..."
                         />
                     </div>

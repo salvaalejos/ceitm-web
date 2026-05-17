@@ -159,7 +159,7 @@ export const CafeteriaManager = () => {
                     </button>
                     <button
                         onClick={() => openModal()}
-                        className="btn-primary flex items-center justify-center gap-2 text-sm px-4 py-2"
+                        className="btn-primary flex items-center justify-center gap-2 text-sm"
                     >
                         <Plus size={16} /> Nueva Cafetería
                     </button>

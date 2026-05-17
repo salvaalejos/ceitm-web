@@ -168,7 +168,7 @@ export const ConvenioForm = ({ onClose, onSuccess, convenioToEdit }: Props) => {
                         name="maps_url"
                         value={formData.maps_url}
                         onChange={handleChange}
-                        className="form-input text-sm"
+                        className="form-input"
                         placeholder="https://maps.google.com/?q=..."
                     />
                 </div>
@@ -183,7 +183,7 @@ export const ConvenioForm = ({ onClose, onSuccess, convenioToEdit }: Props) => {
                     ) : (
                         <div className="h-20 w-20 bg-gray-200 dark:bg-slate-800 rounded-lg flex items-center justify-center text-xs text-gray-500">Sin img</div>
                     )}
-                    <label className="btn-secondary cursor-pointer flex items-center gap-2 text-sm py-2">
+                    <label className="btn-secondary cursor-pointer flex items-center gap-2 text-sm">
                         <Upload size={16} /> Subir Imagen
                         <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                     </label>
@@ -248,7 +248,7 @@ export const ConvenioForm = ({ onClose, onSuccess, convenioToEdit }: Props) => {
                             name="facebook"
                             value={formData.social_links.facebook}
                             placeholder="Facebook URL"
-                            className="form-input pl-10"
+                            className="form-input"
                             onChange={e => handleSocialChange('facebook', e.target.value)}
                         />
                      </div>
@@ -262,7 +262,7 @@ export const ConvenioForm = ({ onClose, onSuccess, convenioToEdit }: Props) => {
                             name="instagram"
                             value={formData.social_links.instagram}
                             placeholder="Instagram URL"
-                            className="form-input pl-10"
+                            className="form-input"
                             onChange={e => handleSocialChange('instagram', e.target.value)}
                         />
                      </div>
@@ -276,7 +276,7 @@ export const ConvenioForm = ({ onClose, onSuccess, convenioToEdit }: Props) => {
                             name="web"
                             value={formData.social_links.web}
                             placeholder="Sitio Web"
-                            className="form-input pl-10"
+                            className="form-input"
                             onChange={e => handleSocialChange('web', e.target.value)}
                         />
                      </div>

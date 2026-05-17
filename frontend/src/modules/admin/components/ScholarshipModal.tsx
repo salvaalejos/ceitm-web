@@ -116,7 +116,7 @@ export const ScholarshipModal = ({ scholarship, onClose, onSuccess }: Props) => 
                             name="name"
                             value={formData.name}
                             onChange={handleChange}
-                            className="form-input pl-10"
+                            className="form-input"
                             placeholder="Ej. Beca Alimenticia 2025"
                         />
                         <Type size={18} className="absolute left-3 top-3.5 text-gray-400 dark:text-slate-500 group-focus-within:text-guinda-500 transition-colors" />
@@ -168,7 +168,7 @@ export const ScholarshipModal = ({ scholarship, onClose, onSuccess }: Props) => 
                             name="folio_identifier"
                             value={formData.folio_identifier}
                             onChange={handleChange}
-                            className="form-input pl-10 uppercase font-mono tracking-wider"
+                            className="form-input uppercase font-mono tracking-wider"
                             placeholder="Ej. ALIM, REC, DON"
                             maxLength={10}
                         />
@@ -185,7 +185,7 @@ export const ScholarshipModal = ({ scholarship, onClose, onSuccess }: Props) => 
                         name="description"
                         value={formData.description}
                         onChange={handleChange}
-                        className="form-input pl-10 h-24 pt-3 resize-none"
+                        className="form-input h-24 pt-3 resize-none"
                         placeholder="Breve descripción..."
                     />
                     <AlignLeft size={18} className="absolute left-3 top-3.5 text-gray-400 dark:text-slate-500 group-focus-within:text-guinda-500 transition-colors" />
@@ -215,9 +215,7 @@ export const ScholarshipModal = ({ scholarship, onClose, onSuccess }: Props) => 
                                 name={field.name}
                                 value={field.value}
                                 onChange={handleChange}
-                                className="form-input text-xs pl-9 cursor-pointer
-                                           [&::-webkit-calendar-picker-indicator]:hidden
-                                           [&::-webkit-calendar-picker-indicator]:appearance-none"
+                                className="form-input text-xs pl-9 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                             />
 
                             {/* ICONO PERSONALIZADO */}

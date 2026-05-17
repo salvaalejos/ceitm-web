@@ -199,7 +199,7 @@ export const UserForm = ({ onClose, onSuccess, userToEdit }: Props) => {
                         <label className="form-label">Nombre Completo</label>
                         <div className="relative">
                             <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                            <input name="full_name" value={formData.full_name} onChange={handleChange} required className="form-input pl-10" placeholder="Ej. Juan Pérez" />
+                            <input name="full_name" value={formData.full_name} onChange={handleChange} required className="form-input" placeholder="Ej. Juan Pérez" />
                         </div>
                     </div>
 
@@ -207,7 +207,7 @@ export const UserForm = ({ onClose, onSuccess, userToEdit }: Props) => {
                         <label className="form-label">Correo Institucional</label>
                         <div className="relative">
                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                            <input type="email" name="email" value={formData.email} onChange={handleChange} required className="form-input pl-10" placeholder="usuario@morelia.tecnm.mx" />
+                            <input type="email" name="email" value={formData.email} onChange={handleChange} required className="form-input" placeholder="usuario@morelia.tecnm.mx" />
                         </div>
                     </div>
 
@@ -215,7 +215,7 @@ export const UserForm = ({ onClose, onSuccess, userToEdit }: Props) => {
                         <label className="form-label">{userToEdit ? 'Nueva Contraseña' : 'Contraseña'}</label>
                         <div className="relative">
                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                            <input type="password" name="password" value={formData.password} onChange={handleChange} required={!userToEdit} className="form-input pl-10" placeholder="••••••••" />
+                            <input type="password" name="password" value={formData.password} onChange={handleChange} required={!userToEdit} className="form-input" placeholder="••••••••" />
                         </div>
                     </div>
                 </div>
@@ -269,7 +269,7 @@ export const UserForm = ({ onClose, onSuccess, userToEdit }: Props) => {
                                     name="career"
                                     value={formData.career}
                                     onChange={handleChange}
-                                    className="form-input pl-10 cursor-pointer"
+                                    className="form-input cursor-pointer"
                                 >
                                     <option value="">-- Selecciona una carrera --</option>
                                     {/* 👇 AQUÍ MAPEA LAS CARRERAS DE LA BD */}
@@ -301,7 +301,7 @@ export const UserForm = ({ onClose, onSuccess, userToEdit }: Props) => {
                                     type="tel"
                                     value={formData.phone_number}
                                     onChange={handleChange}
-                                    className="form-input pl-10"
+                                    className="form-input"
                                     placeholder="4431234567"
                                 />
                             </div>
@@ -316,7 +316,7 @@ export const UserForm = ({ onClose, onSuccess, userToEdit }: Props) => {
                                     type="url"
                                     value={formData.instagram_url}
                                     onChange={handleChange}
-                                    className="form-input pl-10"
+                                    className="form-input"
                                     placeholder="https://instagram.com/usuario"
                                 />
                             </div>

@@ -176,6 +176,16 @@ class ApplicationCreate(ApplicationBase):
     doc_request: Optional[str] = None
     doc_motivos: Optional[str] = None
 
+class AdminApplicationCreate(SQLModel):
+    scholarship_id: int
+    control_number: str
+    full_name: str
+    email: str = "N/A"
+    phone_number: str = "N/A"
+    career: str
+    semester: str = "N/A"
+    cafeteria_asignada_id: Optional[int] = None
+
 
 class ApplicationRead(ApplicationBase):
     id: int
@@ -194,6 +204,25 @@ class ApplicationUpdate(SQLModel):
     admin_comments: Optional[str] = None
     doc_request: Optional[str] = None
     doc_motivos: Optional[str] = None
+    
+    # --- DATOS QUE SE PUEDEN ACTUALIZAR MANUALMENTE ---
+    arithmetic_average: Optional[float] = None
+    certified_average: Optional[float] = None
+    family_income: Optional[float] = None
+    income_per_capita: Optional[float] = None
+    address: Optional[str] = None
+    origin_address: Optional[str] = None
+    economic_dependence: Optional[str] = None
+    dependents_count: Optional[int] = None
+    motivos: Optional[str] = None
+    
+    # --- DOCUMENTOS (PARA ACTUALIZACIÓN MANUAL) ---
+    student_photo: Optional[str] = None
+    doc_ine: Optional[str] = None
+    doc_kardex: Optional[str] = None
+    doc_income: Optional[str] = None
+    doc_address: Optional[str] = None
+    doc_extra: Optional[str] = None
 
     # --- DATOS PARA LIBERACIÓN MANUAL (ADMIN) ---
     # Estos campos los llena el Coordinador en el modal

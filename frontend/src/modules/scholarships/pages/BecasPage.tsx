@@ -83,7 +83,7 @@ export const BecasPage = () => {
                     const isActiveDate = now <= endDate && beca.is_active;
 
                     return (
-                        <div key={beca.id} className="card-base p-0 overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 group">
+                        <div key={beca.id} className="card-base p-0 overflow-hidden shadow-lg hover: transition-all duration-300 group">
 
                             <div className="flex flex-col md:flex-row">
                                 {/* Lateral de Color Indicativo */}
@@ -141,7 +141,7 @@ export const BecasPage = () => {
                                         {isActiveDate ? (
                                             <button
                                                 onClick={() => navigate(`/becas/aplicar/${beca.id}`)}
-                                                className="btn-primary w-full md:w-auto flex items-center justify-center gap-2 py-3 px-8 text-lg shadow-lg hover:shadow-guinda-500/20"
+                                                className="btn-primary w-full md:w-auto flex items-center justify-center gap-2 text-lg shadow-lg hover:shadow-guinda-500/20"
                                             >
                                                 Iniciar Trámite <ChevronRight size={20} />
                                             </button>

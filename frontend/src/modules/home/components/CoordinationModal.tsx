@@ -113,7 +113,7 @@ export const CoordinationModal = ({ coordination, onClose }: Props) => {
                         <Link
                             to={coordination.route}
                             onClick={onClose}
-                            className="btn-primary w-full flex items-center justify-center gap-2 py-3 shadow-lg shadow-guinda-600/20"
+                            className="btn-primary w-full flex items-center justify-center gap-2 shadow-lg shadow-guinda-600/20"
                         >
                             Ir al sitio de {coordination.label} <ArrowRight size={18} />
                         </Link>

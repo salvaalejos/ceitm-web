@@ -34,26 +34,35 @@ export const Layout = () => {
       <nav className="sticky top-0 z-50 w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-slate-800 transition-colors duration-300">
         <div className="container mx-auto px-6 h-20 flex justify-between items-center">
 
-          {/* 1. LOGO + TEXTO ADAPTATIVO */}
-          <Link to="/" className="flex items-center gap-3 group" onClick={() => setIsMenuOpen(false)}>
-            <div className="w-12 h-12 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
-              <img
-                src={IMAGES.LOGO}
-                alt="CEITM Logo"
-                className="w-full h-full object-contain drop-shadow-md block dark:hidden"
-              />
-              <img
-                src={IMAGES.LOGO_BLANCO}
-                alt="CEITM Logo Blanco"
-                className="w-full h-full object-contain drop-shadow-md hidden dark:block"
-              />
-            </div>
+          {/* 1. LOGOS + TEXTO ADAPTATIVO */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Logo ITM (Más grande) */}
+            <a href="https://morelia.tecnm.mx/" target="_blank" rel="noopener noreferrer" className="hover:scale-105 transition-transform duration-300 shrink-0">
+              <img src="/logo-itm.png" alt="TecNM Morelia" className="h-16 sm:h-20 object-contain drop-shadow-md py-1" />
+            </a>
+            
+            <div className="h-10 w-px bg-gray-300 dark:bg-slate-700 mx-1 hidden sm:block"></div>
 
-            <div className="font-bold text-lg md:text-xl text-gray-800 dark:text-white tracking-tight group-hover:text-guinda-700 dark:group-hover:text-guinda-400 transition-colors">
-              <span className="md:hidden">CEITM</span>
-              <span className="hidden md:block">Consejo Estudiantil del ITM</span>
-            </div>
-          </Link>
+            <Link to="/" className="flex items-center gap-2 sm:gap-3 group" onClick={() => setIsMenuOpen(false)}>
+              <div className="w-12 h-12 flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shrink-0">
+                <img
+                  src={IMAGES.LOGO}
+                  alt="CEITM Logo"
+                  className="w-full h-full object-contain drop-shadow-md block dark:hidden"
+                />
+                <img
+                  src={IMAGES.LOGO_BLANCO}
+                  alt="CEITM Logo Blanco"
+                  className="w-full h-full object-contain drop-shadow-md hidden dark:block"
+                />
+              </div>
+
+              <div className="font-bold text-lg md:text-xl text-gray-800 dark:text-white tracking-tight group-hover:text-guinda-700 dark:group-hover:text-guinda-400 transition-colors">
+                <span className="md:hidden">CEITM</span>
+                <span className="hidden md:block">Consejo Estudiantil del ITM</span>
+              </div>
+            </Link>
+          </div>
 
           {/* 2. MENÚ ESCRITORIO */}
           <div className="hidden lg:flex items-center gap-1">

@@ -379,7 +379,7 @@ export const SolicitudPage = () => {
                                             name="cafeteria_solicitada_id"
                                             value={formData.cafeteria_solicitada_id || ''}
                                             onChange={handleChange}
-                                            className="form-input border-orange-200 focus:border-orange-500 focus:ring-orange-500"
+                                            className="form-input -orange-200 focus:-orange-500 focus:ring-orange-500"
                                         >
                                             <option value="">Selecciona la cafetería...</option>
                                             {cafeterias.map(c => (
@@ -424,7 +424,7 @@ export const SolicitudPage = () => {
                                 </div>
                                 <div><label className="form-label">No. Dependientes</label><input type="number" name="dependents_count" value={formData.dependents_count} onChange={handleChange} className="form-input" /></div>
                                 <div><label className="form-label">Ingreso Familiar Mensual ($)</label><input type="number" name="family_income" value={formData.family_income} onChange={handleChange} className="form-input" /></div>
-                                <div><label className="form-label">Per Cápita (Calculado)</label><input disabled value={formData.income_per_capita} className="form-input bg-gray-200 dark:bg-slate-800 cursor-not-allowed text-gray-500" /></div>
+                                <div><label className="form-label">Per Cápita (Calculado)</label><input disabled value={formData.income_per_capita} className="form-input bg-gray-200 cursor-not-allowed" /></div>
                             </div>
                         </div>
                     )}
@@ -460,7 +460,7 @@ export const SolicitudPage = () => {
                                             <select
                                                 value={hasReleased}
                                                 onChange={(e) => setHasReleased(e.target.value as 'si' | 'no')}
-                                                className="form-input border-guinda-200 dark:border-guinda-900"
+                                                className="form-input -guinda-200 dark:-guinda-900"
                                             >
                                                 <option value="no">No, aún la debo (Rezagado)</option>
                                                 <option value="si">Sí, ya cuento con mi folio de liberación</option>
@@ -472,7 +472,7 @@ export const SolicitudPage = () => {
                                                 <label className="form-label text-guinda-600 dark:text-guinda-400 font-bold flex items-center gap-2">
                                                     <AlertCircle size={16}/> Folio de Liberación (OBLIGATORIO)
                                                 </label>
-                                                <input name="release_folio" value={formData.release_folio} onChange={handleChange} className="form-input border-2 border-guinda-500 dark:border-guinda-600 uppercase font-mono" placeholder="DONXXXXXXXXXX" />
+                                                <input name="release_folio" value={formData.release_folio} onChange={handleChange} className="form-input -2 -guinda-500 dark:-guinda-600 uppercase font-mono" placeholder="DONXXXXXXXXXX" />
                                             </div>
                                         )}
                                     </div>
@@ -508,7 +508,7 @@ export const SolicitudPage = () => {
                                             {selectedFiles['student_photo'] && <span className="text-xs text-green-600 font-bold block mt-1">Archivo listo: {selectedFiles['student_photo'].name}</span>}
                                         </div>
                                     </div>
-                                    <label className="btn-primary text-sm px-6 py-2 cursor-pointer shadow-none">
+                                    <label className="btn-primary text-sm cursor-pointer shadow-none">
                                         Seleccionar Foto <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileSelect(e, 'student_photo')} />
                                     </label>
                                 </div>
@@ -537,7 +537,7 @@ export const SolicitudPage = () => {
                                             </div>
                                             {file ?
                                                 <button onClick={() => handleRemoveFile(key)} className="text-red-500 hover:bg-red-50 p-2 rounded-full"><Trash2 size={18}/></button> :
-                                                <label className="btn-secondary text-xs px-3 py-2 cursor-pointer">
+                                                <label className="btn-secondary text-xs cursor-pointer">
                                                     Subir <input type="file" className="hidden" accept=".pdf,image/*" onChange={(e) => handleFileSelect(e, key)} />
                                                 </label>
                                             }
@@ -557,7 +557,7 @@ export const SolicitudPage = () => {
                                 Siguiente <ArrowRight size={18} />
                             </button>
                         ) : (
-                            <button onClick={handleSubmit} disabled={submitting} className="btn-primary bg-green-600 hover:bg-green-700 border-green-600 transition-all">
+                            <button onClick={handleSubmit} disabled={submitting} className="btn-primary bg-green-600 hover:bg-green-700 border-green-600">
                                 {submitting ? <><Loader2 className="animate-spin inline mr-2"/> {uploadingInfo}</> : 'Finalizar y Enviar'}
                             </button>
                         )}

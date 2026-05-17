@@ -57,10 +57,7 @@ export const HeroSection = () => {
                     {/* BOTÓN 1: Agregué 'border' y 'shadow-xl' para contraste máximo */}
                     <button
                         onClick={scrollToFunctions}
-                        className="group px-8 py-4 bg-white text-guinda-900 font-bold rounded-xl
-                                   shadow-xl border-2 border-transparent hover:border-gray-200
-                                   transform transition-transform duration-200 hover:scale-105 active:scale-95
-                                   flex items-center justify-center gap-2 cursor-pointer"
+                        className="group px-8 py-4 bg-white text-guinda-900 font-bold rounded-xl shadow-xl border-2 border-transparent hover:border-gray-200 transform transition-transform duration-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                     >
                         Ver Funciones
                         <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
@@ -69,8 +66,7 @@ export const HeroSection = () => {
                     {/* BOTÓN 2: Conoce al Equipo (Ahora funcional) */}
                     <Link
                         to="/concejales"
-                        className="px-8 py-4 bg-transparent border-2 border-white text-white font-bold rounded-xl
-                                   transform transition-transform duration-200 hover:scale-105 active:scale-95 hover:bg-white/10 shadow-lg text-center flex items-center justify-center"
+                        className="px-8 py-4 bg-transparent border-2 border-white text-white font-bold rounded-xl transform transition-transform duration-200 hover:scale-105 active:scale-95 hover:bg-white/10 shadow-lg text-center flex items-center justify-center"
                     >
                         Conoce al Equipo
                     </Link>

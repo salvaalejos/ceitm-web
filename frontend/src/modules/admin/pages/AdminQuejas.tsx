@@ -183,7 +183,7 @@ export const AdminQuejas = () => {
         ) : (
             <div className="space-y-6">
                 {complaints.map(item => (
-                    <div key={item.id} className="card-base p-0 overflow-hidden hover:shadow-lg transition-all duration-300 border border-gray-100 dark:border-slate-800 group">
+                    <div key={item.id} className="card-base p-0 overflow-hidden hover:shadow-lg transition-all duration-300 -gray-100 dark:-slate-800 group">
 
                         {/* Status Bar */}
                         <div className={`h-1.5 w-full ${
@@ -217,7 +217,7 @@ export const AdminQuejas = () => {
                                     {(item.status === ComplaintStatus.PENDIENTE || item.status === ComplaintStatus.EN_PROCESO) && (
                                         <button
                                             onClick={() => handleOpenModal(item)}
-                                            className="btn-primary py-2 px-4 text-sm flex items-center gap-2 shadow-lg shadow-guinda-900/10"
+                                            className="btn-primary text-sm flex items-center gap-2 shadow-lg shadow-guinda-900/10"
                                         >
                                             <MessageSquare size={16} /> Atender
                                         </button>

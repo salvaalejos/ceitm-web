@@ -18,7 +18,7 @@ from app.schemas.scholarship_schema import (
     ScholarshipCreate, ScholarshipRead, ScholarshipUpdate,
     ApplicationCreate, ApplicationRead, ApplicationUpdate, ApplicationPublicStatus,
     ScholarshipQuotaRead, ScholarshipQuotaUpdate,
-    CafeteriaCreate, CafeteriaUpdate, CafeteriaRead
+    CafeteriaCreate, CafeteriaUpdate, CafeteriaRead, AdminApplicationCreate
 )
 from app.api.deps import get_current_user
 from app.core.limiter import limiter
@@ -279,6 +279,99 @@ def submit_application(
         )
     except Exception as e:
         print(f"⚠️ Error enviando correo: {e}")
+
+    return application
+
+
+@router.post("/admin/apply", response_model=ApplicationRead)
+def submit_application_admin(
+        application_in: AdminApplicationCreate,
+        session: Session = Depends(get_session),
+        current_user: User = Depends(get_current_user)
+):
+    if current_user.role not in [UserRole.ADMIN_SYS, UserRole.ESTRUCTURA] and current_user.area != UserArea.BECAS:
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+    scholarship = session.get(Scholarship, application_in.scholarship_id)
+    if not scholarship:
+        raise HTTPException(status_code=400, detail="La convocatoria no existe")
+
+    # Sync student
+    student = session.get(Student, application_in.control_number)
+    career_obj = session.exec(select(Career).where(Career.name == application_in.career)).first()
+    career_id = career_obj.id if career_obj else None
+
+    if student:
+        student.full_name = application_in.full_name
+        student.email = application_in.email
+        student.phone_number = application_in.phone_number
+        if career_id:
+            student.career_id = career_id
+        session.add(student)
+    else:
+        student = Student(
+            control_number=application_in.control_number,
+            full_name=application_in.full_name,
+            email=application_in.email,
+            phone_number=application_in.phone_number,
+            career_id=career_id,
+            is_blacklisted=False
+        )
+        session.add(student)
+
+    # Check if existing
+    existing = session.exec(
+        select(ScholarshipApplication)
+        .where(ScholarshipApplication.control_number == application_in.control_number)
+        .where(ScholarshipApplication.scholarship_id == application_in.scholarship_id)
+    ).first()
+
+    if existing:
+        raise HTTPException(status_code=400, detail="El estudiante ya tiene una solicitud para esta beca.")
+
+    # Create dummy application
+    application = ScholarshipApplication(
+        scholarship_id=application_in.scholarship_id,
+        student_id=student.control_number,
+        full_name=application_in.full_name,
+        email=application_in.email,
+        phone_number=application_in.phone_number,
+        control_number=application_in.control_number,
+        career=application_in.career,
+        semester=application_in.semester,
+        student_photo="N/A",
+        arithmetic_average=0.0,
+        certified_average=0.0,
+        address="N/A",
+        origin_address="N/A",
+        economic_dependence="N/A",
+        dependents_count=0,
+        family_income=0.0,
+        income_per_capita=0.0,
+        motivos="Solicitud agregada manualmente por administrador.",
+        doc_address="N/A",
+        doc_income="N/A",
+        doc_ine="N/A",
+        doc_kardex="N/A",
+        status=ApplicationStatus.APROBADA, # Se aprueba directamente por ser manual
+        cafeteria_asignada_id=application_in.cafeteria_asignada_id
+    )
+    
+    session.add(application)
+    session.commit()
+    session.refresh(application)
+
+    # Actualizar cupo
+    quota = session.exec(
+        select(ScholarshipQuota)
+        .where(ScholarshipQuota.scholarship_id == application.scholarship_id)
+        .where(ScholarshipQuota.career_name == application.career)
+    ).first()
+
+    if quota:
+        quota.used_slots += 1
+        session.add(quota)
+        session.commit()
 
     return application
 

@@ -78,7 +78,7 @@ export const AdminDocumentos = () => {
 
                 {/* 👇 AÑADIDO: Ocultar botón si no tiene permisos */}
                 {canUpload && (
-                    <button onClick={() => setShowForm(true)} className="btn-primary flex items-center justify-center gap-2 w-full md:w-auto py-2.5 px-4 rounded-lg bg-guinda-600 text-white hover:bg-guinda-700 transition-all shadow-md">
+                    <button onClick={() => setShowForm(true)} className="btn-primary flex items-center justify-center gap-2 w-full md:w-auto hover:">
                         <Plus size={20} /> <span className="hidden sm:inline">Subir PDF</span>
                     </button>
                 )}

@@ -183,7 +183,7 @@ export const BuzonPage = () => {
 
       {/* CONTENEDOR PRINCIPAL */}
       <div className="container mx-auto max-w-3xl px-4 md:px-6 -mt-16 relative z-20">
-        <div className="card-base shadow-2xl dark:shadow-none dark:border dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900">
+        <div className="card-base dark:shadow-none dark: dark:-slate-800 overflow-hidden">
 
             {/* SWITCH PESTAÑAS */}
             <div className="grid grid-cols-2 p-2 bg-gray-50 dark:bg-slate-950/50 border-b border-gray-100 dark:border-slate-800">
@@ -238,7 +238,7 @@ export const BuzonPage = () => {
                                  <button onClick={() => { setSuccessFolio(null); setFormData({ ...formData, description: ''}); setSelectedFile(null); }} className="btn-secondary">
                                     Nuevo Reporte
                                 </button>
-                                <button onClick={() => { setActiveTab('track'); setSearchFolio(successFolio); }} className="btn-primary px-8">
+                                <button onClick={() => { setActiveTab('track'); setSearchFolio(successFolio); }} className="btn-primary">
                                     Ver Estatus <ArrowRight size={16} className="ml-2" />
                                 </button>
                             </div>
@@ -253,30 +253,30 @@ export const BuzonPage = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     <div className="md:col-span-2">
                                         <label className="form-label">Nombre Completo</label>
-                                        <input name="full_name" required value={formData.full_name} onChange={handleChange} className="form-input w-full" placeholder="Tu nombre" />
+                                        <input name="full_name" required value={formData.full_name} onChange={handleChange} className="form-input" placeholder="Tu nombre" />
                                     </div>
                                     <div>
                                         <label className="form-label">No. Control</label>
-                                        <input name="control_number" required value={formData.control_number} onChange={handleChange} className="form-input w-full" placeholder="Ej. 19120145" />
+                                        <input name="control_number" required value={formData.control_number} onChange={handleChange} className="form-input" placeholder="Ej. 19120145" />
                                     </div>
                                     <div>
                                         <label className="form-label">Carrera</label>
-                                        <select name="career" required value={formData.career} onChange={handleChange} className="form-input w-full">
+                                        <select name="career" required value={formData.career} onChange={handleChange} className="form-input">
                                             <option value="">Selecciona...</option>
                                             {careersList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                                         </select>
                                     </div>
                                     <div className="md:col-span-2">
                                         <label className="form-label">Correo Electrónico</label>
-                                        <input type="email" name="email" required value={formData.email} onChange={handleChange} className="form-input w-full" placeholder="Para notificarte el estatus" />
+                                        <input type="email" name="email" required value={formData.email} onChange={handleChange} className="form-input" placeholder="Para notificarte el estatus" />
                                     </div>
                                     <div>
                                         <label className="form-label">Teléfono</label>
-                                        <input name="phone_number" required value={formData.phone_number} onChange={handleChange} className="form-input w-full" type="tel" />
+                                        <input name="phone_number" required value={formData.phone_number} onChange={handleChange} className="form-input" type="tel" />
                                     </div>
                                     <div>
                                         <label className="form-label">Semestre</label>
-                                        <select name="semester" required value={formData.semester} onChange={handleChange} className="form-input w-full">
+                                        <select name="semester" required value={formData.semester} onChange={handleChange} className="form-input">
                                             <option value="">Selecciona...</option>
                                             {SEMESTRES.map(s => <option key={s} value={s}>{s}</option>)}
                                         </select>
@@ -311,7 +311,7 @@ export const BuzonPage = () => {
                                 </div>
                                 <div>
                                     <label className="form-label">Descripción</label>
-                                    <textarea name="description" required value={formData.description} onChange={handleChange} className="form-input w-full h-32 resize-none p-4" placeholder="Describe la situación..."></textarea>
+                                    <textarea name="description" required value={formData.description} onChange={handleChange} className="form-input h-32 resize-none p-4" placeholder="Describe la situación..."></textarea>
                                 </div>
 
                                 {/* SECCIÓN DE EVIDENCIA ACTUALIZADA */}
@@ -355,7 +355,7 @@ export const BuzonPage = () => {
                                 </div>
                             </div>
 
-                            <button type="submit" disabled={loading} className="btn-primary w-full py-4 text-lg shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all flex items-center justify-center gap-2">
+                            <button type="submit" disabled={loading} className="btn-primary w-full text-lg shadow-xl hover:shadow-2xl hover:-translate-y-1 flex items-center justify-center gap-2">
                                 {loading ? <Loader2 className="animate-spin" /> : null}
                                 {loading ? 'Enviando...' : 'Enviar Reporte'}
                             </button>
@@ -379,7 +379,7 @@ export const BuzonPage = () => {
                                 value={searchFolio}
                                 onChange={(e) => setSearchFolio(e.target.value)}
                                 placeholder="CEITM-2025-..."
-                                className="form-input flex-1 text-center font-mono uppercase tracking-widest text-lg py-3"
+                                className="form-input flex-1 text-center font-mono uppercase tracking-widest text-lg"
                                 autoFocus
                             />
                             <button

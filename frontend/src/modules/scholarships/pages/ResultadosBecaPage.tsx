@@ -75,7 +75,7 @@ export const ResultadosBecaPage = () => {
                         <button
                             type="submit"
                             disabled={loading || !controlNumber}
-                            className="btn-primary px-8 py-3 text-lg flex items-center justify-center gap-2"
+                            className="btn-primary text-lg flex items-center justify-center gap-2"
                         >
                             {loading ? <Loader2 className="animate-spin" /> : 'Consultar'}
                         </button>
@@ -95,7 +95,7 @@ export const ResultadosBecaPage = () => {
                             </div>
                         ) : (
                             results.map(app => (
-                                <div key={app.id} className="card-base p-0 overflow-hidden border-l-4 border-l-guinda-600">
+                                <div key={app.id} className="card-base p-0 overflow-hidden -l-4 -l-guinda-600">
                                     <div className="p-6">
                                         <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
                                             <div>

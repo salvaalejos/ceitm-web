@@ -113,7 +113,7 @@ export const AdminUsuarios = () => {
                     />
                 </div>
 
-                <button onClick={() => setShowForm(true)} className="btn-primary flex items-center gap-2 px-4 py-2.5 bg-guinda-600 text-white rounded-lg hover:bg-guinda-700 transition-colors whitespace-nowrap shadow-sm">
+                <button onClick={() => setShowForm(true)} className="btn-primary flex items-center gap-2 hover: whitespace-nowrap">
                     <Plus size={18} /> <span className="hidden sm:inline">Nuevo Miembro</span>
                 </button>
             </div>

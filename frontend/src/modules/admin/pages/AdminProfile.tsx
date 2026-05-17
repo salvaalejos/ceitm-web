@@ -181,7 +181,7 @@ export const AdminProfile = () => {
                                         <input
                                             value={formData.full_name}
                                             onChange={(e) => setFormData({...formData, full_name: e.target.value})}
-                                            className="form-input pl-10"
+                                            className="form-input"
                                         />
                                     </div>
                                 </div>
@@ -193,7 +193,7 @@ export const AdminProfile = () => {
                                         <input
                                             value={formData.email}
                                             onChange={(e) => setFormData({...formData, email: e.target.value})}
-                                            className="form-input pl-10"
+                                            className="form-input"
                                         />
                                     </div>
                                 </div>
@@ -206,7 +206,7 @@ export const AdminProfile = () => {
                                             <input
                                                 value={formData.phone_number}
                                                 onChange={(e) => setFormData({...formData, phone_number: e.target.value})}
-                                                className="form-input pl-10"
+                                                className="form-input"
                                                 placeholder="443..."
                                             />
                                         </div>
@@ -218,7 +218,7 @@ export const AdminProfile = () => {
                                             <input
                                                 value={formData.instagram_url}
                                                 onChange={(e) => setFormData({...formData, instagram_url: e.target.value})}
-                                                className="form-input pl-10"
+                                                className="form-input"
                                                 placeholder="https://instagram.com/..."
                                             />
                                         </div>
@@ -250,7 +250,7 @@ export const AdminProfile = () => {
                                         type="password"
                                         value={passData.password}
                                         onChange={(e) => setPassData({...passData, password: e.target.value})}
-                                        className="form-input pl-10"
+                                        className="form-input"
                                         placeholder="••••••••"
                                     />
                                 </div>
@@ -264,7 +264,7 @@ export const AdminProfile = () => {
                                         type="password"
                                         value={passData.confirmPassword}
                                         onChange={(e) => setPassData({...passData, confirmPassword: e.target.value})}
-                                        className="form-input pl-10"
+                                        className="form-input"
                                         placeholder="••••••••"
                                     />
                                 </div>

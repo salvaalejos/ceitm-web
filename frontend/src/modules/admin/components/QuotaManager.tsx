@@ -176,7 +176,7 @@ export const QuotaManager = ({ scholarshipId }: Props) => {
                     <button
                         onClick={handleBulkApply}
                         disabled={bulkUpdating}
-                        className="btn-primary whitespace-nowrap bg-gray-800 hover:bg-gray-900 dark:bg-slate-700 dark:hover:bg-slate-600 border-none text-white flex items-center gap-2"
+                        className="btn-primary whitespace-nowrap bg-gray-800 hover:bg-gray-900 dark:bg-slate-700 dark:hover:bg-slate-600 border-none flex items-center gap-2"
                     >
                         {bulkUpdating ? <Loader2 className="animate-spin" size={16}/> : <CheckCircle2 size={16}/>}
                         Aplicar a Todas
