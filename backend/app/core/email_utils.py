@@ -40,7 +40,7 @@ def send_email_background(
     except Exception as e:
         print(f"❌ [Background] Error preparando correo: {str(e)}")
 
-# 👇 NUEVA: Función para Envío Inmediato (Test/Debug)
+# NUEVA: Función para Envío Inmediato (Test/Debug)
 async def send_email_async(
     subject: str,
     email_to: str,

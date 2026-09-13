@@ -11,6 +11,10 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.core.database import init_db, get_session
 from app.core.config import settings
 from app.core.limiter import limiter
+from fastapi import HTTPException
+from app.core.email_utils import send_email_async
+
+
 # --- ACTUALIZACIÓN: Agregamos 'shifts' y 'sanctions' a los imports ---
 from app.api.v1.endpoints import (
     convenios, login, utils, users, news, documents,
@@ -100,3 +104,17 @@ def test_db_connection(session: Session = Depends(get_session)):
         return {"estado_bd": "Conectada correctamente 🟢"}
     except Exception as e:
         return {"estado_bd": f"Error de conexión 🔴: {str(e)}"}
+
+
+@app.get("/api/v1/test-email")
+async def test_email_endpoint(to: str = "alejossalvador@gmail.com"):
+    try:
+        await send_email_async(
+            subject="Prueba SMTP TecNM",
+            email_to=to,
+            template_name="test.html",  # Cambia por el nombre de un template .html existente en tu carpeta de templates
+            context={"name": "Salvador"}
+        )
+        return {"status": "ok", "message": f"Correo enviado a {to}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
