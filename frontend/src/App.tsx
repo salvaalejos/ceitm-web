@@ -37,6 +37,8 @@ import {ReloadPrompt} from "./shared/components/ReloadPrompt.tsx";
 import AdminContraloria from "./modules/admin/pages/AdminContraloria.tsx";
 import AdminBecarios from "./modules/admin/pages/AdminBecarios.tsx";
 import { AdminCalendario } from "./modules/admin/pages/AdminCalendario.tsx";
+import { JustificantesPage } from './modules/justificantes/pages/JustificantesPage';
+import { JustificantePublicoPage } from './modules/justificantes/pages/JustificantePublicoPage';
 
 function App() {
   return (
@@ -64,6 +66,9 @@ function App() {
         {/* --- LOGIN --- */}
         <Route path="/login" element={<LoginPage />} />
 
+        {/* --- VERIFICACIÓN PÚBLICA DE JUSTIFICANTES (QR) --- */}
+        <Route path="/justificante/:token" element={<JustificantePublicoPage />} />
+
         {/* ... BLOQUE DE RUTAS ADMIN ... */}
         <Route
             path="/admin"
@@ -87,6 +92,7 @@ function App() {
             <Route path="mapa" element={<AdminMap />} />
             <Route path="becarios" element={<AdminBecarios />} />
             <Route path="calendario" element={<AdminCalendario />} />
+            <Route path="justificantes" element={<JustificantesPage />} />
         </Route>
 
         <Route path="*" element={<div className="p-10 text-center">404 - Página no encontrada</div>} />

@@ -29,3 +29,6 @@ httpx>=0.26.0              # Cliente HTTP asíncrono (Para descargar evidencias 
 Pillow>=10.2.0             # Procesamiento de imágenes (Fotos de alumnos)
 
 openpyxl>=3.1.2            # Para generar reportes en Excel
+
+# --- MÓDULO DE JUSTIFICANTES DIGITALES ---
+qrcode>=7.4.2              # Generación de códigos QR (sello de verificación)

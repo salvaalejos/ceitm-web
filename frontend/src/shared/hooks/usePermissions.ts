@@ -38,6 +38,7 @@ export const usePermissions = () => {
       canManageMap: false,
       canManageContraloria: false,
       canManageBecarios: false,
+      canAprobarJustificantes: false,
       user: null
     };
   }
@@ -76,6 +77,9 @@ export const usePermissions = () => {
   const isPyL = area === AREAS.PYL;
   const canManageBecarios = isPowerUser || isPyL || isBecasTeam;
 
+  // Justificantes: todos los autenticados crean; solo Estructura/Admin aprueban
+  const canAprobarJustificantes = isPowerUser;
+
   return {
     user,
     role,
@@ -92,6 +96,7 @@ export const usePermissions = () => {
     canManageQuejas,
     canManageContraloria,
     canManageBecarios,
-    canManageMap
+    canManageMap,
+    canAprobarJustificantes,
   };
 };

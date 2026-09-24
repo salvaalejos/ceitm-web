@@ -72,4 +72,17 @@ export const ENDPOINTS = {
         BASE: '/eventos/', // GET listar (month/year/search/category), POST crear
         BY_ID: (id: number) => `/eventos/${id}`, // PUT actualizar, DELETE eliminar
     },
+    JUSTIFICANTES: {
+        BASE: '/justificantes/', // GET mis justificantes, POST crear
+        BY_ID: (id: number) => `/justificantes/${id}`, // GET detalle
+        APROBACIONES: '/justificantes/aprobaciones', // GET lista (Estructura/Admin)
+        APROBAR: (id: number) => `/justificantes/${id}/aprobar`, // POST
+        RECHAZAR: (id: number) => `/justificantes/${id}/rechazar`, // POST
+        PDF: (id: number) => `/justificantes/${id}/pdf`, // GET descargar
+        PUBLICO: (token: string) => `/justificantes/publico/${token}`, // GET público (QR)
+        FIRMA: '/justificantes/firma', // POST subir firma
+        FIRMA_MIA: '/justificantes/firma/mia', // GET mi firma
+    },
 };
+
+export const JUSTIFICANTE_PUBLIC_URL = (token: string) => `${DOMAIN_URL}/justificante/${token}`;

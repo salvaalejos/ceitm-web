@@ -412,3 +412,65 @@ export interface CalendarEvent {
   category: string;
   created_at?: string;
 }
+
+// ==========================================
+// NUEVO: MÓDULO DE JUSTIFICANTES DIGITALES
+// ==========================================
+
+export enum JustificanteTipo {
+  INDIVIDUAL = "individual",
+  COLECTIVO = "colectivo",
+}
+
+export enum JustificanteEstado {
+  PENDIENTE = "pendiente",
+  APROBADO = "aprobado",
+  RECHAZADO = "rechazado",
+}
+
+export interface JustificanteParticipante {
+  nombre: string;
+  numero_control: string;
+  carrera: string;
+}
+
+export interface Justificante {
+  id: number;
+  tipo: JustificanteTipo;
+  actividad: string;
+  fecha: string;
+  hora_inicio: string;
+  hora_fin: string;
+  folio: string;
+  participantes: JustificanteParticipante[];
+  estado: JustificanteEstado;
+  motivo_rechazo?: string | null;
+  created_by_id: number;
+  approved_by_id?: number | null;
+  approved_at?: string | null;
+  sello_digital?: string | null;
+  qr_token?: string | null;
+  created_at: string;
+  creador?: string | null;
+  aprobador?: string | null;
+}
+
+export interface JustificanteCreate {
+  tipo: JustificanteTipo;
+  actividad: string;
+  fecha: string;
+  hora_inicio: string;
+  hora_fin: string;
+  folio: string;
+  participantes: JustificanteParticipante[];
+}
+
+export interface PaginatedJustificantes {
+  total: number;
+  items: Justificante[];
+}
+
+export interface FirmaDigital {
+  imagen_url: string | null;
+  updated_at?: string | null;
+}

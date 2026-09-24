@@ -18,7 +18,8 @@ import {
     MapPin,
     ShieldCheck,
     Heart, // <--- IMPORTAMOS MapPin
-    CalendarDays
+    CalendarDays,
+    ClipboardCheck
 } from 'lucide-react';
 import { useAuthStore } from '../../../shared/store/authStore';
 import { usePermissions } from '../../../shared/hooks/usePermissions';
@@ -129,6 +130,12 @@ export const AdminLayout = () => {
                 <Link to="/admin/calendario" className={getLinkClass('/admin/calendario')}>
                     <CalendarDays size={20} />
                     Calendario
+                </Link>
+
+                {/* JUSTIFICANTES (Todos los autenticados) */}
+                <Link to="/admin/justificantes" className={getLinkClass('/admin/justificantes')}>
+                    <ClipboardCheck size={20} />
+                    Justificantes
                 </Link>
 
                 {/* NOTICIAS */}

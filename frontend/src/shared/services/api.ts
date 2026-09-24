@@ -14,7 +14,11 @@ import type {
   AttendanceCreate,
   Attendance,
   WeeklyFaults,
-  Student
+  Student,
+  Justificante,
+  JustificanteCreate,
+  PaginatedJustificantes,
+  FirmaDigital
 } from "../types";
 
 export const api = axios.create({
@@ -624,4 +628,72 @@ export const updateEvent = async (id: number, data: Partial<{
 export const deleteEventApi = async (id: number) => {
   const response = await api.delete(ENDPOINTS.EVENTOS.BY_ID(id));
   return response.data;
+};
+
+// ==========================================
+// NUEVO: MÓDULO DE JUSTIFICANTES DIGITALES
+// ==========================================
+
+export const getMisJustificantes = async (params: { estado?: string; skip?: number; limit?: number } = {}) => {
+  const response = await api.get<PaginatedJustificantes>(ENDPOINTS.JUSTIFICANTES.BASE, { params });
+  return response.data;
+};
+
+export const createJustificante = async (data: JustificanteCreate) => {
+  const response = await api.post<Justificante>(ENDPOINTS.JUSTIFICANTES.BASE, data);
+  return response.data;
+};
+
+export const getJustificante = async (id: number) => {
+  const response = await api.get<Justificante>(ENDPOINTS.JUSTIFICANTES.BY_ID(id));
+  return response.data;
+};
+
+export const getAprobaciones = async (params: { estado?: string; skip?: number; limit?: number } = {}) => {
+  const response = await api.get<PaginatedJustificantes>(ENDPOINTS.JUSTIFICANTES.APROBACIONES, { params });
+  return response.data;
+};
+
+export const aprobarJustificante = async (id: number) => {
+  const response = await api.post<Justificante>(ENDPOINTS.JUSTIFICANTES.APROBAR(id));
+  return response.data;
+};
+
+export const rechazarJustificante = async (id: number, motivo: string) => {
+  const response = await api.post<Justificante>(ENDPOINTS.JUSTIFICANTES.RECHAZAR(id), { motivo_rechazo: motivo });
+  return response.data;
+};
+
+export const getJustificantePublico = async (token: string) => {
+  const response = await api.get<Justificante>(ENDPOINTS.JUSTIFICANTES.PUBLICO(token));
+  return response.data;
+};
+
+export const uploadFirma = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post(ENDPOINTS.JUSTIFICANTES.FIRMA, formData);
+  return response.data;
+};
+
+export const getMiFirma = async () => {
+  const response = await api.get<FirmaDigital>(ENDPOINTS.JUSTIFICANTES.FIRMA_MIA);
+  return response.data;
+};
+
+export const downloadJustificantePdf = async (id: number) => {
+  try {
+    const response = await api.get(ENDPOINTS.JUSTIFICANTES.PDF(id), { responseType: 'blob' });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Justificante_${id}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error descargando justificante:', error);
+    throw error;
+  }
 };
