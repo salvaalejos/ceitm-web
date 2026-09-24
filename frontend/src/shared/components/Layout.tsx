@@ -2,7 +2,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Menu, X, Shield, MapPin, Mail, Instagram, MessageCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { ThemeToggle } from './ThemeToggle';
-import { IMAGES } from '../config/constants';
+import { IMAGES, CONTACT_EMAIL } from '../config/constants';
 
 export const Layout = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -187,8 +187,8 @@ export const Layout = () => {
                 </li>
                 <li className="flex items-center gap-3 text-gray-500 dark:text-gray-400">
                   <Mail size={18} className="text-guinda-600 shrink-0" />
-                  <a href="mailto:ceitm@morelia.tecnm.mx" className="hover:text-guinda-600 transition-colors">
-                    ceitm@morelia.tecnm.mx
+                  <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-guinda-600 transition-colors">
+                    {CONTACT_EMAIL}
                   </a>
                 </li>
               </ul>

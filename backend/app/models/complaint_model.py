@@ -1,4 +1,5 @@
 from sqlmodel import SQLModel, Field
+from sqlmodel.main import NaiveDatetime
 from typing import Optional
 from enum import Enum
 from datetime import datetime
@@ -39,8 +40,8 @@ class Complaint(SQLModel, table=True):
     # --- Resolución por parte del Consejo (NUEVO) ---
     admin_response: Optional[str] = None  # Respuesta oficial
     resolution_evidence_url: Optional[str] = None  # Foto de la solución (Ej: Lámpara reparada)
-    resolved_at: Optional[datetime] = None  # Fecha de cierre
+    resolved_at: Optional[NaiveDatetime] = None  # Fecha de cierre
 
     # --- Control Interno ---
     status: ComplaintStatus = Field(default=ComplaintStatus.PENDIENTE)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: NaiveDatetime = Field(default_factory=datetime.utcnow)

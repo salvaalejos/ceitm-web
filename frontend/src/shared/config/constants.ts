@@ -20,6 +20,7 @@ export const IMAGES = {
 
 // 2. Información General
 export const APP_NAME = "CEITM Platform";
+export const CONTACT_EMAIL = 'ceitm@morelia.tecnm.mx';
 export const DOMAIN_URL = IS_PRODUCTION ? 'http://ceitm.ddnsking.com' : 'http://localhost:5173';
 
 // 3. MAPA DE ENDPOINTS (Aquí estandarizamos todo api.ts)

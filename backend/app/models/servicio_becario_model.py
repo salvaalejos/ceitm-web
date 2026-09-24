@@ -3,6 +3,7 @@ from enum import Enum
 from datetime import datetime
 
 from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel.main import NaiveDatetime
 
 if TYPE_CHECKING:
     from app.models.student_model import Student
@@ -32,7 +33,7 @@ class ServicioBecario(SQLModel, table=True):
     # Folio único generado al liberar el servicio
     folio: Optional[str] = Field(default=None, unique=True, index=True)
 
-    liberado_at: Optional[datetime] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    liberado_at: Optional[NaiveDatetime] = None
+    created_at: NaiveDatetime = Field(default_factory=datetime.utcnow)
 
     student: Optional["Student"] = Relationship(back_populates="servicios")

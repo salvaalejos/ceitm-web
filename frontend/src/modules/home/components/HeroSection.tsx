@@ -59,12 +59,12 @@ export const HeroSection = () => {
                         <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
                     </button>
 
-                    {/* BOTÓN 2: Conoce al Equipo (Ahora funcional) */}
+                    {/* BOTÓN 2: Conoce a tus concejales (Ahora funcional) */}
                     <Link
                         to="/concejales"
                         className="px-8 py-4 bg-transparent border-2 border-white text-white font-bold rounded-xl transform transition-transform duration-200 hover:scale-105 active:scale-95 hover:bg-white/10 shadow-lg text-center flex items-center justify-center"
                     >
-                        Conoce al Equipo
+                        Conoce tus concejales
                     </Link>
                 </div>
             </div>

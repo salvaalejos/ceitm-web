@@ -94,7 +94,7 @@ export const ConveniosPage = () => {
 
             <div className="relative z-10 container mx-auto">
                 <h1 className="text-4xl md:text-5xl font-bold mb-4">
-                    Convenios <span className="text-guinda-500">Vigentes</span>
+                    Convenios <span className="text-guinda-400">Vigentes</span>
                 </h1>
                 <p className="text-slate-300 max-w-2xl mx-auto text-lg mb-8">
                     Aprovecha los descuentos y beneficios exclusivos para la comunidad del CEITM.

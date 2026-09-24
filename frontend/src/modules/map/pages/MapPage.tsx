@@ -11,7 +11,8 @@ import { getBuildings, getBuildingById, searchMap } from '../../../shared/servic
 import type { Building, MapSearchResult } from '../../../shared/types';
 
 // --- CONFIGURACIÓN ---
-mapboxgl.accessToken = 'pk.eyJ1Ijoic2FsdmFhbGVqb3MiLCJhIjoiY21rZGZ4ZmUzMGJ6bzNmcTc5dW53MjZ5YiJ9.frpiERMPQTU5-TcKBHzP0Q';
+// Token restringido por URL en el dashboard de Mapbox. Se inyecta por entorno (VITE_MAPBOX_TOKEN) en frontend/.env.*
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN ?? '';
 
 const ITM_BOUNDS = [
     [-101.1950, 19.7150], // SW
@@ -50,6 +51,9 @@ const isInsideBounds = (lng: number, lat: number) => {
     const [swLng, swLat, neLng, neLat] = ITM_BOUNDS;
     return lng >= swLng && lng <= neLng && lat >= swLat && lat <= neLat;
 };
+
+// Caché de rutas (Directions API se factura por request; evitamos repetir la misma ruta)
+const directionsCache = new Map<string, { duration: number; distance: number; coordinates: number[][] }>();
 
 const MapPage = () => {
     const { theme } = useTheme();
@@ -91,6 +95,7 @@ const MapPage = () => {
             maxBounds: ITM_BOUNDS,
             attributionControl: false,
             pitch: 45,
+            collectResourceTiming: false,
         });
 
         initMap.on('load', async () => {
@@ -255,18 +260,34 @@ const MapPage = () => {
         }
 
         try {
-            const query = await fetch(
-                `https://api.mapbox.com/directions/v5/mapbox/walking/${start[0]},${start[1]};${end[0]},${end[1]}?steps=true&geometries=geojson&access_token=${mapboxgl.accessToken}`
-            );
-            const json = await query.json();
-            if (!json.routes || json.routes.length === 0) return;
+            const cacheKey = `${start[0]},${start[1]};${end[0]},${end[1]}`;
+            const cached = directionsCache.get(cacheKey);
 
-            const data = json.routes[0];
-            const route = data.geometry.coordinates;
+            let routeData: { duration: number; distance: number; coordinates: number[][] };
+
+            if (cached) {
+                routeData = cached;
+            } else {
+                const query = await fetch(
+                    `https://api.mapbox.com/directions/v5/mapbox/walking/${start[0]},${start[1]};${end[0]},${end[1]}?steps=true&geometries=geojson&access_token=${mapboxgl.accessToken}`
+                );
+                const json = await query.json();
+                if (!json.routes || json.routes.length === 0) return;
+
+                const data = json.routes[0];
+                routeData = {
+                    duration: data.duration,
+                    distance: data.distance,
+                    coordinates: data.geometry.coordinates,
+                };
+                directionsCache.set(cacheKey, routeData);
+            }
+
+            const route = routeData.coordinates;
 
             setRouteInfo({
-                duration: Math.round(data.duration / 60),
-                distance: Math.round(data.distance)
+                duration: Math.round(routeData.duration / 60),
+                distance: Math.round(routeData.distance)
             });
 
             const geojson: any = {
@@ -392,6 +413,12 @@ const MapPage = () => {
                     <Crosshair size={24} className={isLocating ? "animate-spin text-guinda-600" : (userLocation ? "text-blue-600 fill-current" : "")} />
                 </button>
             )}
+
+            {/* AVISO CAMPUS 2 */}
+            <div className="absolute bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-guinda-600/90 dark:bg-guinda-700/90 backdrop-blur text-white pl-3 pr-4 py-1.5 rounded-full shadow-lg border border-white/20 animate-in fade-in slide-in-from-bottom-4 w-max max-w-[90%]">
+                <Clock size={14} className="shrink-0" />
+                <span className="font-bold text-xs whitespace-nowrap">Próximamente para Campus 2</span>
+            </div>
 
             {/* DETALLES DEL EDIFICIO */}
             {activeBuilding && (

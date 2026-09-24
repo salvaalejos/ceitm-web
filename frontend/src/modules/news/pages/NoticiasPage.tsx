@@ -86,7 +86,7 @@ export const NoticiasPage = () => {
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-guinda-900/50 to-slate-900 z-0"></div>
             <div className="relative z-10 container mx-auto">
                 <h1 className="text-4xl md:text-5xl font-bold mb-4">
-                    Noticias y <span className="text-guinda-500">Avisos</span>
+                    Noticias y <span className="text-guinda-400">Avisos</span>
                 </h1>
                 <p className="text-slate-300 max-w-2xl mx-auto text-lg">
                     Mantente al día con lo que sucede en el Tec. Eventos, convocatorias y comunicados oficiales.

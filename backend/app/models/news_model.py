@@ -1,4 +1,5 @@
 from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel.main import NaiveDatetime
 from typing import Optional, TYPE_CHECKING
 from datetime import datetime
 
@@ -21,8 +22,8 @@ class News(SQLModel, table=True):
     video_url: Optional[str] = None  # Link a YouTube/FB/Instagram
 
     is_published: bool = Field(default=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: NaiveDatetime = Field(default_factory=datetime.utcnow)
+    updated_at: NaiveDatetime = Field(default_factory=datetime.utcnow)
 
     # Relación con Usuario
     author_id: Optional[int] = Field(default=None, foreign_key="user.id")

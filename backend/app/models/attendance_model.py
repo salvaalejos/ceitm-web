@@ -1,5 +1,6 @@
 from typing import Optional, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel.main import NaiveDatetime
 # CORRECCIÓN: Importamos date y time con un alias para evitar el choque de nombres
 from datetime import datetime, date as date_type, time as time_type
 from enum import Enum
@@ -34,7 +35,7 @@ class Attendance(SQLModel, table=True):
     # --- PREPARACIÓN PARA NFC (Futuro) ---
     nfc_uid_scanned: Optional[str] = Field(default=None)
 
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: NaiveDatetime = Field(default_factory=datetime.utcnow)
 
     # Relaciones
     student: Optional["Student"] = Relationship(back_populates="attendances")

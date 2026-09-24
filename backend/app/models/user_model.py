@@ -1,4 +1,5 @@
 from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel.main import NaiveDatetime
 from typing import Optional, List, TYPE_CHECKING
 from enum import Enum
 from datetime import datetime
@@ -59,7 +60,7 @@ class User(SQLModel, table=True):
 
     imagen_url: Optional[str] = None
     is_active: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: NaiveDatetime = Field(default_factory=datetime.utcnow)
 
     # --- NUEVAS RELACIONES (Actualización Fase 1) ---
 

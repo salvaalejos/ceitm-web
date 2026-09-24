@@ -1,4 +1,5 @@
 from sqlmodel import SQLModel, Field
+from sqlmodel.main import NaiveDatetime
 from datetime import datetime
 from typing import Optional
 
@@ -21,4 +22,4 @@ class AuditLog(SQLModel, table=True):
 
     # Metadatos
     ip_address: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: NaiveDatetime = Field(default_factory=datetime.utcnow)

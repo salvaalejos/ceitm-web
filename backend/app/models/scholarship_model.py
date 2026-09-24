@@ -1,4 +1,5 @@
 from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel.main import NaiveDatetime
 from typing import Optional, List, TYPE_CHECKING
 from enum import Enum
 from datetime import datetime
@@ -60,9 +61,9 @@ class Scholarship(SQLModel, table=True):
     name: str
     type: ScholarshipType
     description: str
-    start_date: datetime
-    end_date: datetime
-    results_date: datetime
+    start_date: NaiveDatetime
+    end_date: NaiveDatetime
+    results_date: NaiveDatetime
 
     # --- CAMBIO: Configuración Manual del Folio ---
     # En lugar de un string "cycle", usamos datos estructurados
@@ -136,7 +137,7 @@ class ScholarshipApplication(SQLModel, table=True):
     # CONTROL
     status: ApplicationStatus = Field(default=ApplicationStatus.PENDIENTE)
     admin_comments: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: NaiveDatetime = Field(default_factory=datetime.utcnow)
 
     # Relaciones
     scholarship: Optional[Scholarship] = Relationship(back_populates="applications")

@@ -1,4 +1,5 @@
 from sqlmodel import SQLModel, Field
+from sqlmodel.main import NaiveDatetime
 from typing import Optional
 from enum import Enum
 from datetime import datetime
@@ -21,4 +22,4 @@ class Document(SQLModel, table=True):
 
     # Metadatos
     is_public: bool = Field(default=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: NaiveDatetime = Field(default_factory=datetime.utcnow)

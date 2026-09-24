@@ -24,6 +24,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# --- Backups de BD ---
+backup_ceitm_*.sql
+
 # --- Docker & System ---
 .DS_Store
 Thumbs.db

@@ -66,7 +66,7 @@ export const NewsCard = ({ news }: { news: NewsProps }) => {
 
                 <Link
                     to={`/noticias/${news.slug}`}
-                    className="inline-flex items-center gap-2 text-sm font-bold text-guinda-600 dark:text-guinda-500 hover:gap-3 transition-all"
+                    className="inline-flex items-center gap-2 text-sm font-bold text-guinda-600 dark:text-guinda-400 hover:gap-3 transition-all"
                 >
                     Leer nota completa <ArrowRight size={16} />
                 </Link>

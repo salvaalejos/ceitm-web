@@ -1,4 +1,5 @@
 from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel.main import NaiveDatetime
 from typing import Optional, TYPE_CHECKING
 from enum import Enum
 from datetime import datetime
@@ -31,8 +32,8 @@ class Sanction(SQLModel, table=True):
 
     status: SanctionStatus = Field(default=SanctionStatus.PENDIENTE)
 
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow})
+    created_at: NaiveDatetime = Field(default_factory=datetime.utcnow)
+    updated_at: NaiveDatetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow})
 
     # Relación
     user: "User" = Relationship(back_populates="sanctions")

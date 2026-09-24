@@ -1,5 +1,6 @@
 from typing import Optional, List, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel.main import NaiveDatetime
 from datetime import datetime
 
 if TYPE_CHECKING:
@@ -23,8 +24,8 @@ class Student(SQLModel, table=True):
     # Identificador único de la tarjeta física asignada al becario
     nfc_uid: Optional[str] = Field(default=None, index=True)
 
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow})
+    created_at: NaiveDatetime = Field(default_factory=datetime.utcnow)
+    updated_at: NaiveDatetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow})
 
     # Relaciones
     applications: List["ScholarshipApplication"] = Relationship(back_populates="student")

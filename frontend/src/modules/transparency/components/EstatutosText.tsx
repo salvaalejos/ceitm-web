@@ -4,7 +4,7 @@ export const EstatutosText = () => {
 
       {/* ENCABEZADO */}
       <div className="text-center mb-10 border-b border-gray-200 dark:border-slate-700 pb-6">
-        <h2 className="text-2xl md:text-3xl font-bold text-guinda-700 dark:text-guinda-500 uppercase tracking-wide mb-2">
+        <h2 className="text-2xl md:text-3xl font-bold text-guinda-700 dark:text-guinda-400 uppercase tracking-wide mb-2">
           Estatutos Oficiales
         </h2>
         <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-400">

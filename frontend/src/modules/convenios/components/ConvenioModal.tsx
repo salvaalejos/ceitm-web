@@ -82,7 +82,7 @@ export const ConvenioModal = ({ convenio, onClose }: Props) => {
                             <ul className="space-y-3">
                                 {convenio.beneficios.map((beneficio, index) => (
                                     <li key={index} className="flex items-start text-gray-700 dark:text-gray-300 text-sm">
-                                        <span className="mr-3 text-guinda-500 font-bold">•</span>
+                                        <span className="mr-3 text-guinda-600 font-bold">•</span>
                                         {beneficio}
                                     </li>
                                 ))}
@@ -94,7 +94,7 @@ export const ConvenioModal = ({ convenio, onClose }: Props) => {
                             <div>
                                 <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">Ubicación</h4>
                                 <div className="flex items-start gap-3 group">
-                                    <MapPin className="text-guinda-500 mt-1 flex-shrink-0" size={20} />
+                                    <MapPin className="text-guinda-600 mt-1 flex-shrink-0" size={20} />
                                     <div>
                                         <p className="text-sm text-gray-700 dark:text-gray-300 font-medium leading-tight">
                                             {convenio.direccion}

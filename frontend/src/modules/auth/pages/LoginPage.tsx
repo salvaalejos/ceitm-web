@@ -120,7 +120,7 @@ export const LoginPage = () => {
       <div className="card-base w-full max-w-md p-8 relative z-20 animate-fade-in dark:shadow-black/50">
 
         <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-guinda-100 dark:bg-guinda-900/30 text-guinda-700 dark:text-guinda-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner">
+            <div className="w-16 h-16 bg-guinda-100 dark:bg-guinda-900/30 text-guinda-700 dark:text-guinda-400 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner">
                 <LogIn size={32} />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Bienvenido de nuevo</h1>
@@ -190,7 +190,7 @@ export const LoginPage = () => {
 
         <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-800 text-center">
             <p className="text-xs text-gray-400 dark:text-slate-500">
-                ¿Olvidaste tu contraseña? Contacta al <span className="text-guinda-600 dark:text-guinda-500 font-medium cursor-pointer hover:underline">SysAdmin</span>.
+                ¿Olvidaste tu contraseña? Contacta al <span className="text-guinda-600 dark:text-guinda-400 font-medium cursor-pointer hover:underline">SysAdmin</span>.
             </p>
         </div>
       </div>

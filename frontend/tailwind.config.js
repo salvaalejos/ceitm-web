@@ -13,12 +13,12 @@ export default {
       colors: {
         // Paleta oficial CEITM
         guinda: {
-            50: '#f9f5f6',
-            100: '#f3ebee',
-            200: '#e7d6d9',
-            300: '#dcc1c6',
-            400: '#c59ca4',
-            500: '#ae7781',
+            50: '#fcf4f5',
+            100: '#f7e6e9',
+            200: '#efccd2',
+            300: '#e3a9b2',
+            400: '#d0808c',
+            500: '#bd5a67',
             600: '#691C28', // Principal
             700: '#531620',
             800: '#3e1118',

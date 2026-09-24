@@ -3,6 +3,7 @@ from enum import Enum
 from datetime import date, time, datetime
 
 from sqlmodel import SQLModel, Field
+from sqlmodel.main import NaiveDatetime
 
 
 class EventCategory(str, Enum):
@@ -25,4 +26,4 @@ class Event(SQLModel, table=True):
     category: EventCategory = Field(default=EventCategory.OFICIAL_CEITM, index=True)
 
     created_by_id: Optional[int] = Field(default=None, foreign_key="user.id")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: NaiveDatetime = Field(default_factory=datetime.utcnow)

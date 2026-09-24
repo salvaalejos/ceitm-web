@@ -16,6 +16,7 @@ from app.models.student_model import Student
 from app.models.sanction_model import Sanction, SanctionSeverity, SanctionStatus
 from app.models.shift_model import Shift, DayOfWeek
 from app.models.attendance_model import Attendance, AttendanceStatus  # <-- NUEVO IMPORT
+from app.models.servicio_becario_model import ServicioBecario
 
 # Configuración básica de logs
 logging.basicConfig(level=logging.INFO)

@@ -1,5 +1,6 @@
 import { X, MessageCircle, Instagram, Mail, Users } from 'lucide-react';
 import type { User } from '../../../shared/types';
+import { CONTACT_EMAIL } from '../../../shared/config/constants';
 
 interface ContactModalProps {
   isOpen: boolean;
@@ -57,6 +58,12 @@ export const ContactModal = ({ isOpen, onClose, coordinator }: ContactModalProps
                     <MessageCircle size={18} /> WhatsApp
                   </a>
                 )}
+                <a
+                  href={`mailto:${coordinator.email}`}
+                  className="flex-1 flex items-center justify-center gap-2 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-transform hover:scale-105 shadow-sm"
+                >
+                  <Mail size={18} /> Enviar Email
+                </a>
                 {coordinator.instagram_url && (
                   <a
                     href={coordinator.instagram_url}
@@ -67,18 +74,21 @@ export const ContactModal = ({ isOpen, onClose, coordinator }: ContactModalProps
                     <Instagram size={18} />
                   </a>
                 )}
-                <a
-                  href={`mailto:${coordinator.email}`}
-                  className="w-10 h-10 flex items-center justify-center bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 rounded-xl hover:bg-blue-600 hover:text-white transition-transform hover:scale-105 shadow-sm"
-                >
-                  <Mail size={18} />
-                </a>
               </div>
             </div>
           ) : (
-            <div className="bg-orange-50 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300 p-4 rounded-xl text-sm mb-6 border border-orange-100 dark:border-orange-800">
-              Actualmente no hay un coordinador asignado, pero puedes escribirnos a nuestras redes oficiales.
+            <div className="bg-orange-50 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300 p-4 rounded-xl text-sm mb-4 border border-orange-100 dark:border-orange-800">
+              Actualmente no hay un coordinador asignado, pero puedes escribirnos a nuestras redes oficiales o enviarnos un correo.
             </div>
+          )}
+
+          {!coordinator && (
+            <a
+              href={`mailto:${CONTACT_EMAIL}`}
+              className="flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-transform hover:scale-105 shadow-sm mb-6"
+            >
+              <Mail size={18} /> Enviar Email
+            </a>
           )}
 
           <button onClick={onClose} className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white font-medium text-sm transition-colors">
