@@ -17,7 +17,8 @@ import {
     BookOpen,
     MapPin,
     ShieldCheck,
-    Heart // <--- IMPORTAMOS MapPin
+    Heart, // <--- IMPORTAMOS MapPin
+    CalendarDays
 } from 'lucide-react';
 import { useAuthStore } from '../../../shared/store/authStore';
 import { usePermissions } from '../../../shared/hooks/usePermissions';
@@ -123,6 +124,12 @@ export const AdminLayout = () => {
                 <div className="pt-4 pb-2 px-4 text-xs font-bold text-gray-400 uppercase tracking-widest">
                     Gestión
                 </div>
+
+                {/* CALENDARIO (Todo miembro del Concejo) */}
+                <Link to="/admin/calendario" className={getLinkClass('/admin/calendario')}>
+                    <CalendarDays size={20} />
+                    Calendario
+                </Link>
 
                 {/* NOTICIAS */}
                 {canManageNoticias && (

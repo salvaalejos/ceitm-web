@@ -55,9 +55,6 @@ export const NoticiaDetalle = () => {
 
         {/* HEADER */}
         <header className="mb-10 text-center">
-            <span className="inline-block px-3 py-1 rounded-full bg-guinda-50 dark:bg-guinda-900/30 text-guinda-700 dark:text-guinda-400 text-sm font-bold mb-4">
-                Comunicado Oficial
-            </span>
             <h1 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
                 {noticia.title}
             </h1>

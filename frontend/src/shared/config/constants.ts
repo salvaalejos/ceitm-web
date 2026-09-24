@@ -66,5 +66,9 @@ export const ENDPOINTS = {
     },
     AUDIT: {
         BASE: '/audit/',
-    }
+    },
+    EVENTOS: {
+        BASE: '/eventos/', // GET listar (month/year/search/category), POST crear
+        BY_ID: (id: number) => `/eventos/${id}`, // PUT actualizar, DELETE eliminar
+    },
 };

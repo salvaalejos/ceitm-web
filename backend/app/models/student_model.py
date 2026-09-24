@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from app.models.scholarship_model import ScholarshipApplication
     from app.models.career_model import Career
     from app.models.attendance_model import Attendance
+    from app.models.servicio_becario_model import ServicioBecario
 
 
 class Student(SQLModel, table=True):
@@ -32,3 +33,5 @@ class Student(SQLModel, table=True):
     career_rel: Optional["Career"] = Relationship()
 
     attendances: List["Attendance"] = Relationship(back_populates="student")
+
+    servicios: List["ServicioBecario"] = Relationship(back_populates="student")

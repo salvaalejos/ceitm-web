@@ -49,7 +49,7 @@ export const ScheduleModal = ({ isOpen, onClose, concejalName, schedule }: Sched
                 </div>
 
                 <div className="p-4 bg-gray-50 dark:bg-slate-800/30 border-t border-gray-100 dark:border-slate-800 flex justify-center">
-                    <p className="text-[10px] text-gray-400 font-medium">Ubicación: Edificio del Consejo Estudiantil</p>
+                    <p className="text-[10px] text-gray-400 font-medium">Ubicación: Edificio del Concejo Estudiantil</p>
                 </div>
             </div>
         </div>

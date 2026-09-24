@@ -18,7 +18,7 @@
 
 </div>
 
-> **Gestión integral, transparente y escalable para el H. Consejo Estudiantil del Instituto Tecnológico de Morelia.**
+> **Gestión integral, transparente y escalable para el H. Concejo Estudiantil del Instituto Tecnológico de Morelia.**
 
 Esta plataforma implementa una arquitectura moderna de microservicios conteinerizados para digitalizar los procesos críticos del CEITM, incluyendo la gestión de becas, convenios empresariales, geolocalización de espacios (mapa interactivo), auditoría de transparencia y difusión de noticias, en estricto cumplimiento con los **Estatutos Oficiales 2025**.
 

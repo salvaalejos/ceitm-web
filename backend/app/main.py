@@ -19,7 +19,7 @@ from app.core.email_utils import send_email_async
 from app.api.v1.endpoints import (
     convenios, login, utils, users, news, documents,
     complaints, scholarships, audit, careers, map,
-    shifts, sanctions, students, attendance
+    shifts, sanctions, students, attendance, events
 )
 
 
@@ -90,6 +90,7 @@ app.include_router(students.router, prefix="/api/v1/students", tags=["Expediente
 app.include_router(attendance.router, prefix="/api/v1/asistencias", tags=["Asistencias"])
 app.include_router(shifts.router, prefix="/api/v1/shifts", tags=["Guardias"])
 app.include_router(sanctions.router, prefix="/api/v1/sanctions", tags=["Sanciones"])
+app.include_router(events.router, prefix="/api/v1/eventos", tags=["Calendario"])
 
 
 @app.get("/")

@@ -18,7 +18,7 @@ class PDFGenerator(FPDF):
         self.set_font('Arial', 'B', 14)
         self.cell(0, 10, 'INSTITUTO TECNOLÓGICO DE MORELIA', 0, 1, 'C')
         self.set_font('Arial', 'B', 12)
-        self.cell(0, 6, 'CONSEJO ESTUDIANTIL (CEITM)', 0, 1, 'C')
+        self.cell(0, 6, 'CONCEJO ESTUDIANTIL (CEITM)', 0, 1, 'C')
         self.ln(5)
         self.set_font('Arial', 'B', 16)
         self.cell(0, 10, 'SOLICITUD DE BECA', 0, 1, 'C')

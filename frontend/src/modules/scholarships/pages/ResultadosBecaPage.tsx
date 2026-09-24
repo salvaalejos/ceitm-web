@@ -140,7 +140,7 @@ export const ResultadosBecaPage = () => {
                                             <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/10 text-yellow-800 dark:text-yellow-400 text-sm rounded-lg flex items-start gap-2 border border-yellow-100 dark:border-yellow-900/30">
                                                 <AlertTriangle size={16} className="shrink-0 mt-0.5" />
                                                 <span>
-                                                    <strong>Acción requerida:</strong> Tu solicitud tiene observaciones. Por favor acude al Consejo Estudiantil o envía los documentos corregidos a la brevedad.
+                                                    <strong>Acción requerida:</strong> Tu solicitud tiene observaciones. Por favor acude al Concejo Estudiantil o envía los documentos corregidos a la brevedad.
                                                 </span>
                                             </div>
                                         )}

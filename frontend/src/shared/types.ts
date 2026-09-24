@@ -399,3 +399,16 @@ export interface Student {
   // Propiedad virtual que agregaremos en el frontend para manejar el color rojo
   current_week_faults?: number;
 }
+
+// --- EVENTOS / CALENDARIO INTERNO ---
+export interface CalendarEvent {
+  id: number;
+  title: string;
+  description?: string | null;
+  event_date: string;
+  start_time?: string | null;
+  end_time?: string | null;
+  location?: string | null;
+  category: string;
+  created_at?: string;
+}

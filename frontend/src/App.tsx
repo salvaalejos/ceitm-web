@@ -36,6 +36,7 @@ import RouteTracker from './shared/components/RouteTracker';
 import {ReloadPrompt} from "./shared/components/ReloadPrompt.tsx";
 import AdminContraloria from "./modules/admin/pages/AdminContraloria.tsx";
 import AdminBecarios from "./modules/admin/pages/AdminBecarios.tsx";
+import { AdminCalendario } from "./modules/admin/pages/AdminCalendario.tsx";
 
 function App() {
   return (
@@ -85,6 +86,7 @@ function App() {
             <Route path="carreras" element={<AdminCarreras />} />
             <Route path="mapa" element={<AdminMap />} />
             <Route path="becarios" element={<AdminBecarios />} />
+            <Route path="calendario" element={<AdminCalendario />} />
         </Route>
 
         <Route path="*" element={<div className="p-10 text-center">404 - Página no encontrada</div>} />

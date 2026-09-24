@@ -125,7 +125,7 @@ export const LoginPage = () => {
             </div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Bienvenido de nuevo</h1>
             <p className="text-gray-500 dark:text-slate-400 text-sm">
-                Acceso exclusivo para miembros del Consejo y Administración.
+                Acceso exclusivo para miembros del Concejo y Administración.
             </p>
         </div>
 

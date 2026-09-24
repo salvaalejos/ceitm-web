@@ -59,7 +59,7 @@ export const Layout = () => {
 
               <div className="font-bold text-lg md:text-xl text-gray-800 dark:text-white tracking-tight group-hover:text-guinda-700 dark:group-hover:text-guinda-400 transition-colors">
                 <span className="md:hidden">CEITM</span>
-                <span className="hidden md:block">Consejo Estudiantil del ITM</span>
+                <span className="hidden md:block">Concejo Estudiantil del ITM</span>
               </div>
             </Link>
           </div>
@@ -187,8 +187,8 @@ export const Layout = () => {
                 </li>
                 <li className="flex items-center gap-3 text-gray-500 dark:text-gray-400">
                   <Mail size={18} className="text-guinda-600 shrink-0" />
-                  <a href="mailto:consejo@morelia.tecnm.mx" className="hover:text-guinda-600 transition-colors">
-                    consejo@morelia.tecnm.mx
+                  <a href="mailto:ceitm@morelia.tecnm.mx" className="hover:text-guinda-600 transition-colors">
+                    ceitm@morelia.tecnm.mx
                   </a>
                 </li>
               </ul>
@@ -197,7 +197,7 @@ export const Layout = () => {
 
           <div className="border-t border-gray-200 dark:border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
             <p className="text-gray-400 dark:text-slate-500 text-xs">
-              © {new Date().getFullYear()} Consejo Estudiantil del ITM.
+              © {new Date().getFullYear()} Concejo Estudiantil del ITM.
             </p>
             <p className="text-gray-400 dark:text-slate-500 text-xs flex items-center gap-1">
               Hecho con <span className="text-red-500 animate-pulse text-[10px]">❤️</span> por

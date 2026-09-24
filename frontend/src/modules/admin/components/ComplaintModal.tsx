@@ -134,7 +134,7 @@ export const ComplaintModal: React.FC<ComplaintModalProps> = ({ isOpen, onClose,
 
                     {/* Decisión */}
                     <div>
-                        <label className="form-label mb-3 block">Dictamen del Consejo</label>
+                        <label className="form-label mb-3 block">Dictamen del Concejo</label>
                         <div className="grid grid-cols-2 gap-4">
                             <button
                                 type="button"

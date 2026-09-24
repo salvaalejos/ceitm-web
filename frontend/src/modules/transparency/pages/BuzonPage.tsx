@@ -171,9 +171,6 @@ export const BuzonPage = () => {
       <div className="bg-slate-900 text-white pt-12 pb-24 px-4 md:py-16 md:px-6 text-center relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 md:w-96 md:h-96 bg-guinda-600 rounded-full blur-3xl opacity-20 pointer-events-none"></div>
         <div className="relative z-10 container mx-auto max-w-4xl">
-            <span className="inline-block py-1 px-3 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold uppercase tracking-widest mb-4">
-                Transparencia Estudiantil
-            </span>
             <h1 className="text-3xl md:text-5xl font-bold mb-4">Buzón Digital</h1>
             <p className="text-slate-300 text-sm md:text-lg max-w-2xl mx-auto">
                 Un espacio seguro para reportar incidencias o dar seguimiento a tus solicitudes.
@@ -422,7 +419,7 @@ export const BuzonPage = () => {
 
                                 <div className="mt-8 pt-6 border-t border-gray-200 dark:border-slate-700">
                                     <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase mb-4 flex items-center gap-2">
-                                        <MessageSquare size={16} className="text-guinda-600" /> Respuesta del Consejo
+                                        <MessageSquare size={16} className="text-guinda-600" /> Respuesta del Concejo
                                     </h4>
 
                                     {trackingResult.admin_response ? (

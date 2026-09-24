@@ -12,7 +12,7 @@ export const IdentitySection = () => {
             </h2>
             <div className="h-1 w-20 bg-guinda-600 mx-auto rounded-full"></div>
             <p className="mt-6 text-lg text-gray-600 dark:text-gray-300 max-w-4xl mx-auto leading-relaxed">
-                "El Consejo Estudiantil del Instituto Tecnológico de Morelia (CEITM) tiene como objetivo general representar de manera legítima, democrática y organizada a la comunidad estudiantil, promoviendo su bienestar académico, social, cultural y humano."
+                "El Concejo Estudiantil del Instituto Tecnológico de Morelia (CEITM) tiene como objetivo general representar de manera legítima, democrática y organizada a la comunidad estudiantil, promoviendo su bienestar académico, social, cultural y humano."
             </p>
         </div>
 
@@ -41,7 +41,7 @@ export const IdentitySection = () => {
                     <h3 className="text-2xl font-bold text-gray-800 dark:text-white">Visión</h3>
                 </div>
                 <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-justify">
-                    Consolidar un Consejo Estudiantil transparente, organizado y reconocido por su liderazgo, destacándose por impulsar proyectos innovadores, gestionar apoyos significativos y fomentar la unidad entre las diferentes carreras del Instituto.
+                    Consolidar un Concejo Estudiantil transparente, organizado y reconocido por su liderazgo, destacándose por impulsar proyectos innovadores, gestionar apoyos significativos y fomentar la unidad entre las diferentes carreras del Instituto.
                 </p>
             </div>
 

@@ -71,10 +71,6 @@ export const TransparenciaPage = () => {
       <div className="bg-slate-900 text-white py-16 px-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-guinda-600 rounded-full blur-3xl opacity-20 -mr-20 -mt-20"></div>
         <div className="container mx-auto max-w-5xl relative z-10 text-center">
-            {/* TEXTO CORREGIDO */}
-            <span className="inline-block py-1 px-3 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold uppercase tracking-widest mb-4">
-                Transparencia CEITM
-            </span>
             <h1 className="text-4xl md:text-5xl font-bold mb-4">Repositorio Oficial</h1>
             <p className="text-slate-300 max-w-2xl mx-auto text-lg">
                 Consulta y descarga la documentación pública, informes financieros y normatividad vigente.

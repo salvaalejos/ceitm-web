@@ -60,7 +60,7 @@ NEWS_DATA = [
         "title": "¡Bienvenidos al nuevo Portal CEITM!",
         "slug": "bienvenidos-portal-ceitm",
         "excerpt": "Lanzamos nuestra nueva plataforma digital para estar más conectados.",
-        "content": "Estamos orgullosos de presentar la nueva web del Consejo. Aquí podrás tramitar becas, ver convenios y enterarte de todo.",
+        "content": "Estamos orgullosos de presentar la nueva web del Concejo. Aquí podrás tramitar becas, ver convenios y enterarte de todo.",
         "category": "COMUNIDAD",
         "imagen_url": "https://images.unsplash.com/photo-1523580494863-6f3031224c94"
     },
@@ -68,7 +68,7 @@ NEWS_DATA = [
         "title": "Torneo de Fútbol Inter-Carreras",
         "slug": "torneo-futbol-2025",
         "excerpt": "Prepara tu equipo, las inscripciones abren la próxima semana.",
-        "content": "El departamento de extraescolares junto con el consejo te invitan al torneo relámpago.",
+        "content": "El departamento de extraescolares junto con el concejo te invitan al torneo relámpago.",
         "category": "DEPORTES",
         "imagen_url": "https://images.unsplash.com/photo-1579952363873-27f3bde9be51"
     }
@@ -233,7 +233,7 @@ def seed_map(session: Session):
             "rooms": [{"name": "Comedor Principal", "floor": "PB", "type": "FOOD"}]
         },
         {"name": "Edificio S1 (CEITM)", "code": "CEITM", "category": "ADMINISTRATIVO",
-         "description": "Oficinas consejo", "coordinates": {"lat": 19.721421968157234, "lng": -101.18695225413808},
+         "description": "Oficinas concejo", "coordinates": {"lat": 19.721421968157234, "lng": -101.18695225413808},
          "tags": "ceitm", "rooms": []},
         {"name": "Auditorio 'Heber Soto Fierro'", "code": "AUD", "category": "SERVICIOS", "description": "Auditorio",
          "coordinates": {"lat": 19.721196679945653, "lng": -101.18614255842411}, "tags": "gym", "rooms": []},

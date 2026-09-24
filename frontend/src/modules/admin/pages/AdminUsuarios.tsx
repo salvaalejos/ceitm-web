@@ -83,7 +83,7 @@ export const AdminUsuarios = () => {
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Acceso Restringido</h2>
             <p className="text-gray-500 dark:text-gray-400 max-w-md">
                 No tienes los permisos necesarios para administrar usuarios.
-                Si crees que esto es un error, contacta a la Presidencia del Consejo.
+                Si crees que esto es un error, contacta a la Presidencia del Concejo.
             </p>
         </div>
     );
@@ -97,7 +97,7 @@ export const AdminUsuarios = () => {
         {/* Header y Buscador */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
             <div>
-                <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Equipo del Consejo</h1>
+                <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Equipo del Concejo</h1>
                 <p className="text-gray-500 dark:text-gray-400">Gestiona roles, accesos y perfiles de los concejales.</p>
             </div>
 

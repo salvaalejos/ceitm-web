@@ -8,7 +8,7 @@ export const EstatutosText = () => {
           Estatutos Oficiales
         </h2>
         <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-400">
-          Consejo Estudiantil del Instituto Tecnológico de Morelia <br/>
+          Concejo Estudiantil del Instituto Tecnológico de Morelia <br/>
           "José María Morelos y Pavón" (CEITM)
         </h3>
       </div>
@@ -22,7 +22,7 @@ export const EstatutosText = () => {
         <div className="space-y-4 pl-2 border-l-4 border-gray-100 dark:border-slate-800">
           <p>
             <strong className="text-gray-900 dark:text-white">Artículo Primero.</strong> Se constituye un organismo independiente que rinde cuentas al Tecnológico de Morelia, denominado
-            "CONSEJO ESTUDIANTIL DEL INSTITUTO TECNOLÓGICO DE MORELIA" (CEITM).
+            "CONCEJO ESTUDIANTIL DEL INSTITUTO TECNOLÓGICO DE MORELIA" (CEITM).
           </p>
           <p>
             <strong className="text-gray-900 dark:text-white">Artículo Tercero (Objeto Social).</strong> El organismo no persigue fines lucrativos.
@@ -83,8 +83,8 @@ export const EstatutosText = () => {
           <ul className="list-disc pl-5 space-y-1 marker:text-guinda-600">
             <li>Violar los estatutos o reglamentos.</li>
             <li>Trabajar en contra de los objetivos del CEITM.</li>
-            <li>Denigrar o difamar públicamente al Consejo.</li>
-            <li>Incitar a la violencia o cometer ilícitos contra el Consejo o el Plantel.</li>
+            <li>Denigrar o difamar públicamente al Concejo.</li>
+            <li>Incitar a la violencia o cometer ilícitos contra el Concejo o el Plantel.</li>
           </ul>
         </div>
       </section>
@@ -103,7 +103,7 @@ export const EstatutosText = () => {
             <li>La elección será mediante <strong>voto libre, secreto y en boleta cerrada</strong> en cada carrera.</li>
             <li>Se publicará convocatoria con al menos una semana de anticipación.</li>
             <li>La duración del cargo es de dos años lectivos.</li>
-            <li>Si no existen candidatos en dos convocatorias, la carrera se quedará sin representante y sin gestor ante el Consejo.</li>
+            <li>Si no existen candidatos en dos convocatorias, la carrera se quedará sin representante y sin gestor ante el Concejo.</li>
           </ul>
         </div>
       </section>
@@ -112,7 +112,7 @@ export const EstatutosText = () => {
       <section>
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <span className="bg-guinda-100 dark:bg-guinda-900/30 text-guinda-700 dark:text-guinda-400 px-2 py-1 rounded text-sm">CAP. VII</span>
-          Organización del Consejo Directivo
+          Organización del Concejo Directivo
         </h3>
         <div className="space-y-4 pl-2 border-l-4 border-gray-100 dark:border-slate-800">
           <p>

@@ -460,6 +460,57 @@ export const updateStudentStatus = async (controlNumber: string, data: any) => {
   return response.data;
 };
 
+// --- ALTA MANUAL E IMPORTACIÓN DE BECARIOS ---
+export const createStudentManual = async (data: {
+  control_number: string;
+  full_name: string;
+  phone_number?: string;
+  career: string;
+}) => {
+  const response = await api.post('/students/manual', data);
+  return response.data;
+};
+
+export const importStudentsExcel = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post('/students/import-excel', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data; // { total, creados, actualizados, duplicados, servicios, errores }
+};
+
+// --- SERVICIOS DEL BECARIO (ServicioBecario) ---
+export const getStudentServicios = async (controlNumber: string) => {
+  const response = await api.get(`/students/${controlNumber}/servicios`);
+  return response.data;
+};
+
+export const createStudentServicio = async (controlNumber: string, data: {
+  actividad: string;
+  periodo: string;
+  anio: number;
+  liberar: boolean;
+}) => {
+  const response = await api.post(`/students/${controlNumber}/servicios`, data);
+  return response.data;
+};
+
+export const updateStudentServicio = async (controlNumber: string, servicioId: number, data: Partial<{
+  liberar: boolean;
+  actividad: string;
+  periodo: string;
+  anio: number;
+}>) => {
+  const response = await api.patch(`/students/${controlNumber}/servicios/${servicioId}`, data);
+  return response.data;
+};
+
+export const deleteStudentServicio = async (controlNumber: string, servicioId: number) => {
+  const response = await api.delete(`/students/${controlNumber}/servicios/${servicioId}`);
+  return response.data;
+};
+
 // ==========================================
 // NUEVO: MÓDULO DE ASISTENCIAS (BECARIOS)
 // ==========================================
@@ -532,5 +583,45 @@ export const deleteCafeteria = async (id: number) => {
 
 export const resetCafeterias = async () => {
   const response = await api.post('/becas/cafeterias/reset');
+  return response.data;
+};
+
+
+// ==========================================
+// CALENDARIO INTERNO (CONCEJO)
+// ==========================================
+export const getEvents = async (params?: { month?: number; year?: number; search?: string; category?: string }) => {
+  const response = await api.get(ENDPOINTS.EVENTOS.BASE, { params });
+  return response.data;
+};
+
+export const createEvent = async (data: {
+  title: string;
+  description?: string | null;
+  event_date: string;
+  start_time?: string | null;
+  end_time?: string | null;
+  location?: string | null;
+  category: string;
+}) => {
+  const response = await api.post(ENDPOINTS.EVENTOS.BASE, data);
+  return response.data;
+};
+
+export const updateEvent = async (id: number, data: Partial<{
+  title: string;
+  description?: string | null;
+  event_date: string;
+  start_time?: string | null;
+  end_time?: string | null;
+  location?: string | null;
+  category: string;
+}>) => {
+  const response = await api.put(ENDPOINTS.EVENTOS.BY_ID(id), data);
+  return response.data;
+};
+
+export const deleteEventApi = async (id: number) => {
+  const response = await api.delete(ENDPOINTS.EVENTOS.BY_ID(id));
   return response.data;
 };

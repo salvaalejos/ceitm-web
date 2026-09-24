@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { api, registerAttendance, getWeeklyFaults, exportAttendancesExcel, getWeeklyAttendanceRecords } from '../../../shared/services/api';
-import { Search, Ban, CheckCircle, History, GraduationCap, FileText, Download, Send, X, UserCheck, UserX, ChevronLeft, ChevronRight, CalendarCheck, AlertTriangle, Filter, Undo } from 'lucide-react';
+import { api, registerAttendance, getWeeklyFaults, exportAttendancesExcel, getWeeklyAttendanceRecords, createStudentManual, importStudentsExcel, getStudentServicios, createStudentServicio, updateStudentServicio, deleteStudentServicio, getCareers } from '../../../shared/services/api';
+import { Search, Ban, CheckCircle, History, GraduationCap, FileText, Download, Send, X, UserCheck, UserX, ChevronLeft, ChevronRight, CalendarCheck, AlertTriangle, Filter, Undo, UserPlus, Upload, Trash2, Plus } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { usePermissions } from '../../../shared/hooks/usePermissions';
 
@@ -29,6 +29,18 @@ interface ApplicationHistory {
     };
 }
 
+interface ServicioRecord {
+    id: number;
+    control_number: string;
+    actividad: string;
+    periodo: string;
+    anio: number;
+    estado: string;
+    folio?: string | null;
+    liberado_at?: string | null;
+    created_at: string;
+}
+
 const AdminBecarios = () => {
     const { isAdmin, isEstructura, area } = usePermissions();
     const canVetarYLiberar = isAdmin || isEstructura || area === 'Prevención y Logística';
@@ -53,11 +65,26 @@ const AdminBecarios = () => {
     const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
 
     const [releaseModalOpen, setReleaseModalOpen] = useState(false);
-    const [appToRelease, setAppToRelease] = useState<number | null>(null);
     const [releaseForm, setReleaseForm] = useState({ activity: '', period: 'A', year: new Date().getFullYear() });
 
     const [excelModalOpen, setExcelModalOpen] = useState(false);
     const [excelDates, setExcelDates] = useState({ start: '', end: '' });
+
+    // Servicios (ServicioBecario)
+    const [servicios, setServicios] = useState<ServicioRecord[]>([]);
+    const [loadingServicios, setLoadingServicios] = useState(false);
+
+    // Alta manual
+    const [manualModalOpen, setManualModalOpen] = useState(false);
+    const [manualForm, setManualForm] = useState({ control_number: '', full_name: '', phone_number: '', career: '' });
+    const [savingManual, setSavingManual] = useState(false);
+    const [careers, setCareers] = useState<{ id: number; name: string }[]>([]);
+
+    // Importación Excel
+    const [importModalOpen, setImportModalOpen] = useState(false);
+    const [importFile, setImportFile] = useState<File | null>(null);
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState<{ total: number; creados: number; actualizados: number; duplicados: number; servicios: number; errores: string[] } | null>(null);
 
     useEffect(() => {
         const today = new Date();
@@ -115,6 +142,7 @@ const AdminBecarios = () => {
     const loadHistory = async (student: StudentRecord) => {
         setSelectedStudent(student);
         setLoadingHistory(true);
+        setLoadingServicios(true);
         try {
             const { data } = await api.get<ApplicationHistory[]>(`/students/${student.control_number}/history`);
             setHistory(data);
@@ -123,6 +151,16 @@ const AdminBecarios = () => {
             setSelectedStudent(null);
         } finally {
             setLoadingHistory(false);
+        }
+
+        try {
+            const servicios = await getStudentServicios(student.control_number);
+            setServicios(servicios);
+        } catch (error) {
+            console.error(error);
+            Swal.fire('Error', 'No se pudieron cargar los servicios', 'error');
+        } finally {
+            setLoadingServicios(false);
         }
     };
 
@@ -261,38 +299,39 @@ const AdminBecarios = () => {
         return days;
     };
 
-    const openReleaseModal = (appId: number) => {
-        setAppToRelease(appId);
+    const openServicioModal = () => {
         setReleaseForm({ activity: '', period: 'A', year: new Date().getFullYear() });
         setReleaseModalOpen(true);
     };
 
     const handleReleaseSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!appToRelease || !releaseForm.activity) return;
+        if (!selectedStudent || !releaseForm.activity) return;
 
         try {
-            await api.patch(`/becas/applications/${appToRelease}`, {
-                status: 'Liberada',
-                release_activity: releaseForm.activity,
-                release_period: releaseForm.period,
-                release_year: releaseForm.year
+            await createStudentServicio(selectedStudent.control_number, {
+                actividad: releaseForm.activity,
+                periodo: releaseForm.period,
+                anio: releaseForm.year,
+                liberar: true,
             });
 
             setReleaseModalOpen(false);
-            if (selectedStudent) loadHistory(selectedStudent);
-            Swal.fire({ icon: 'success', title: '¡Beca Liberada!', text: 'El folio ha sido generado correctamente.' });
+            const servicios = await getStudentServicios(selectedStudent.control_number);
+            setServicios(servicios);
+            Swal.fire({ icon: 'success', title: '¡Servicio Liberado!', text: 'El folio ha sido generado correctamente.' });
             loadStudents();
-        } catch (e) {
-            Swal.fire('Error', 'No se pudo liberar.', 'error');
+        } catch {
+            Swal.fire('Error', 'No se pudo liberar el servicio.', 'error');
         }
     };
 
-    const handleRevertRelease = async (appId: number) => {
+    const handleRevertServicio = async (servicio: ServicioRecord) => {
+        if (!selectedStudent) return;
         const isDark = document.documentElement.classList.contains('dark');
         const res = await Swal.fire({
             title: '¿Deshacer Liberación?',
-            text: 'La solicitud regresará a estado "Aprobada" y se borrará el folio generado.',
+            text: `El servicio "${servicio.actividad}" regresará a estado pendiente y se borrará su folio.`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#f59e0b',
@@ -305,20 +344,90 @@ const AdminBecarios = () => {
 
         if (res.isConfirmed) {
             try {
-                await api.patch(`/becas/applications/${appId}`, {
-                    status: 'Aprobada',
-                    release_activity: null,
-                    release_period: null,
-                    release_year: null
-                });
+                await updateStudentServicio(selectedStudent.control_number, servicio.id, { liberar: false });
+                const servicios = await getStudentServicios(selectedStudent.control_number);
+                setServicios(servicios);
                 Swal.fire({ icon: 'success', title: 'Revertido', text: 'La liberación ha sido cancelada.', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
-                if (selectedStudent) loadHistory(selectedStudent);
                 loadStudents();
-            } catch (e) {
+            } catch {
                 Swal.fire('Error', 'No se pudo revertir la liberación.', 'error');
             }
         }
     };
+
+    const handleDeleteServicio = async (servicio: ServicioRecord) => {
+        if (!selectedStudent) return;
+        const isDark = document.documentElement.classList.contains('dark');
+        const res = await Swal.fire({
+            title: '¿Eliminar servicio?',
+            text: `Se eliminará "${servicio.actividad}" permanentemente.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            background: isDark ? '#1e293b' : '#fff',
+            color: isDark ? '#fff' : '#000'
+        });
+
+        if (res.isConfirmed) {
+            try {
+                await deleteStudentServicio(selectedStudent.control_number, servicio.id);
+                const servicios = await getStudentServicios(selectedStudent.control_number);
+                setServicios(servicios);
+                loadStudents();
+            } catch {
+                Swal.fire('Error', 'No se pudo eliminar el servicio.', 'error');
+            }
+        }
+    };
+
+    const handleManualSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSavingManual(true);
+        try {
+            await createStudentManual({ ...manualForm });
+            setManualModalOpen(false);
+            setManualForm({ control_number: '', full_name: '', phone_number: '', career: '' });
+            Swal.fire({ icon: 'success', title: '¡Becario registrado!', text: 'El becario fue agregado al padrón.' });
+            loadStudents();
+        } catch (error) {
+            const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+            Swal.fire('Error', detail || 'No se pudo registrar el becario.', 'error');
+        } finally {
+            setSavingManual(false);
+        }
+    };
+
+    const handleImportSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!importFile) return;
+        setImporting(true);
+        try {
+            const result = await importStudentsExcel(importFile);
+            setImportResult(result);
+            loadStudents();
+        } catch (error) {
+            const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+            Swal.fire('Error', detail || 'No se pudo importar el archivo.', 'error');
+        } finally {
+            setImporting(false);
+        }
+    };
+
+    const loadCareers = async () => {
+        try {
+            const data = await getCareers();
+            setCareers(data);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    useEffect(() => {
+        loadCareers();
+    }, []);
 
     const handleDownload = async (appId: number, control: string) => {
         try {
@@ -367,7 +476,7 @@ const AdminBecarios = () => {
     return (
         <div className="space-y-6 animate-fade-in pb-10">
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="space-y-5">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <GraduationCap className="text-guinda-600" /> Padrón de Becarios
@@ -375,78 +484,98 @@ const AdminBecarios = () => {
                     <p className="text-gray-500 text-sm dark:text-gray-400">Administración de expedientes y asistencias.</p>
                 </div>
 
-                <div className="flex flex-col md:flex-row w-full md:w-auto gap-3">
-                    <button
-                        onClick={() => setExcelModalOpen(true)}
-                        className="bg-green-600 hover:bg-green-700 text-white py-3 md:py-2 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all shadow-sm"
-                    >
-                        <Download size={18} /> <span className="hidden md:inline">Exportar</span> Excel
-                    </button>
-
-                    {/* SELECTOR DE ORDENAMIENTO */}
-                    <div className="relative flex-1 md:flex-none">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex flex-wrap gap-2 sm:gap-3">
                         <button
-                            onClick={() => setIsSortOpen(!isSortOpen)}
-                            className="w-full flex items-center justify-between gap-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-4 py-2.5 shadow-sm hover:border-guinda-500 dark:hover:border-guinda-500 transition-all group"
+                            onClick={() => setManualModalOpen(true)}
+                            className="flex-1 sm:flex-none bg-guinda-600 hover:bg-guinda-700 text-white py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all shadow-sm"
+                            title="Dar de alta a un becario manualmente"
                         >
-                            <div className="flex items-center gap-2">
-                                <Filter size={18}
-                                        className="text-gray-400 group-hover:text-guinda-500 transition-colors"/>
-                                <span className="text-sm font-medium text-gray-700 dark:text-slate-200">
-                                    {sortBy === 'control_desc' && 'Más Recientes'}
-                                    {sortBy === 'control_asc' && 'Más Antiguos'}
-                                    {sortBy === 'name_asc' && 'Nombre (A-Z)'}
-                                    {sortBy === 'name_desc' && 'Nombre (Z-A)'}
-                                </span>
-                            </div>
-                            <ChevronRight size={16}
-                                          className={`text-gray-400 transition-transform duration-200 ${isSortOpen ? 'rotate-90' : ''}`}/>
+                            <UserPlus size={18} /> Nuevo Becario
                         </button>
 
-                        {/* MENÚ DESPLEGABLE */}
-                        {isSortOpen && (
-                            <>
-                                <div className="fixed inset-0 z-10" onClick={() => setIsSortOpen(false)}></div>
-                                <div
-                                    className="absolute top-full mt-2 w-full min-w-[200px] bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl shadow-xl z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-                                    <div className="p-1.5">
-                                        {[
-                                            {id: 'control_desc', label: 'Más Recientes (Control)'},
-                                            {id: 'control_asc', label: 'Más Antiguos (Control)'},
-                                            {id: 'name_asc', label: 'Nombre (A-Z)'},
-                                            {id: 'name_desc', label: 'Nombre (Z-A)'}
-                                        ].map((option) => (
-                                            <button
-                                                key={option.id}
-                                                onClick={() => {
-                                                    setSortBy(option.id);
-                                                    setPage(1);
-                                                    setIsSortOpen(false);
-                                                }}
-                                                className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                                                    sortBy === option.id
-                                                        ? 'bg-guinda-50 text-guinda-700 dark:bg-guinda-900/30 dark:text-guinda-400'
-                                                        : 'text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700/50 hover:text-gray-900 dark:hover:text-white'
-                                                }`}
-                                            >
-                                                {option.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </>
-                        )}
+                        <button
+                            onClick={() => { setImportFile(null); setImportResult(null); setImportModalOpen(true); }}
+                            className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all shadow-sm"
+                            title="Importar padrón desde Excel"
+                        >
+                            <Upload size={18} /> Importar Excel
+                        </button>
+
+                        <button
+                            onClick={() => setExcelModalOpen(true)}
+                            className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all shadow-sm"
+                        >
+                            <Download size={18} /> Exportar Excel
+                        </button>
                     </div>
 
-                    <div className="relative w-full md:w-72">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20}/>
-                        <input
-                            type="text"
-                            placeholder="Buscar por nombre o control..."
-                            className="w-full pl-10 pr-4 py-3 md:py-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-guinda-500 shadow-sm transition-all"
-                            value={filter}
-                            onChange={handleSearch}
-                        />
+                    <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                        {/* SELECTOR DE ORDENAMIENTO */}
+                        <div className="relative w-full sm:w-56">
+                            <button
+                                onClick={() => setIsSortOpen(!isSortOpen)}
+                                className="w-full flex items-center justify-between gap-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-4 py-2.5 shadow-sm hover:border-guinda-500 dark:hover:border-guinda-500 transition-all group"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Filter size={18}
+                                            className="text-gray-400 group-hover:text-guinda-500 transition-colors"/>
+                                    <span className="text-sm font-medium text-gray-700 dark:text-slate-200">
+                                        {sortBy === 'control_desc' && 'Más Recientes'}
+                                        {sortBy === 'control_asc' && 'Más Antiguos'}
+                                        {sortBy === 'name_asc' && 'Nombre (A-Z)'}
+                                        {sortBy === 'name_desc' && 'Nombre (Z-A)'}
+                                    </span>
+                                </div>
+                                <ChevronRight size={16}
+                                              className={`text-gray-400 transition-transform duration-200 ${isSortOpen ? 'rotate-90' : ''}`}/>
+                            </button>
+
+                            {/* MENÚ DESPLEGABLE */}
+                            {isSortOpen && (
+                                <>
+                                    <div className="fixed inset-0 z-10" onClick={() => setIsSortOpen(false)}></div>
+                                    <div
+                                        className="absolute top-full mt-2 w-full min-w-[200px] bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl shadow-xl z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                                        <div className="p-1.5">
+                                            {[
+                                                {id: 'control_desc', label: 'Más Recientes (Control)'},
+                                                {id: 'control_asc', label: 'Más Antiguos (Control)'},
+                                                {id: 'name_asc', label: 'Nombre (A-Z)'},
+                                                {id: 'name_desc', label: 'Nombre (Z-A)'}
+                                            ].map((option) => (
+                                                <button
+                                                    key={option.id}
+                                                    onClick={() => {
+                                                        setSortBy(option.id);
+                                                        setPage(1);
+                                                        setIsSortOpen(false);
+                                                    }}
+                                                    className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                                                        sortBy === option.id
+                                                            ? 'bg-guinda-50 text-guinda-700 dark:bg-guinda-900/30 dark:text-guinda-400'
+                                                            : 'text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700/50 hover:text-gray-900 dark:hover:text-white'
+                                                    }`}
+                                                >
+                                                    {option.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        <div className="relative w-full sm:w-72">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20}/>
+                            <input
+                                type="text"
+                                placeholder="Buscar por nombre o control..."
+                                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-guinda-500 shadow-sm transition-all"
+                                value={filter}
+                                onChange={handleSearch}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -711,7 +840,73 @@ const AdminBecarios = () => {
                         </div>
 
                         <div className="p-6 overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900">
-                            <h4 className="font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+                            {/* SERVICIOS (ServicioBecario) */}
+                            <div className="flex items-center justify-between mb-4">
+                                <h4 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <Send size={18} className="text-guinda-600" /> Servicios Registrados
+                                </h4>
+                                {canVetarYLiberar && (
+                                    <button onClick={openServicioModal} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-guinda-600 hover:bg-guinda-700 text-white text-xs font-bold transition-colors shadow-sm">
+                                        <Plus size={14} /> Liberar Servicio
+                                    </button>
+                                )}
+                            </div>
+                            {loadingServicios ? (
+                                <div className="text-center py-8">
+                                    <div className="animate-spin h-8 w-8 border-4 border-guinda-500 border-t-transparent rounded-full mx-auto mb-3"></div>
+                                </div>
+                            ) : servicios.length === 0 ? (
+                                <div className="text-center py-8 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-gray-200 dark:border-slate-800 mb-6">
+                                    <p className="text-gray-500 dark:text-gray-400 font-medium">Sin servicios registrados.</p>
+                                    {canVetarYLiberar && (
+                                        <button onClick={openServicioModal} className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-guinda-600 hover:bg-guinda-700 text-white text-xs font-bold transition-colors">
+                                            <Plus size={14} /> Registrar primer servicio
+                                        </button>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="space-y-3 mb-6">
+                                    {servicios.map((s) => (
+                                        <div key={s.id} className="rounded-xl border border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-950 p-4 shadow-sm">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <p className="font-bold text-gray-900 dark:text-white text-sm">{s.actividad}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                                        Periodo {s.periodo} • {s.anio} • {new Date(s.created_at).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                                    </p>
+                                                </div>
+                                                <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider shrink-0
+                                                    ${s.estado === 'liberado' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-gray-200 text-gray-600 dark:bg-slate-800 dark:text-gray-400'}`}>
+                                                    {s.estado === 'liberado' ? 'Liberado' : 'Pendiente'}
+                                                </span>
+                                            </div>
+                                            {s.folio && (
+                                                <div className="mt-3 bg-white dark:bg-slate-900 p-3 rounded-lg border border-blue-100 dark:border-slate-800 flex items-center justify-between group">
+                                                    <div>
+                                                        <p className="text-[10px] uppercase text-gray-400 font-bold tracking-wider mb-0.5">Folio Oficial</p>
+                                                        <p className="text-base font-mono font-black text-blue-600 dark:text-blue-400 tracking-widest select-all">{s.folio}</p>
+                                                    </div>
+                                                    <CheckCircle size={20} className="text-blue-500 opacity-50 group-hover:opacity-100 transition-opacity" />
+                                                </div>
+                                            )}
+                                            {canVetarYLiberar && (
+                                                <div className="flex gap-2 mt-3 pt-2 border-t border-gray-200 dark:border-slate-800">
+                                                    {s.estado === 'liberado' && (
+                                                        <button onClick={() => handleRevertServicio(s)} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-colors">
+                                                            <Undo size={14} /> Deshacer
+                                                        </button>
+                                                    )}
+                                                    <button onClick={() => handleDeleteServicio(s)} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-bold transition-colors">
+                                                        <Trash2 size={14} /> Eliminar
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <h4 className="font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4 mt-6">
                                 <History size={18} className="text-guinda-600" /> Historial de Solicitudes
                             </h4>
                             {loadingHistory ? (
@@ -760,20 +955,6 @@ const AdminBecarios = () => {
                                                     <button onClick={() => handleDownload(app.id, selectedStudent.control_number)} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 text-xs font-bold text-gray-700 dark:text-gray-300 transition-colors">
                                                         <Download size={14} /> Descargar
                                                     </button>
-
-                                                    {/* 👇 BOTÓN LIBERAR (Solo PyL y Admin) */}
-                                                    {app.status === 'Aprobada' && canVetarYLiberar && (
-                                                        <button onClick={() => openReleaseModal(app.id)} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-guinda-600 hover:bg-guinda-700 text-white text-xs font-bold transition-colors shadow-md shadow-guinda-900/20">
-                                                            <Send size={14} /> Liberar Beca
-                                                        </button>
-                                                    )}
-
-                                                    {/* 👇 NUEVO BOTÓN REVERTIR (Solo PyL y Admin) */}
-                                                    {app.status === 'Liberada' && canVetarYLiberar && (
-                                                        <button onClick={() => handleRevertRelease(app.id)} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-colors shadow-md shadow-amber-900/20">
-                                                            <Undo size={14} /> Deshacer
-                                                        </button>
-                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -790,7 +971,7 @@ const AdminBecarios = () => {
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in zoom-in-95 duration-200">
                     <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl p-6 border border-gray-200 dark:border-slate-700">
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Liberar Beca</h3>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Liberar Servicio</h3>
                             <button onClick={() => setReleaseModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white">
                                 <X size={20} />
                             </button>
@@ -847,6 +1028,133 @@ const AdminBecarios = () => {
                                 Descargar Archivo Excel
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+        {/* MODAL ALTA MANUAL */}
+            {manualModalOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in zoom-in-95 duration-200">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl p-6 border border-gray-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto custom-scrollbar">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <UserPlus size={20} className="text-guinda-600" /> Nuevo Becario
+                            </h3>
+                            <button onClick={() => setManualModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleManualSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-gray-500 dark:text-gray-400 mb-1.5">Número de Control *</label>
+                                <input required type="text" placeholder="Ej. 21410617" className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-guinda-500 transition-all" value={manualForm.control_number} onChange={e => setManualForm({...manualForm, control_number: e.target.value})} />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-gray-500 dark:text-gray-400 mb-1.5">Nombre Completo *</label>
+                                <input required type="text" placeholder="Ej. María José Gómez López" className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-guinda-500 transition-all" value={manualForm.full_name} onChange={e => setManualForm({...manualForm, full_name: e.target.value})} />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-gray-500 dark:text-gray-400 mb-1.5">Carrera *</label>
+                                <select required className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-guinda-500 transition-all" value={manualForm.career} onChange={e => setManualForm({...manualForm, career: e.target.value})}>
+                                    <option value="" disabled>Selecciona una carrera</option>
+                                    {careers.map((c) => (
+                                        <option key={c.id} value={c.name}>{c.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-gray-500 dark:text-gray-400 mb-1.5">Teléfono</label>
+                                <input type="text" placeholder="Opcional" className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-guinda-500 transition-all" value={manualForm.phone_number} onChange={e => setManualForm({...manualForm, phone_number: e.target.value})} />
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={savingManual || !manualForm.full_name.trim() || !manualForm.control_number.trim() || !manualForm.career.trim()}
+                                className={`w-full py-3.5 mt-2 rounded-xl text-white font-bold shadow-lg transition-all transform active:scale-95 ${savingManual ? 'bg-gray-400 cursor-not-allowed' : 'bg-guinda-600 hover:bg-guinda-700 shadow-guinda-900/30'}`}
+                            >
+                                {savingManual ? 'Guardando...' : 'Registrar Becario'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL IMPORTAR EXCEL */}
+            {importModalOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in zoom-in-95 duration-200">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl p-6 border border-gray-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto custom-scrollbar">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <Upload size={20} className="text-blue-600" /> Importar Padrón (Excel)
+                            </h3>
+                            <button onClick={() => setImportModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                            El archivo debe tener las columnas <b>No. de Control</b>, <b>Nombre</b> y <b>Carrera</b> (obligatorias), y opcionalmente <b>Actividad</b> y <b>Folio</b>. Se leen todas las hojas del archivo. Si un control ya existe, sus datos se actualizarán.
+                        </p>
+
+                        <label className="block w-full cursor-pointer border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl p-6 text-center hover:border-guinda-500 dark:hover:border-guinda-500 transition-colors">
+                            <Upload size={28} className="mx-auto text-gray-400 mb-2" />
+                            <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                                {importFile ? importFile.name : 'Selecciona un archivo .xlsx'}
+                            </span>
+                            <input
+                                type="file"
+                                accept=".xlsx,.xlsm"
+                                className="hidden"
+                                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                            />
+                        </label>
+
+                        <button
+                            onClick={handleImportSubmit}
+                            disabled={importing || !importFile}
+                            className={`w-full py-3.5 mt-4 rounded-xl text-white font-bold shadow-lg transition-all transform active:scale-95 ${importing || !importFile ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-900/30'}`}
+                        >
+                            {importing ? 'Procesando...' : 'Importar'}
+                        </button>
+
+                        {importResult && (
+                            <div className="mt-5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 p-4 space-y-2">
+                                <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Resultado</h4>
+                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800">
+                                        <p className="text-gray-400 font-medium">Total filas</p>
+                                        <p className="text-lg font-black text-gray-900 dark:text-white">{importResult.total}</p>
+                                    </div>
+                                    <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900">
+                                        <p className="text-green-600 dark:text-green-400 font-medium">Creados</p>
+                                        <p className="text-lg font-black text-green-700 dark:text-green-300">{importResult.creados}</p>
+                                    </div>
+                                    <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900">
+                                        <p className="text-blue-600 dark:text-blue-400 font-medium">Actualizados</p>
+                                        <p className="text-lg font-black text-blue-700 dark:text-blue-300">{importResult.actualizados}</p>
+                                    </div>
+                                    <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900">
+                                        <p className="text-amber-600 dark:text-amber-400 font-medium">Duplicados en archivo</p>
+                                        <p className="text-lg font-black text-amber-700 dark:text-amber-300">{importResult.duplicados}</p>
+                                    </div>
+                                    <div className="p-2 rounded-lg bg-guinda-50 dark:bg-guinda-900/20 border border-guinda-100 dark:border-guinda-900">
+                                        <p className="text-guinda-600 dark:text-guinda-400 font-medium">Servicios registrados</p>
+                                        <p className="text-lg font-black text-guinda-700 dark:text-guinda-300">{importResult.servicios}</p>
+                                    </div>
+                                </div>
+                                {importResult.errores.length > 0 && (
+                                    <div className="mt-2">
+                                        <p className="text-xs font-bold text-red-500 uppercase tracking-wider mb-1">Errores</p>
+                                        <ul className="space-y-1">
+                                            {importResult.errores.slice(0, 5).map((msg, i) => (
+                                                <li key={i} className="text-xs text-red-600 dark:text-red-400">{msg}</li>
+                                            ))}
+                                            {importResult.errores.length > 5 && (
+                                                <li className="text-xs text-gray-400">...y {importResult.errores.length - 5} más</li>
+                                            )}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

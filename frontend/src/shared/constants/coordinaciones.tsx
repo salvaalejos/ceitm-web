@@ -1,7 +1,7 @@
 import {
     Crown, FileText, DollarSign, Scale, // Directiva
     BookOpen, GraduationCap, HeartHandshake, Megaphone, Users, Activity, Palette, // Operativas
-    Monitor, Users2, ShieldQuestion // Otros (Sistemas, Consejo, Ninguna)
+    Monitor, Users2, ShieldQuestion // Otros (Sistemas, Concejo, Ninguna)
 } from 'lucide-react';
 
 export interface Coordination {
@@ -24,8 +24,8 @@ export const COORDINACIONES: Coordination[] = [
         type: 'directiva',
         allowedRoles: ['estructura'],
         icon: Crown,
-        description: 'Representación oficial del alumnado, liderazgo estratégico y coordinación general del Consejo.',
-        modalDescription: 'La Presidencia es la encargada de representar a la comunidad estudiantil ante las autoridades, coordinar a las diferentes áreas y velar por el cumplimiento de los objetivos del Consejo Estudiantil.',
+        description: 'Representación oficial del alumnado, liderazgo estratégico y coordinación general del Concejo.',
+        modalDescription: 'La Presidencia es la encargada de representar a la comunidad estudiantil ante las autoridades, coordinar a las diferentes áreas y velar por el cumplimiento de los objetivos del Concejo Estudiantil.',
         color: 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 group-hover:bg-yellow-600 group-hover:text-white',
         route: '/concejales'
     },
@@ -35,8 +35,8 @@ export const COORDINACIONES: Coordination[] = [
         type: 'directiva',
         allowedRoles: ['estructura'],
         icon: FileText,
-        description: 'Organización interna, gestión de documentación oficial, minutas y agenda del Consejo.',
-        modalDescription: 'La Secretaría General se encarga de la organización interna, el manejo de actas, minutas y la documentación oficial del Consejo, asegurando el orden administrativo.',
+        description: 'Organización interna, gestión de documentación oficial, minutas y agenda del Concejo.',
+        modalDescription: 'La Secretaría General se encarga de la organización interna, el manejo de actas, minutas y la documentación oficial del Concejo, asegurando el orden administrativo.',
         color: 'text-gray-600 bg-gray-100 dark:bg-gray-700/50 group-hover:bg-gray-600 group-hover:text-white',
         route: '/transparencia'
     },
@@ -47,7 +47,7 @@ export const COORDINACIONES: Coordination[] = [
         allowedRoles: ['estructura'],
         icon: DollarSign,
         description: 'Administración transparente de recursos, finanzas y gestión de presupuestos para actividades.',
-        modalDescription: 'La Tesorería administra los recursos financieros del Consejo con total transparencia, gestionando presupuestos para eventos y apoyos estudiantiles.',
+        modalDescription: 'La Tesorería administra los recursos financieros del Concejo con total transparencia, gestionando presupuestos para eventos y apoyos estudiantiles.',
         color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 group-hover:bg-emerald-600 group-hover:text-white',
         route: '/transparencia'
     },
@@ -58,7 +58,7 @@ export const COORDINACIONES: Coordination[] = [
         allowedRoles: ['estructura'],
         icon: Scale,
         description: 'Vigilancia del cumplimiento de estatutos, auditoría interna y transparencia en procesos.',
-        modalDescription: 'La Contraloría vigila el cumplimiento de los estatutos y reglamentos, actuando como órgano de control interno para garantizar la legalidad de las acciones del Consejo.',
+        modalDescription: 'La Contraloría vigila el cumplimiento de los estatutos y reglamentos, actuando como órgano de control interno para garantizar la legalidad de las acciones del Concejo.',
         color: 'text-blue-gray-600 bg-blue-gray-50 dark:bg-slate-800 group-hover:bg-slate-600 group-hover:text-white',
         route: '/transparencia'
     },
@@ -115,7 +115,7 @@ export const COORDINACIONES: Coordination[] = [
         allowedRoles: ['coordinador', 'vocal'],
         icon: Megaphone,
         description: 'Manejo de redes oficiales, diseño de estrategias informativas y difusión de avisos.',
-        modalDescription: 'Somos la voz del Consejo. Gestionamos las redes sociales oficiales y aseguramos que la información importante llegue a cada rincón del Tecnológico.',
+        modalDescription: 'Somos la voz del Concejo. Gestionamos las redes sociales oficiales y aseguramos que la información importante llegue a cada rincón del Tecnológico.',
         color: 'text-pink-600 bg-pink-50 dark:bg-pink-900/20 group-hover:bg-pink-600 group-hover:text-white',
         route: '/noticias'
     },
@@ -136,8 +136,8 @@ export const COORDINACIONES: Coordination[] = [
         type: 'operativa',
         allowedRoles: ['coordinador', 'vocal'],
         icon: Palette,
-        description: 'Identidad visual institucional, creación de contenido gráfico y branding del Consejo.',
-        modalDescription: 'Creamos la imagen del Consejo. Diseñamos todo el material gráfico, fotografía y video para mantener una identidad visual profesional y moderna.',
+        description: 'Identidad visual institucional, creación de contenido gráfico y branding del Concejo.',
+        modalDescription: 'Creamos la imagen del Concejo. Diseñamos todo el material gráfico, fotografía y video para mantener una identidad visual profesional y moderna.',
         color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 group-hover:bg-indigo-600 group-hover:text-white',
         route: '/noticias'
     },
@@ -150,7 +150,7 @@ export const COORDINACIONES: Coordination[] = [
         allowedRoles: ['vocal', 'concejal'],
         icon: Users2,
         description: 'Cuerpo general de concejales y representantes.',
-        modalDescription: 'Representantes de cada carrera ante el Consejo.',
+        modalDescription: 'Representantes de cada carrera ante el Concejo.',
         color: 'text-gray-500',
         route: '/concejales'
     },

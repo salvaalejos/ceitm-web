@@ -12,7 +12,7 @@ export default defineConfig({
       manifest: {
         name: 'Plataforma CEITM',
         short_name: 'CEITM',
-        description: 'Plataforma Oficial del Consejo Estudiantil del ITM',
+        description: 'Plataforma Oficial del Concejo Estudiantil del ITM',
         theme_color: '#800020', // Tu color Guinda institucional
         background_color: '#ffffff',
         display: 'standalone', // Se ve como app nativa (sin barra de navegador)
